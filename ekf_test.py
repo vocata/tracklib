@@ -15,7 +15,7 @@ the program may yield uncertain result.
 
 
 def EKFilter_test():
-    N, T = 2000, 1
+    N, T = 200, 1
 
     x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
     qx, qy = math.sqrt(0.01), math.sqrt(0.02)
@@ -26,7 +26,7 @@ def EKFilter_test():
     Q = np.diag([0, 0, qx**2, qy**2])
 
     wrap = lambda x: x
-    h = lambda x, v: utils.col([linalg.norm(x), wrap(np.arctan2(x[1], x[0]))]) + v
+    h = lambda x, v: utils.col([linalg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
     R = np.diag([rr**2, ra**2])
 
     x = utils.col([1, 2, 0.2, 0.3])
