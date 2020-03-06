@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
 import scipy.linalg as linalg
 from tracklib import utils
@@ -27,8 +26,6 @@ class KFilter():
         w_dim: process noise dimension
         v_dim: measurement noises dimension
         u_dim: input dimension
-
-        default is scalar kalman filter
         '''
 
         self._x_dim = x_dim
@@ -68,7 +65,8 @@ class KFilter():
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'updated error covariance matrix:\n%s\n' % str(self._P_up)
+        msg += 'updated error covariance matrix:\n%s\n\n' % str(self._P_up)
+        msg += 'kalman filter gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
@@ -77,6 +75,8 @@ class KFilter():
     def init(self, x_init, P_init, **kw):
         self._x_init[:] = x_init
         self._P_init[:] = P_init
+        self._x_pred[:] = x_init
+        self._P_pred[:] = P_init
         self._x_up[:] = x_init
         self._P_up[:] = P_init
         if len(kw) > 0:
@@ -160,7 +160,6 @@ class SeqKFilter():
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-
     def __init__(self, x_dim, z_dim, w_dim, v_dim, u_dim=0):
         '''
         x_dim: state dimension
@@ -215,6 +214,8 @@ class SeqKFilter():
     def init(self, x_init, P_init, **kw):
         self._x_init[:] = x_init
         self._P_init[:] = P_init
+        self._x_pred[:] = x_init
+        self._P_pred[:] = P_init
         self._x_up[:] = x_init
         self._P_up[:] = P_init
         if len(kw) > 0:

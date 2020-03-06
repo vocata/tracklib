@@ -67,8 +67,7 @@ def col(x, *args, dtype='float64', **kw):
     and sets the data type to 'float64' default.
     '''
 
-    isnum = lambda x: (isinstance(x, int) or isinstance(x, float))
-    if isnum(x):
+    if isinstance(x, int) or isinstance(x, float):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((-1, 1))
     elif isinstance(x, Iterator):
         x = np.array(list(x), *args, dtype=dtype, **kw).reshape((-1, 1))
@@ -85,8 +84,7 @@ def row(x, *args, dtype='float64', **kw):
     and sets the data type to 'float64' default.
     '''
 
-    isnum = lambda x: (isinstance(x, int) or isinstance(x, float))
-    if isnum(x):
+    if isinstance(x, int) or isinstance(x, float):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((1, -1))
     elif isinstance(x, Iterator):
         x = np.array(list(x), *args, dtype=dtype, **kw).reshape((1, -1))

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
 import scipy.linalg as linalg
 from tracklib.math import num_diff
@@ -59,7 +58,8 @@ class EKFilter():
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'updated error covariance matrix:\n%s\n' % str(self._P_up)
+        msg += 'updated error covariance matrix:\n%s\n\n' % str(self._P_up)
+        msg += 'kalman filter gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
@@ -68,6 +68,8 @@ class EKFilter():
     def init(self, x_init, P_init):
         self._x_init[:] = x_init
         self._P_init[:] = P_init
+        self._x_pred[:] = x_init
+        self._P_pred[:] = P_init
         self._x_up[:] = x_init
         self._P_up[:] = P_init
         self._len = 0
