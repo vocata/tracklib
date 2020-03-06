@@ -2,7 +2,6 @@
 
 import numpy as np
 import scipy.linalg as linalg
-from collections.abc import Iterable
 from tracklib import utils
 from .model import newton_sys
 '''
@@ -14,7 +13,7 @@ __all__ = ['AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 class AlphaBetaFilter():
     '''
-    alpha-beta-gamma filter(two-state Newtonian system)
+    alpha-beta filter(two-state Newtonian system)
 
     system model:
     x_k = F*x_k-1 + L*w_k-1
@@ -28,7 +27,7 @@ class AlphaBetaFilter():
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis):
+    def __init__(self, T, axis, alpha, beta):
         '''
         T: sample interval
         axis: the number of target motion direction,
@@ -39,9 +38,10 @@ class AlphaBetaFilter():
         self._x_init = np.empty((2 * axis, 1))
         self._K = np.empty((2 * axis, axis))
 
-        self._alpha = None
-        self._beta = None
-        self._gamma = None
+        if any(map(lambda x: not isinstance(x, list), (alpha, beta))):
+            raise ValueError('alpha and beta must be a list')
+        self._alpha = alpha
+        self._beta = beta
         self._T = T
         self._axis = axis
         self._F, _, self._H = newton_sys(T, 2, axis)
@@ -63,18 +63,21 @@ class AlphaBetaFilter():
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, alpha, beta):
+    def init(self, x_init, **kw):
         self._x_init[:] = x_init
         self._x_pred[:] = x_init
         self._x_up[:] = x_init
 
-        if all(map(lambda x: isinstance(x, int), (alpha, beta))):
-            alpha, beta = map(lambda x: [x], (alpha, beta))
-        elif all(map(lambda x: isinstance(x, Iterable), (alpha, beta))):
-            alpha, beta = map(lambda x: list(x), (alpha, beta))
-        else:
-            raise ValueError('alpha, beta and must be number or iterable')
-        diag_a, diag_b = map(np.diag, (alpha, beta))
+        if len(kw) > 0:
+            if 'alpha' in kw and isinstance(kw['alpha'], list):
+                self._alpha = kw['alpha']
+            else:
+                raise ValueError('alpha and beta must be a list')
+            if 'beta' in kw and isinstance(kw['beta'], list):
+                self._beta = kw['beta']
+            else:
+                raise ValueError('alpha and beta must be a list')
+        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
         self._K[:] = np.concatenate((diag_a, diag_b / self._T))
 
         self._len = 0
@@ -142,7 +145,7 @@ class AlphaBetaGammaFilter():
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis):
+    def __init__(self, T, axis, alpha, beta, gamma):
         '''
         T: sample interval
         axis: the number of target motion direction,
@@ -153,9 +156,11 @@ class AlphaBetaGammaFilter():
         self._x_init = np.empty((3 * axis, 1))
         self._K = np.empty((3 * axis, axis))
 
-        self._alpha = None
-        self._beta = None
-        self._gamma = None
+        if any(map(lambda x: not isinstance(x, list), (alpha, beta, gamma))):
+            raise ValueError('alpha, beta and gamma must be a list')
+        self._alpha = alpha
+        self._beta = beta
+        self._gamma = gamma
         self._T = T
         self._axis = axis
         self._F, _, self._H = newton_sys(T, 3, axis)
@@ -178,21 +183,25 @@ class AlphaBetaGammaFilter():
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, alpha, beta, gamma):
+    def init(self, x_init, **kw):
         self._x_init[:] = x_init
         self._x_pred[:] = x_init
         self._x_up[:] = x_init
-        self._alpha = alpha
-        self._beta = beta
-        self._gamma = gamma
 
-        if all(map(lambda x: isinstance(x, int), (alpha, beta, gamma))):
-            alpha, beta, gamma = map(lambda x: [x], (alpha, beta, gamma))
-        elif all(map(lambda x: isinstance(x, Iterable), (alpha, beta, gamma))):
-            alpha, beta, gamma = map(lambda x: list(x), (alpha, beta, gamma))
-        else:
-            raise ValueError('alpha, beta and gamma must be number or iterable')
-        diag_a, diag_b, diag_g = map(np.diag, (alpha, beta, gamma))
+        if len(kw) > 0:
+            if 'alpha' in kw and isinstance(kw['alpha'], list):
+                self._alpha = kw['alpha']
+            else:
+                raise ValueError('alpha, beta and gamma must a list')
+            if 'beta' in kw and isinstance(kw['beta'], list):
+                self._beta = kw['beta']
+            else:
+                raise ValueError('alpha, beta and gamma must a list')
+            if 'gamma' in kw and isinstance(kw['gamma'], list):
+                self._gamma = kw['beta']
+            else:
+                raise ValueError('alpha, beta and gamma must a list')
+        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
         self._K[:] = np.concatenate((diag_a, diag_b / self._T, diag_g / (2 * self._T)))
 
         self._len = 0

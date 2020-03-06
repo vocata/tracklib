@@ -1,8 +1,8 @@
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 import tracklib.filter as ft
 import tracklib.utils as utils
-import matplotlib.pyplot as plt
 
 
 def SSFilter_test():
@@ -12,15 +12,9 @@ def SSFilter_test():
     qx, qy = math.sqrt(0.01), math.sqrt(0.02)
     rx, ry = math.sqrt(2), math.sqrt(1)
 
-    # relevant matrix in state equation
-    F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
     Q = np.diag([qx**2, qy**2])
-    L = np.array([[0, 0], [0, 0], [1, 0], [0, 1]])
-
-    # relevant matrix in measurement equation
-    H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
     R = np.diag([rx**2, ry**2])
-    M = np.eye(*R.shape)
+    F, L, H, M = ft.newton_sys(T, 2, 2)
 
     # initial state and error convariance
     x = utils.col([1, 2, 0.2, 0.3])
@@ -50,6 +44,8 @@ def SSFilter_test():
 
         x_pred_arr[:, n] = x_pred[:, 0]
         x_up_arr[:, n] = x_up[:, 0]
+    print(len(kf))
+    print(kf)
 
     # plot
     n = np.arange(N)
@@ -80,8 +76,6 @@ def SSFilter_test():
     ax.set_title('trajectory')
     plt.show()
 
-    print(len(kf))
-    print(kf)
 
 if __name__ == "__main__":
     SSFilter_test()

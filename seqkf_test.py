@@ -19,23 +19,17 @@ def SeqKFilter_test():
     x_dim, z_dim = 4, 2
     qx, qy = math.sqrt(0.01), math.sqrt(0.02)
     rx, ry = math.sqrt(2), math.sqrt(1)
-    # q, r = math.sqrt(0.01), math.sqrt(20)
 
-    # relevant matrix in state equation
-    F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
-    L = np.array([[0, 0], [0, 0], [1, 0], [0, 1]])
     Q = np.diag([qx**2, qy**2])
-
-    # relevant matrix in measurement equation
-    H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
     R = np.diag([rx**2, ry**2])
+    F, L, H, M = ft.newton_sys(T, 2, 2)
 
     # initial state and error convariance
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.SeqKFilter(x_dim, z_dim, 2, z_dim)
-    kf.init(x, P, F=F, L=L, Q=Q, H=H, M=np.eye(z_dim), R=R)
+    kf = ft.SeqKFilter(x_dim, z_dim, z_dim, z_dim)
+    kf.init(x, P, F=F, L=L, Q=Q, H=H, M=M, R=R)
 
     x_arr = np.zeros((x_dim, N))
     z_arr = np.zeros((z_dim, N))
@@ -53,7 +47,7 @@ def SeqKFilter_test():
         v = utils.col([vx, vy])
 
         x = F @ x + L @ w
-        z = H @ x + v
+        z = H @ x + M @ v
         x_arr[:, n] = x[:, 0]
         z_arr[:, n] = z[:, 0]
         x_pred, P_pred, x_up, P_up = kf.step(z)

@@ -6,8 +6,27 @@ __all__ = ['newton_sys']
 
 def newton_sys(T, dim, axis):
     '''
-    return:
-     F, L, H
+    Return related matrices in Newtonian dynamic system
+
+    Parameters
+    ----------
+    T : int or float 
+        Sample interval
+    dim : int
+        Number of motion states in single axis
+    axis : int
+        Number of traget motion axes
+
+    Returns
+    -------
+    F : ndarray
+        Array of the state-transition matrix 
+    L : ndarray
+        Array of the process noise transition matrix
+    H : ndarray
+        Array of the measurement matrix 
+    M : ndarray
+        Array of the measurement noise transition matrix
     '''
     assert (0 < dim and dim <= 3)
     assert (0 < axis and axis <= 3)
@@ -17,6 +36,7 @@ def newton_sys(T, dim, axis):
     F = np.zeros((0, dim * axis))
     L = np.zeros((0, axis))
     H = np.zeros((axis, 0))
+    M = np.eye(H.shape[0])
 
     tmp = items.copy()
     for i in range(dim):
@@ -31,4 +51,4 @@ def newton_sys(T, dim, axis):
         # right cyclically shift one element
         tmp = tmp[-1:] + tmp[:-1]
 
-    return F, L, H
+    return F, L, H, M
