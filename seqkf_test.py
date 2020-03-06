@@ -95,7 +95,7 @@ def SeqKFilter_test():
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(x_arr[0, 0], x_arr[1, 1], s=120, c='r', marker='x')
+    ax.scatter(x_arr[0, 0], x_arr[1, 0], s=120, c='r', marker='x')
     ax.plot(x_arr[0, :], x_arr[1, :], linewidth=0.8)
     ax.plot(z_arr[0, :], z_arr[1, :], linewidth=0.8)
     ax.plot(x_up_arr[0, :], x_up_arr[1, :], linewidth=0.8)

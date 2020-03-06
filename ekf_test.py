@@ -18,8 +18,10 @@ def EKFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
-    qx, qy = math.sqrt(0.01), math.sqrt(0.02)
-    rr, ra = math.sqrt(5), math.sqrt(utils.deg2rad(0.1))
+    # qx, qy = math.sqrt(0.01), math.sqrt(0.02)
+    # rr, ra = math.sqrt(5), math.sqrt(utils.deg2rad(0.1))
+    qx, qy = math.sqrt(0.00001), math.sqrt(0.00001)
+    rr, ra = math.sqrt(0.1), math.sqrt(0.01)
 
     F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
     f = lambda x, u, w: F @ x + w
@@ -115,7 +117,7 @@ def EKFilter_test():
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(x_arr[0, 0], x_arr[1, 1], s=120, c='r', marker='x')
+    ax.scatter(x_arr[0, 0], x_arr[1, 0], s=120, c='r', marker='x')
     ax.plot(x_arr[0, :], x_arr[1, :], linewidth=0.8)
     ax.plot(z_arr[0, :], z_arr[1, :], linewidth=0.8)
     ax.plot(x_up_arr[0, :], x_up_arr[1, :], linewidth=0.8)

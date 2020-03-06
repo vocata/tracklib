@@ -3,8 +3,8 @@
 import numpy as np
 import scipy.linalg as linalg
 from collections.abc import Iterable
-from tracklib.utils import col
-from .model import dynamic_params
+from tracklib import utils
+from .model import newton_sys
 '''
 steady-state kalman filter
 '''
@@ -44,7 +44,7 @@ class AlphaBetaFilter():
         self._gamma = None
         self._T = T
         self._axis = axis
-        self._F, _, self._H = dynamic_params(T, 2, axis)
+        self._F, _, self._H = newton_sys(T, 2, axis)
 
         self._len = 0
         self._stage = 0
@@ -98,7 +98,7 @@ class AlphaBetaFilter():
     def step(self, z):
         assert (self._stage == 0)
 
-        return self.predict() + self.update(z)
+        return self.predict(), self.update(z)
 
     def init_info(self):
         return self._x_init
@@ -118,8 +118,8 @@ class AlphaBetaFilter():
         obtain alpha, beta and for which alpha-beta
         filter becomes a steady-state kalman filter
         '''
-        sigma_w = col(sigma_w)
-        sigma_v = col(sigma_v)
+        sigma_w = utils.col(sigma_w)
+        sigma_v = utils.col(sigma_v)
         lamb = sigma_w * T**2 / sigma_v
         r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
         alpha = 1 - r**2
@@ -158,7 +158,7 @@ class AlphaBetaGammaFilter():
         self._gamma = None
         self._T = T
         self._axis = axis
-        self._F, _, self._H = dynamic_params(T, 3, axis)
+        self._F, _, self._H = newton_sys(T, 3, axis)
 
         self._len = 0
         self._stage = 0
@@ -216,7 +216,7 @@ class AlphaBetaGammaFilter():
     def step(self, z):
         assert (self._stage == 0)
 
-        return self.predict() + self.update(z)
+        return self.predict(), self.update(z)
 
     def init_info(self):
         return self._x_init
@@ -234,8 +234,8 @@ class AlphaBetaGammaFilter():
         alpha-beta-gamma becomes a steady-state
         kalman filter
         '''
-        sigma_w = col(sigma_w)
-        sigma_v = col(sigma_v)
+        sigma_w = utils.col(sigma_w)
+        sigma_v = utils.col(sigma_v)
         lamb = sigma_w * T**2 / sigma_v
         b = lamb / 2 - 3
         c = lamb / 2 + 3
@@ -355,7 +355,7 @@ class SSFilter():
     def step(self, z, u=None):
         assert (self._stage == 0)
 
-        return self.predict(u) + self.update(z)
+        return self.predict(u), self.update(z)
 
     def init_info(self):
         return self._x_init
