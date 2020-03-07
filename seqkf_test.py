@@ -37,7 +37,7 @@ def SeqKFilter_test():
     x_up_arr = np.zeros((x_dim, N))
     P_pred_arr = np.zeros((x_dim, x_dim, N))
     P_up_arr = np.zeros((x_dim, x_dim, N))
-    
+
     for n in range(N):
         wx = np.random.normal(0, qx)
         wy = np.random.normal(0, qy)

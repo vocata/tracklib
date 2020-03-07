@@ -201,8 +201,10 @@ class AlphaBetaGammaFilter():
                 self._gamma = kw['beta']
             else:
                 raise ValueError('alpha, beta and gamma must a list')
-        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._K[:] = np.concatenate((diag_a, diag_b / self._T, diag_g / (2 * self._T)))
+        diag_a, diag_b, diag_g = map(np.diag,
+                                     (self._alpha, self._beta, self._gamma))
+        self._K[:] = np.concatenate(
+            (diag_a, diag_b / self._T, diag_g / (2 * self._T)))
 
         self._len = 0
         self._stage = 0
@@ -326,7 +328,7 @@ class SSFilter():
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, P_init, **kw):
+    def init(self, x_init, P_init, it=5, **kw):
         self._x_init[:] = x_init
         self._P_init[:] = P_init
         self._x_pred[:] = x_init
@@ -339,8 +341,14 @@ class SSFilter():
             if 'H' in kw: self._H[:] = kw['H']
             if 'M' in kw: self._M[:] = kw['M']
             if 'R' in kw: self._R[:] = kw['R']
-        self._K[:], self._P_pred[:], self._P_up[:] = SSFilter.issv(
-            P_init, self._F, self._L, self._H, self._M, self._Q, self._R)
+        self._K[:], self._P_pred[:], self._P_up[:] = SSFilter.issv(P_init,
+                                                                   self._F,
+                                                                   self._L,
+                                                                   self._H,
+                                                                   self._M,
+                                                                   self._Q,
+                                                                   self._R,
+                                                                   it=it)
         self._len = 0
         self._stage = 0
 
@@ -379,14 +387,16 @@ class SSFilter():
         return self._K, self._P_pred, self._P_up
 
     @staticmethod
-    def issv(P, F, L, H, M, Q, R, it=10):
+    def issv(P, F, L, H, M, Q, R, it):
         '''
         obtain Kalman filter steady-state value using iterative method
         '''
         F_inv = linalg.inv(F)
-        R_inv = linalg.inv(M @ R @ M.T)
-        lt = F + L @ Q @ L.T @ F_inv.T @ H.T @ R_inv @ H
-        rt = L @ Q @ L.T @ F_inv.T
+        Q_hat = L @ Q @ L.T
+        R_hat = M @ R @ M.T
+        R_inv = linalg.inv(R_hat)
+        lt = F + Q_hat @ F_inv.T @ H.T @ R_inv @ H
+        rt = Q_hat @ F_inv.T
         lb = F_inv.T @ H.T @ R_inv @ H
         rb = F_inv.T
         top = np.concatenate((lt, rt), axis=1)
@@ -396,9 +406,10 @@ class SSFilter():
             np.matmul(psi, psi, out=psi)
         I = np.eye(*P.shape)
         tmp = psi @ np.concatenate((P, I))
-        P_pred = tmp[:P.shape[0], :] @ linalg.inv(
-            tmp[P.shape[0]:, :])
-        K = P_pred @ H.T @ linalg.inv(H @ P_pred @ H.T + M @ R @ M.T)
-        P_up = (I - K @ H) @ P_pred @ (I - K @ H).T + K @ M @ R @ M.T @ K.T
+        A_inf = tmp[:P.shape[0], :]
+        B_inf = tmp[P.shape[0]:, :]
+        P_pred = A_inf @ linalg.inv(B_inf)
+        K = P_pred @ H.T @ linalg.inv(H @ P_pred @ H.T + R_hat)
+        P_up = (I - K @ H) @ P_pred @ (I - K @ H).T + K @ R_hat @ K.T
 
         return K, P_pred, P_up

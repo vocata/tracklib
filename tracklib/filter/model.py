@@ -40,7 +40,9 @@ def newton_sys(T, dim, axis):
 
     tmp = items.copy()
     for i in range(dim):
-        F_rows = np.concatenate(list(map(np.diag, map(lambda x: [x] * axis, tmp[:dim]))), axis=1)
+        F_rows = np.concatenate(list(
+            map(np.diag, map(lambda x: [x] * axis, tmp[:dim]))),
+                                axis=1)
         F = np.append(F, F_rows, axis=0)
         L_rows = np.diag([items[-1 - i]] * axis)
         L = np.append(L, L_rows, axis=0)
