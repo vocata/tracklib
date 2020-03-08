@@ -19,13 +19,14 @@ class EKFilter():
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, x_dim, z_dim, w_dim, v_dim, u_dim=0):
+    def __init__(self, x_dim, z_dim, w_dim, v_dim, u_dim=0, at=1):
         '''
         x_dim: state dimension
         z_dim: measurement dimension
         w_dim: process noise dimension
         v_dim: measurement noises dimension
         u_dim: input dimension
+        at: attenuation factor
 
         default is scalar kalman filter
         '''
@@ -35,6 +36,7 @@ class EKFilter():
         self._w_dim = w_dim
         self._v_dim = v_dim
         self._u_dim = u_dim
+        self._at = at;
 
         self._x_pred = np.empty((x_dim, 1))
         self._P_pred = np.empty((x_dim, x_dim))
@@ -86,9 +88,9 @@ class EKFilter():
         L = Ljacob(np.zeros((self._w_dim, 1)))
 
         Q_tilde = L @ Q @ L.T
-        self._x_pred = f(self._x_up, u, 0)
-        self._P_pred = F @ self._P_up @ F.T + Q_tilde
-        self._P_pred = (self._P_pred + self._P_pred.T) / 2
+        self._x_pred[:] = f(self._x_up, u, 0)
+        self._P_pred[:] = self._at**2 * F @ self._P_up @ F.T + Q_tilde
+        self._P_pred[:] = (self._P_pred + self._P_pred.T) / 2
 
         self._stage = 1
         return self._x_pred, self._P_pred
@@ -105,15 +107,15 @@ class EKFilter():
 
         R_tilde = M @ R @ M.T
         z_pred = h(self._x_pred, 0)
-        self._innov = z - z_pred
-        self._inP = H @ self._P_pred @ H.T + R_tilde
-        self._inP = (self._inP + self._inP.T) / 2
-        self._K = self._P_pred @ H.T @ linalg.inv(self._inP)
-        self._x_up = self._x_pred + self._K @ self._innov
+        self._innov[:] = z - z_pred
+        self._inP[:] = H @ self._P_pred @ H.T + R_tilde
+        self._inP[:] = (self._inP + self._inP.T) / 2
+        self._K[:] = self._P_pred @ H.T @ linalg.inv(self._inP)
+        self._x_up[:] = self._x_pred + self._K @ self._innov
         # The Joseph-form covariance update is used for improved numerical
         temp = np.eye(self._x_dim) - self._K @ H
-        self._P_up = temp @ self._P_pred @ temp.T + self._K @ R_tilde @ self._K.T
-        self._P_up = (self._P_up + self._P_up.T) / 2
+        self._P_up[:] = temp @ self._P_pred @ temp.T + self._K @ R_tilde @ self._K.T
+        self._P_up[:] = (self._P_up + self._P_up.T) / 2
 
         for _ in range(it):
             hx = lambda x: h(x, np.zeros((self._v_dim, 1)))
@@ -125,14 +127,14 @@ class EKFilter():
 
             R_tilde = M @ R @ M.T
             z_pred = h(self._x_up, 0) + H @ (self._x_pred - self._x_up)
-            self._innov = z - z_pred
-            self._inP = H @ self._P_pred @ H.T + R_tilde
-            self._inP = (self._inP + self._inP.T) / 2
-            self._K = self._P_pred @ H.T @ linalg.inv(self._inP)
-            self._x_up = self._x_pred + self._K @ self._innov
+            self._innov[:] = z - z_pred
+            self._inP[:] = H @ self._P_pred @ H.T + R_tilde
+            self._inP[:] = (self._inP + self._inP.T) / 2
+            self._K[:] = self._P_pred @ H.T @ linalg.inv(self._inP)
+            self._x_up[:] = self._x_pred + self._K @ self._innov
             temp = np.eye(self._x_dim) - self._K @ H
-            self._P_up = temp @ self._P_pred @ temp.T + self._K @ R_tilde @ self._K.T
-            self._P_up = (self._P_up + self._P_up.T) / 2
+            self._P_up[:] = temp @ self._P_pred @ temp.T + self._K @ R_tilde @ self._K.T
+            self._P_up[:] = (self._P_up + self._P_up.T) / 2
 
         self._len += 1
         self._stage = 0
