@@ -390,6 +390,7 @@ class SSFilter():
     def issv(P, F, L, H, M, Q, R, it):
         '''
         obtain Kalman filter steady-state value using iterative method
+        note: "it" value can not be too large or it will diverge
         '''
         F_inv = linalg.inv(F)
         Q_hat = L @ Q @ L.T

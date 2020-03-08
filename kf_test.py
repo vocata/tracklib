@@ -28,7 +28,7 @@ def KFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.KFilter(x_dim, z_dim, z_dim, z_dim)
+    kf = ft.KFilter(x_dim, z_dim, z_dim, z_dim, at=1.01)
     kf.init(x, P, F=F, L=L, Q=Q, H=H, M=M, R=R)
 
     x_arr = np.empty((x_dim, N))

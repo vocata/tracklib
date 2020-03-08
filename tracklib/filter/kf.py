@@ -19,13 +19,14 @@ class KFilter():
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, x_dim, z_dim, w_dim, v_dim, u_dim=0):
+    def __init__(self, x_dim, z_dim, w_dim, v_dim, u_dim=0, at=1):
         '''
         x_dim: state dimension
         z_dim: measurement dimension
         w_dim: process noise dimension
         v_dim: measurement noises dimension
         u_dim: input dimension
+        at: attenuation factor
         '''
 
         self._x_dim = x_dim
@@ -33,6 +34,7 @@ class KFilter():
         self._w_dim = w_dim
         self._v_dim = v_dim
         self._u_dim = u_dim
+        self._at = at;
 
         self._x_pred = np.empty((x_dim, 1))
         self._P_pred = np.empty((x_dim, x_dim))
@@ -87,6 +89,7 @@ class KFilter():
             if 'H' in kw: self._H[:] = kw['H']
             if 'M' in kw: self._M[:] = kw['M']
             if 'R' in kw: self._R[:] = kw['R']
+            if 'at' in kw: self._at = kw['at']
         self._len = 0
         self._stage = 0
 
@@ -102,7 +105,7 @@ class KFilter():
         Q_tilde = self._L @ self._Q @ self._L.T
         ctl = 0 if u is None else self._G @ u
         self._x_pred[:] = self._F @ self._x_up + ctl
-        self._P_pred[:] = self._F @ self._P_up @ self._F.T + Q_tilde
+        self._P_pred[:] = self._at**2 * self._F @ self._P_up @ self._F.T + Q_tilde
         self._P_pred[:] = (self._P_pred + self._P_pred.T) / 2
         self._stage = 1  # predict finished
         return self._x_pred, self._P_pred
