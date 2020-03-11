@@ -34,7 +34,7 @@ class KFilter():
         self._w_dim = w_dim
         self._v_dim = v_dim
         self._u_dim = u_dim
-        self._at = at;
+        self._at = at
 
         self._x_pred = np.empty((x_dim, 1))
         self._P_pred = np.empty((x_dim, x_dim))
