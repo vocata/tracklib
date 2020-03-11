@@ -20,7 +20,7 @@ def SSFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.SSFilter(x_dim, z_dim, F, L, H, M, Q, R)
+    kf = ft.SSFilter(F, L, H, M, Q, R)
     kf.init(x, P, it=5)
 
     x_arr = np.empty((x_dim, N))

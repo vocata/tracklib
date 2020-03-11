@@ -33,15 +33,16 @@ class AlphaBetaFilter():
         axis: the number of target motion direction,
               such as x(1), xy(2) or xyz(3)
         '''
-        self._x_pred = np.empty((2 * axis, 1))
-        self._x_up = np.empty((2 * axis, 1))
-        self._x_init = np.empty((2 * axis, 1))
-        self._K = np.empty((2 * axis, axis))
+        self._x_pred = None
+        self._x_up = None
 
-        if any(map(lambda x: not isinstance(x, list), (alpha, beta))):
-            raise ValueError('alpha and beta must be a list')
+        self._x_init = None
+
         self._alpha = alpha
         self._beta = beta
+        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
+        self._K = np.concatenate((diag_a, diag_b / self._T))
+
         self._T = T
         self._axis = axis
         self._F, _, self._H = newton_sys(T, 2, axis)
@@ -56,29 +57,18 @@ class AlphaBetaFilter():
         msg = 'alpha-beta filter: \n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s, beta: %s\n\n' % (str(self._alpha), str(self._beta))
+        msg += 'alpha: %s, beta: %s\n\n' % \
+            (str(self._alpha), str(self._beta))
         msg += 'kalman filter gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, **kw):
-        self._x_init[:] = x_init
-        self._x_pred[:] = x_init
-        self._x_up[:] = x_init
-
-        if len(kw) > 0:
-            if 'alpha' in kw and isinstance(kw['alpha'], list):
-                self._alpha = kw['alpha']
-            else:
-                raise ValueError('alpha and beta must be a list')
-            if 'beta' in kw and isinstance(kw['beta'], list):
-                self._beta = kw['beta']
-            else:
-                raise ValueError('alpha and beta must be a list')
-        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._K[:] = np.concatenate((diag_a, diag_b / self._T))
+    def init(self, x_init):
+        self._x_init = x_init
+        self._x_pred = x_init
+        self._x_up = x_init
 
         self._len = 0
         self._stage = 0
@@ -86,34 +76,24 @@ class AlphaBetaFilter():
     def predict(self):
         assert (self._stage == 0)
 
-        self._x_pred[:] = self._F @ self._x_up
+        self._x_pred = self._F @ self._x_up
         self._stage = 1
         return self._x_pred
 
     def update(self, z):
         assert (self._stage == 1)
 
-        self._x_up[:] = self._x_pred + self._K @ (z - self._H @ self._x_pred)
+        self._x_up = self._x_pred + self._K @ (z - self._H @ self._x_pred)
         self._len += 1
         self._stage = 0
         return self._x_up
 
     def step(self, z):
         assert (self._stage == 0)
-
         return self.predict(), self.update(z)
 
-    def init_info(self):
-        return self._x_init
-
-    def predict_info(self):
-        return self._x_pred
-
-    def update_info(self):
-        return self._x_up
-
-    def steady_state(self):
-        return self._K, self._P_pred, self._P_up
+    def steady_params(self):
+        return self._K
 
     @staticmethod
     def cal_params(sigma_w, sigma_v):
@@ -151,16 +131,17 @@ class AlphaBetaGammaFilter():
         axis: the number of target motion direction,
               such as x(1), xy(2) or xyz(3)
         '''
-        self._x_pred = np.empty((3 * axis, 1))
-        self._x_up = np.empty((3 * axis, 1))
-        self._x_init = np.empty((3 * axis, 1))
-        self._K = np.empty((3 * axis, axis))
+        self._x_pred = None
+        self._x_up = None
 
-        if any(map(lambda x: not isinstance(x, list), (alpha, beta, gamma))):
-            raise ValueError('alpha, beta and gamma must be a list')
+        self._x_init = None
+
         self._alpha = alpha
         self._beta = beta
         self._gamma = gamma
+        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
+        self._K = np.concatenate((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
+
         self._T = T
         self._axis = axis
         self._F, _, self._H = newton_sys(T, 3, axis)
@@ -175,36 +156,18 @@ class AlphaBetaGammaFilter():
         msg = 'alpha-beta-gamma filter: \n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s, beta: %s, gamma: %s\n\n' % (str(
-            self._alpha), str(self._beta), str(self._gamma))
+        msg += 'alpha: %s, beta: %s, gamma: %s\n\n' % \
+            (str(self._alpha), str(self._beta), str(self._gamma))
         msg += 'kalman filter gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, **kw):
-        self._x_init[:] = x_init
-        self._x_pred[:] = x_init
-        self._x_up[:] = x_init
-
-        if len(kw) > 0:
-            if 'alpha' in kw and isinstance(kw['alpha'], list):
-                self._alpha = kw['alpha']
-            else:
-                raise ValueError('alpha, beta and gamma must a list')
-            if 'beta' in kw and isinstance(kw['beta'], list):
-                self._beta = kw['beta']
-            else:
-                raise ValueError('alpha, beta and gamma must a list')
-            if 'gamma' in kw and isinstance(kw['gamma'], list):
-                self._gamma = kw['beta']
-            else:
-                raise ValueError('alpha, beta and gamma must a list')
-        diag_a, diag_b, diag_g = map(np.diag,
-                                     (self._alpha, self._beta, self._gamma))
-        self._K[:] = np.concatenate(
-            (diag_a, diag_b / self._T, diag_g / (2 * self._T)))
+    def init(self, x_init):
+        self._x_init = x_init
+        self._x_pred = x_init
+        self._x_up = x_init
 
         self._len = 0
         self._stage = 0
@@ -212,7 +175,7 @@ class AlphaBetaGammaFilter():
     def predict(self):
         assert (self._stage == 0)
 
-        self._x_pred[:] = self._F @ self._x_up
+        self._x_pred = self._F @ self._x_up
         self._stage = 1
         return self._x_pred
 
@@ -226,17 +189,10 @@ class AlphaBetaGammaFilter():
 
     def step(self, z):
         assert (self._stage == 0)
-
         return self.predict(), self.update(z)
 
-    def init_info(self):
-        return self._x_init
-
-    def predict_info(self):
-        return self._x_pred
-
-    def update_info(self):
-        return self._x_up
+    def steady_params(self):
+        return self._K
 
     @staticmethod
     def cal_params(sigma_w, sigma_v):
@@ -274,32 +230,17 @@ class SSFilter():
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self,
-                 x_dim,
-                 z_dim,
-                 F=None,
-                 L=None,
-                 H=None,
-                 M=None,
-                 Q=None,
-                 R=None,
-                 G=None):
-        '''
-        x_dim: state dimension
-        z_dim: measurement dimension
-        '''
+    def __init__(self, F, L, H, M, Q, R, G=None):
+        self._x_pred = None
+        self._P_pred = None
+        self._x_up = None
+        self._P_up = None
+        self._K = None
 
-        self._x_dim = x_dim
-        self._z_dim = z_dim
+        self._x_init = None
+        self._P_init = None
 
-        self._x_pred = np.empty((x_dim, 1))
-        self._P_pred = np.empty((x_dim, x_dim))
-        self._x_up = np.empty((x_dim, 1))
-        self._P_up = np.empty((x_dim, x_dim))
-        self._x_init = np.empty((x_dim, 1))
-        self._P_init = np.empty((x_dim, x_dim))
-        self._K = np.empty((x_dim, z_dim))
-
+        # initiate relevant matrix
         self._F = F
         self._L = L
         self._H = H
@@ -328,27 +269,13 @@ class SSFilter():
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, P_init, it=5, **kw):
-        self._x_init[:] = x_init
-        self._P_init[:] = P_init
-        self._x_pred[:] = x_init
-        self._x_up[:] = x_init
-        if len(kw) > 0:
-            if 'F' in kw: self._F[:] = kw['F']
-            if 'G' in kw: self._G[:] = kw['G']
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
-            if 'H' in kw: self._H[:] = kw['H']
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
-        self._K[:], self._P_pred[:], self._P_up[:] = SSFilter.issv(P_init,
-                                                                   self._F,
-                                                                   self._L,
-                                                                   self._H,
-                                                                   self._M,
-                                                                   self._Q,
-                                                                   self._R,
-                                                                   it=it)
+    def init(self, x_init, P_init, it=5):
+        self._x_init = x_init
+        self._P_init = P_init
+        self._x_pred = x_init
+        self._x_up = x_init
+        self._K, self._P_pred, self._P_up = \
+            SSFilter.issv(P_init, self._F, self._L, self._H, self._M, self._Q, self._R, it=it)
         self._len = 0
         self._stage = 0
 
@@ -356,7 +283,7 @@ class SSFilter():
         assert (self._stage == 0)
 
         ctl = 0 if u is None else self._G @ u
-        self._x_pred[:] = self._F @ self._x_up + ctl
+        self._x_pred = self._F @ self._x_up + ctl
         self._stage = 1
         return self._x_pred
 
@@ -364,26 +291,16 @@ class SSFilter():
         assert (self._stage == 1)
 
         z_pred = self._H @ self._x_pred
-        self._x_up[:] = self._x_pred + self._K @ (z - z_pred)
+        self._x_up = self._x_pred + self._K @ (z - z_pred)
         self._stage = 0
         self._len += 1
         return self._x_up
 
     def step(self, z, u=None):
         assert (self._stage == 0)
-
         return self.predict(u), self.update(z)
 
-    def init_info(self):
-        return self._x_init
-
-    def predict_info(self):
-        return self._x_pred
-
-    def update_info(self):
-        return self._x_up
-
-    def steady_state(self):
+    def steady_params(self):
         return self._K, self._P_pred, self._P_up
 
     @staticmethod
