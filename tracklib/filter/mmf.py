@@ -16,12 +16,9 @@ class MMFilter():
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, x_dim, z_dim, F, L, H, M, Q, R, G=None, prob=None):
-
+    def __init__(self, F, L, H, M, Q, R, G=None, prob=None):
         model_n = len(F)
         self._model_n = model_n
-        self._x_dim = x_dim
-        self._z_dim = z_dim
         if prob is None:
             self._prob = [1. / model_n] * model_n
         else:
@@ -96,7 +93,7 @@ class MMFilter():
             self._inP[i] = (self._inP[i] + self._inP[i].T) / 2
             self._K[i] = self._P_pred[i] @ self._H[i].T @ linalg.inv(self._inP[i])
             self._x_up[i] = self._x_pred[i] + self._K[i] @ self._innov[i]
-            temp = np.eye(self._x_dim) - self._K[i] @ self._H[i]
+            temp = np.eye(*self._F[i].shape) - self._K[i] @ self._H[i]
             self._P_up[i] = temp @ self._P_pred[i] @ temp.T + self._K[i] @ R_tilde @ self._K[i].T
             self._P_up[i] = (self._P_up[i] + self._P_up[i].T) / 2
             pdf.append((np.exp(-self._innov[i].T @ linalg.inv(self._inP[i]) @ self._innov[i] / 2) / \

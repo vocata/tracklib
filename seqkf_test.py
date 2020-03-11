@@ -28,8 +28,8 @@ def SeqKFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.SeqKFilter(x_dim, z_dim, z_dim, z_dim)
-    kf.init(x, P, F=F, L=L, Q=Q, H=H, M=M, R=R)
+    kf = ft.SeqKFilter(F, L, H, M, Q, R, at=10)
+    kf.init(x, P) 
 
     x_arr = np.zeros((x_dim, N))
     z_arr = np.zeros((z_dim, N))
