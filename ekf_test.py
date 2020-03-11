@@ -34,7 +34,7 @@ def EKFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    ekf = ft.EKFilter(x_dim, z_dim, w_dim, v_dim, at=1.01)
+    ekf = ft.EKFilter()
     ekf.init(x, P)
 
     x_arr = np.empty((x_dim, N))
