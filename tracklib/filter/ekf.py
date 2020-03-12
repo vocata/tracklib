@@ -130,12 +130,3 @@ class EKFilter():
         pred_ret = self.predict(u, f, Q)
         update_ret = self.update(z, h, R, it)
         return pred_ret + update_ret
-
-    def init_info(self):
-        return self._x_init, self._P_init
-
-    def predict_info(self):
-        return self._x_pred, self._P_pred
-
-    def update_info(self):
-        return self._x_up, self._P_up, self._K, self._innov, self._inP

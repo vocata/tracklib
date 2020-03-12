@@ -4,6 +4,9 @@ import math
 import numpy as np
 import scipy.linalg as linalg
 
+__all__ = ['MMFilter']
+
+
 class MMFilter():
     '''
     Multiple Model linear kalman filter
@@ -24,6 +27,7 @@ class MMFilter():
         else:
             self._prob = prob
 
+        self._x_weight = None
         self._x_pred = None
         self._P_pred = None
         self._x_up = None
@@ -57,12 +61,12 @@ class MMFilter():
         return self.__str__()
 
     def init(self, x_init, P_init):
-        self._x_init = x_init
-        self._P_init = P_init
-        self._x_pred = x_init
-        self._P_pred = P_init
-        self._x_up = x_init
-        self._P_up = P_init
+        self._x_init = [x_init] * self._model_n
+        self._P_init = [P_init] * self._model_n
+        self._x_pred = [x_init] * self._model_n
+        self._P_pred = [P_init] * self._model_n
+        self._x_up = [x_init] * self._model_n
+        self._P_up = [P_init] * self._model_n
         self._innov = [None] * self._model_n
         self._inP = [None] * self._model_n
         self._K = [None] * self._model_n
@@ -74,10 +78,10 @@ class MMFilter():
         assert (self._stage == 0)
 
         for i in range(self._model_n):
-            Q_tilde = self._L[i] @ self._Q[i] @ self._L.T[i]
+            Q_tilde = self._L[i] @ self._Q[i] @ self._L[i].T
             ctl = 0 if u is None else self._G[i] @ u
             self._x_pred[i] = self._F[i] @ self._x_up[i] + ctl
-            self._P_pred[i] = self._F[i] @ self._P_up[i] @ self._F.T[i] + Q_tilde
+            self._P_pred[i] = self._F[i] @ self._P_up[i] @ self._F[i].T + Q_tilde
             self._P_pred[i] = (self._P_pred[i] + self._P_pred[i].T) / 2
             self._stage = 1
 
@@ -87,7 +91,7 @@ class MMFilter():
         pdf = []
         for i in range(self._model_n):
             R_tilde = self._M[i] @ self._R[i] @ self._M[i].T
-            z_pred=  self._M[i] @ self._x_pred[i]
+            z_pred=  self._H[i] @ self._x_pred[i]
             self._innov[i] = z - z_pred
             self._inP[i] = self._H[i] @ self._P_pred[i] @ self._H[i].T + R_tilde
             self._inP[i] = (self._inP[i] + self._inP[i].T) / 2
@@ -107,17 +111,20 @@ class MMFilter():
         for i in range(self._model_n):
             self._prob[i] = pdf[i] * self._prob[i] / total
         # compute the weighted state estimate
-        x_weight = np.zeros((self._x_dim, 1))
+        self._x_weight = np.zeros_like(self._x_init[0])
         for i in range(self._model_n):
-            x_weight += self._prob[i] * self._x_up[i]
+            self._x_weight += self._prob[i] * self._x_up[i]
 
         self._len += 1
         self._stage = 0
-        return x_weight
+        return self._x_weight, self._prob
 
     def step(self, z, u=None):
         assert (self._stage == 0)
         self.predict(u)
         return self.update(z)
+
+    def prob(self):
+        return self._prob
 
         

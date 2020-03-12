@@ -6,5 +6,7 @@ __all__.extend(['EKFilter'])
 from .ekf import *
 __all__.extend(['AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter', 'dynamic_params'])
 from .ssf import *
+__all__.extend(['MMFilter'])
+from .mmf import *
 __all__.extend(['newton_mat'])
 from .model import *
