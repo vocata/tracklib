@@ -19,8 +19,8 @@ def MMFilter_test():
 
     Q, R = [], []
     for i in range(5):
-        qx, qy = math.sqrt((i + 1)/10), math.sqrt((i + 2)/10)
-        rx, ry = math.sqrt(i + 1), math.sqrt(i + 2)
+        qx, qy = math.sqrt((i + 1)/100), math.sqrt((i + 2)/100)
+        rx, ry = math.sqrt(i + 1), math.sqrt(i + 1)
 
         Q.append(np.diag([qx**2, qy**2]))
         R.append(np.diag([rx**2, ry**2]))
@@ -75,7 +75,21 @@ def MMFilter_test():
     _, ax = plt.subplots()
     for i in range(model_n):
         ax.plot(n, prob_arr[i, :])
+    ax.set_xlabel('time(s)')
+    ax.set_ylabel('probability')
     ax.legend([str(n) for n in range(model_n)])
+    plt.show()
+
+    # trajectory
+    _, ax = plt.subplots()
+    ax.scatter(x_arr[0, 0], x_arr[1, 0], s=120, c='r', marker='x')
+    ax.plot(x_arr[0, :], x_arr[1, :], linewidth=0.8)
+    ax.plot(z_arr[0, :], z_arr[1, :], linewidth=0.8)
+    ax.plot(x_esti_arr[0, :], x_esti_arr[1, :], linewidth=0.8)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.legend(['real', 'measurement', 'estimation'])
+    ax.set_title('trajectory')
     plt.show()
 
 if __name__ == '__main__':

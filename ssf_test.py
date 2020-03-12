@@ -10,7 +10,7 @@ def SSFilter_test():
 
     x_dim, z_dim = 4, 2
     qx, qy = math.sqrt(0.01), math.sqrt(0.02)
-    rx, ry = math.sqrt(2), math.sqrt(1)
+    rx, ry = math.sqrt(1), math.sqrt(1)
 
     Q = np.diag([qx**2, qy**2])
     R = np.diag([rx**2, ry**2])
