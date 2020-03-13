@@ -52,7 +52,7 @@ def lagrange_interp_poly(x, y=None):
 # print(lagrange_interp_poly([40, 66, 18, 71, 4, 28, 5, 10, 83, 70], [32, 96, 4, 44, 39, 77, 80, 19, 49, 45]))
 
 
-def num_diff(x, f, f_dim, N=3, epsilon=None):
+def num_diff(x, f, f_dim, N=1, epsilon=None):
     '''
     一阶数值微分
     '''
