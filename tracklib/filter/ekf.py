@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.linalg as linalg
+import scipy.linalg as lg
 from tracklib.math import num_diff
 
 __all__ = ['EKFilter']
@@ -94,7 +94,7 @@ class EKFilter():
         self._innov = z - z_pred
         self._inP = H @ self._P_pred @ H.T + R_tilde
         self._inP = (self._inP + self._inP.T) / 2
-        self._K = self._P_pred @ H.T @ linalg.inv(self._inP)
+        self._K = self._P_pred @ H.T @ lg.inv(self._inP)
         self._x_up = self._x_pred + self._K @ self._innov
         # The Joseph-form covariance update is used for improved numerical
         temp = np.eye(*self._P_init.shape) - self._K @ H
@@ -114,7 +114,7 @@ class EKFilter():
             self._innov = z - z_pred
             self._inP = H @ self._P_pred @ H.T + R_tilde
             self._inP = (self._inP + self._inP.T) / 2
-            self._K = self._P_pred @ H.T @ linalg.inv(self._inP)
+            self._K = self._P_pred @ H.T @ lg.inv(self._inP)
             self._x_up = self._x_pred + self._K @ self._innov
             temp = np.eye(*self._P_init.shape) - self._K @ H
             self._P_up = temp @ self._P_pred @ temp.T + self._K @ R_tilde @ self._K.T

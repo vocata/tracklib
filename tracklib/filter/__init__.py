@@ -8,5 +8,5 @@ __all__.extend(['AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter', 'dynamic_
 from .ssf import *
 __all__.extend(['MMFilter'])
 from .mmf import *
-__all__.extend(['newton_mat'])
+__all__.extend(['newton_mat', 'SP_init', 'TPD_init'])
 from .model import *

@@ -3,7 +3,7 @@
 
 import math
 import numpy as np
-import scipy.linalg as linalg
+import scipy.linalg as lg
 import tracklib.filter as ft
 import tracklib.utils as utils
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ def EKFilter_test():
     Q = np.diag([0, 0, qx**2, qy**2])
 
     wrap = lambda x: x
-    h = lambda x, v: utils.col([linalg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
+    h = lambda x, v: utils.col([lg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
     R = np.diag([rr**2, ra**2])
 
     x = utils.col([1, 2, 0.2, 0.3])

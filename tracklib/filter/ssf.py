@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.linalg as linalg
+import scipy.linalg as lg
 from tracklib import utils
 from .model import newton_sys
 '''
@@ -135,7 +135,7 @@ class AlphaBetaFilter():
         self._alpha = alpha
         self._beta = beta
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._K = np.concatenate((diag_a, diag_b / self._T))
+        self._K = np.vstack((diag_a, diag_b / self._T))
 
         self._T = T
         self._axis = axis
@@ -234,7 +234,7 @@ class AlphaBetaGammaFilter():
         self._beta = beta
         self._gamma = gamma
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._K = np.concatenate((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
+        self._K = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
         self._T = T
         self._axis = axis
@@ -403,25 +403,25 @@ class SSFilter():
         obtain Kalman filter steady-state value using iterative method
         note: "it" value can not be too large or it will diverge
         '''
-        F_inv = linalg.inv(F)
+        F_inv = lg.inv(F)
         Q_hat = L @ Q @ L.T
         R_hat = M @ R @ M.T
-        R_inv = linalg.inv(R_hat)
+        R_inv = lg.inv(R_hat)
         lt = F + Q_hat @ F_inv.T @ H.T @ R_inv @ H
         rt = Q_hat @ F_inv.T
         lb = F_inv.T @ H.T @ R_inv @ H
         rb = F_inv.T
-        top = np.concatenate((lt, rt), axis=1)
-        bottom = np.concatenate((lb, rb), axis=1)
-        psi = np.concatenate((top, bottom))
+        top = np.hstack((lt, rt))
+        bottom = np.hstack((lb, rb))
+        psi = np.vstack((top, bottom))
         for _ in range(it):
             np.matmul(psi, psi, out=psi)
         I = np.eye(*P.shape)
-        tmp = psi @ np.concatenate((P, I))
+        tmp = psi @ np.vstack((P, I))
         A_inf = tmp[:P.shape[0], :]
         B_inf = tmp[P.shape[0]:, :]
-        P_pred = A_inf @ linalg.inv(B_inf)
-        K = P_pred @ H.T @ linalg.inv(H @ P_pred @ H.T + R_hat)
+        P_pred = A_inf @ lg.inv(B_inf)
+        K = P_pred @ H.T @ lg.inv(H @ P_pred @ H.T + R_hat)
         P_up = (I - K @ H) @ P_pred @ (I - K @ H).T + K @ R_hat @ K.T
 
         return K, P_pred, P_up

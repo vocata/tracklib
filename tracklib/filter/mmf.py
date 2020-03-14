@@ -2,7 +2,7 @@
 
 import math
 import numpy as np
-import scipy.linalg as linalg
+import scipy.linalg as lg
 
 __all__ = ['MMFilter']
 
@@ -95,13 +95,13 @@ class MMFilter():
             self._innov[i] = z - z_pred
             self._inP[i] = self._H[i] @ self._P_pred[i] @ self._H[i].T + R_tilde
             self._inP[i] = (self._inP[i] + self._inP[i].T) / 2
-            self._K[i] = self._P_pred[i] @ self._H[i].T @ linalg.inv(self._inP[i])
+            self._K[i] = self._P_pred[i] @ self._H[i].T @ lg.inv(self._inP[i])
             self._x_up[i] = self._x_pred[i] + self._K[i] @ self._innov[i]
             temp = np.eye(*self._F[i].shape) - self._K[i] @ self._H[i]
             self._P_up[i] = temp @ self._P_pred[i] @ temp.T + self._K[i] @ R_tilde @ self._K[i].T
             self._P_up[i] = (self._P_up[i] + self._P_up[i].T) / 2
-            pdf.append((np.exp(-self._innov[i].T @ linalg.inv(self._inP[i]) @ self._innov[i] / 2) / \
-                np.sqrt(linalg.det(2 * math.pi * self._inP[i]))).item())
+            pdf.append((np.exp(-self._innov[i].T @ lg.inv(self._inP[i]) @ self._innov[i] / 2) / \
+                np.sqrt(lg.det(2 * math.pi * self._inP[i]))).item())
 
         # Total Probability
         total = 0

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.linalg as linalg
+import scipy.linalg as lg
 from tracklib import utils
 
 __all__ = ['KFilter', 'SeqKFilter']
@@ -100,7 +100,7 @@ class KFilter():
         self._innov = z - z_pred
         self._inP = self._H @ self._P_pred @ self._H.T + R_tilde
         self._inP = (self._inP + self._inP.T) / 2
-        self._K = self._P_pred @ self._H.T @ linalg.inv(self._inP)
+        self._K = self._P_pred @ self._H.T @ lg.inv(self._inP)
         self._x_up = self._x_pred + self._K @ self._innov
         # The Joseph-form covariance update is used for improved numerical
         temp = np.eye(*self._F.shape) - self._K @ self._H
@@ -151,7 +151,7 @@ class SeqKFilter():
         self._Q = Q
         self._R = R
         R_tilde = self._M @ self._R @ self._M.T
-        v, self._S = linalg.eigh(R_tilde)
+        v, self._S = lg.eigh(R_tilde)
         self._S = self._S.T
         self._D = np.diag(v)
 
@@ -209,7 +209,7 @@ class SeqKFilter():
             if 'R' in kw: self._R = kw['R']
             if 'M' in kw or 'R' in kw:
                 R_tilde = self._M @ self._R @ self._M.T
-                v, self._S = linalg.eigh(R_tilde)
+                v, self._S = lg.eigh(R_tilde)
                 self._S = self._S.T
                 self._D = np.diag(v)
 
