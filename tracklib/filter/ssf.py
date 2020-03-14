@@ -8,12 +8,12 @@ from .model import newton_sys
 steady-state kalman filter
 '''
 
-__all__ = ['AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
+__all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 
-class AlphaBetaFilter():
+class AlphaFilter():
     '''
-    alpha-beta filter(two-state Newtonian system)
+    alpha filter(one-state Newtonian system)
 
     system model:
     x_k = F*x_k-1 + L*w_k-1
@@ -27,7 +27,7 @@ class AlphaBetaFilter():
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis, alpha, beta):
+    def __init__(self, T, axis, alpha):
         '''
         T: sample interval
         axis: the number of target motion direction,
@@ -39,13 +39,12 @@ class AlphaBetaFilter():
         self._x_init = None
 
         self._alpha = alpha
-        self._beta = beta
-        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._K = np.concatenate((diag_a, diag_b / self._T))
+        diag_a = np.diag(self._alpha)
+        self._K = diag_a
 
         self._T = T
         self._axis = axis
-        self._F, _, self._H = newton_sys(T, 2, axis)
+        self._F, _, self._H, _ = newton_sys(T, 1, axis)
 
         self._len = 0
         self._stage = 0
@@ -54,11 +53,10 @@ class AlphaBetaFilter():
         return self._len
 
     def __str__(self):
-        msg = 'alpha-beta filter: \n'
+        msg = 'alpha filter: \n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s, beta: %s\n\n' % \
-            (str(self._alpha), str(self._beta))
+        msg += 'alpha: %s\n\n' % str(self._alpha)
         msg += 'kalman filter gain:\n%s\n' % str(self._K)
         return msg
 
@@ -96,7 +94,102 @@ class AlphaBetaFilter():
         return self._K
 
     @staticmethod
-    def cal_params(sigma_w, sigma_v):
+    def cal_params(sigma_w, sigma_v, T):
+        '''
+        obtain alpha and for which alpha filter
+        becomes a steady-state kalman filter
+        '''
+        sigma_w = utils.col(sigma_w)
+        sigma_v = utils.col(sigma_v)
+        lamb = sigma_w * T**2 / sigma_v
+        alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
+        return alpha
+
+class AlphaBetaFilter():
+    '''
+    alpha-beta filter(two-state Newtonian system)
+
+    system model:
+    x_k = F*x_k-1 + L*w_k-1
+    z_k = H*x_k + v_k
+    E(w_k*w_j') = Q*δ_kj
+    E(v_k*v_j') = R*δ_kj
+
+    w_k, v_k, x_0 are uncorrelated to each other.
+    w_k and v_k are WGN vector.
+    Q and R must be diagonal matrix, this means
+    that the state and measurement on each axis
+    are independent of each other.r
+    '''
+    def __init__(self, T, axis, alpha, beta):
+        '''
+        T: sample interval
+        axis: the number of target motion direction,
+              such as x(1), xy(2) or xyz(3)
+        '''
+        self._x_pred = None
+        self._x_up = None
+
+        self._x_init = None
+
+        self._alpha = alpha
+        self._beta = beta
+        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
+        self._K = np.concatenate((diag_a, diag_b / self._T))
+
+        self._T = T
+        self._axis = axis
+        self._F, _, self._H, _= newton_sys(T, 2, axis)
+
+        self._len = 0
+        self._stage = 0
+
+    def __len__(self):
+        return self._len
+
+    def __str__(self):
+        msg = 'alpha-beta filter: \n'
+        msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
+        msg += 'updated state:\n%s\n\n' % str(self._x_up)
+        msg += 'alpha: %s, beta: %s\n\n' % (str(self._alpha), str(self._beta))
+        msg += 'kalman filter gain:\n%s\n' % str(self._K)
+        return msg
+
+    def __repr__(self):
+        return self.__str__()
+
+    def init(self, x_init):
+        self._x_init = x_init
+        self._x_pred = x_init
+        self._x_up = x_init
+
+        self._len = 0
+        self._stage = 0
+
+    def predict(self):
+        assert (self._stage == 0)
+
+        self._x_pred = self._F @ self._x_up
+        self._stage = 1
+        return self._x_pred
+
+    def update(self, z):
+        assert (self._stage == 1)
+
+        self._x_up = self._x_pred + self._K @ (z - self._H @ self._x_pred)
+        self._len += 1
+        self._stage = 0
+        return self._x_up
+
+    def step(self, z):
+        assert (self._stage == 0)
+        return self.predict(), self.update(z)
+
+    def steady_params(self):
+        return self._K
+
+    @staticmethod
+    def cal_params(sigma_w, sigma_v, T):
         '''
         obtain alpha, beta and for which alpha-beta
         filter becomes a steady-state kalman filter
@@ -107,6 +200,7 @@ class AlphaBetaFilter():
         r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
         alpha = 1 - r**2
         beta = 2 * (2 - alpha) - 4 * np.sqrt(1 - alpha)
+        return alpha, beta
 
 
 class AlphaBetaGammaFilter():
@@ -144,7 +238,7 @@ class AlphaBetaGammaFilter():
 
         self._T = T
         self._axis = axis
-        self._F, _, self._H = newton_sys(T, 3, axis)
+        self._F, _, self._H, _ = newton_sys(T, 3, axis)
 
         self._len = 0
         self._stage = 0
@@ -195,7 +289,7 @@ class AlphaBetaGammaFilter():
         return self._K
 
     @staticmethod
-    def cal_params(sigma_w, sigma_v):
+    def cal_params(sigma_w, sigma_v, T):
         '''
         obtain alpha, beta and gamma for which
         alpha-beta-gamma becomes a steady-state
@@ -210,7 +304,7 @@ class AlphaBetaGammaFilter():
         p = c - b**2 / 3
         q = 2 * b**3 / 27 - b * c / 3 + d
         v = np.sqrt(q**2 + 4 * p**3 / 27)
-        z = -(q + v / 2)**(1 / 3)
+        z = -np.cbrt(q + v / 2)
         s = z - p / (3 * z) - b / 3
         alpha = 1 - s**2
         beta = 2 * (1 - s)**2
