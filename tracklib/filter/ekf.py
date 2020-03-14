@@ -4,12 +4,12 @@ import numpy as np
 import scipy.linalg as lg
 from tracklib.math import num_diff
 
-__all__ = ['EKFilter']
+__all__ = ['EKFilter_1st', 'EKFilter_2ed']
 
 
-class EKFilter():
+class EKFilter_1st():
     '''
-    Extended kalman filter
+    First order extended kalman filter
 
     system model:
     x_k = f_k-1(x_k-1, u_k-1, w_k-1)
@@ -61,15 +61,17 @@ class EKFilter():
         self._len = 0
         self._stage = 0
 
-    def predict(self, u, f, Q):
+    def predict(self, u, f, Q, F=None, L=None):
         assert (self._stage == 0)
 
-        fx = lambda x: f(x, u, np.zeros((Q.shape[0], 1)))
-        fw = lambda w: f(self._x_up, u, w)
-        FJacob = lambda x: num_diff(x, fx, self._x_init.shape[0])
-        Ljacob = lambda w: num_diff(w, fw, self._x_init.shape[0])
-        F = FJacob(self._x_up)
-        L = Ljacob(np.zeros((Q.shape[0], 1)))
+        if F is None:
+            fx = lambda x: f(x, u, np.zeros((Q.shape[0], 1)))
+            FJacob = lambda x: num_diff(x, fx, self._x_init.shape[0])
+            F = FJacob(self._x_up)
+        if L is None:
+            fw = lambda w: f(self._x_up, u, w)
+            Ljacob = lambda w: num_diff(w, fw, self._x_init.shape[0])
+            L = Ljacob(np.zeros((Q.shape[0], 1)))
 
         Q_tilde = L @ Q @ L.T
         self._x_pred = f(self._x_up, u, 0)
@@ -79,15 +81,17 @@ class EKFilter():
         self._stage = 1
         return self._x_pred, self._P_pred
 
-    def update(self, z, h, R, it=0):
+    def update(self, z, h, R, H=None, M=None, it=0):
         assert (self._stage == 1)
 
-        hx = lambda x: h(x, np.zeros((R.shape[0], 1)))
-        hv = lambda v: h(self._x_pred, v)
-        Hjacob = lambda x: num_diff(x, hx, z.shape[0])
-        Mjacob = lambda v: num_diff(v, hv, z.shape[0])
-        H = Hjacob(self._x_pred)
-        M = Mjacob(np.zeros((R.shape[0], 1)))
+        if H is None:
+            hx = lambda x: h(x, np.zeros((R.shape[0], 1)))
+            Hjacob = lambda x: num_diff(x, hx, z.shape[0])
+            H = Hjacob(self._x_pred)
+        if M is None:
+            hv = lambda v: h(self._x_pred, v)
+            Mjacob = lambda v: num_diff(v, hv, z.shape[0])
+            M = Mjacob(np.zeros((R.shape[0], 1)))
 
         R_tilde = M @ R @ M.T
         z_pred = h(self._x_pred, 0)
@@ -124,9 +128,24 @@ class EKFilter():
         self._stage = 0
         return self._x_up, self._P_up, self._K, self._innov, self._inP
 
-    def step(self, u, z, f, h, Q, R, it=0):
+    def step(self, u, z, f, h, Q, R, F=None, L=None, H=None, M=None, it=0):
         assert (self._stage == 0)
 
-        pred_ret = self.predict(u, f, Q)
-        update_ret = self.update(z, h, R, it)
+        pred_ret = self.predict(u, f, Q, F=F, L=L)
+        update_ret = self.update(z, h, R, H=H, M=M, it=0)
         return pred_ret + update_ret
+
+
+class EKFilter_2ed():
+    '''
+    Second order extended kalman filter
+
+    system model:
+    x_k = f_k-1(x_k-1, u_k-1, w_k-1)
+    z_k = h_k(x_k, v_k)
+    E(w_k*w_j') = Q_k*δ_kj
+    E(v_k*v_j') = R_k*δ_kj
+
+    w_k, v_k, x_0 are uncorrelated to each other
+    '''
+    pass
