@@ -41,7 +41,7 @@ class EKFilter_1st():
         return self._len
 
     def __str__(self):
-        msg = 'Fisrt-order extended kalman filter: \n'
+        msg = 'Fisrt-order extended kalman filter:\n\n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
@@ -170,7 +170,7 @@ class EKFilter_2ed():
         return self._len
 
     def __str__(self):
-        msg = 'second-order kalman filter: \n'
+        msg = 'Second-order kalman filter:\n\n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)

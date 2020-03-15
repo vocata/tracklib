@@ -55,7 +55,11 @@ class MMFilter():
         return self._len
 
     def __str__(self):
-        return ''
+        msg = 'Multiple model filter: \n\n'
+        msg += 'number of models: %d\n\n' % self._model_n
+        msg += 'weighted state estimation:\n%s\n\n' % str(self._x_weight)
+        msg += 'model probability:\n%s\n' % str(self._prob)
+        return msg
 
     def __repr(self):
         return self.__str__()

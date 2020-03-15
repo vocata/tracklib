@@ -56,6 +56,7 @@ def MMFilter_test():
         x_esti_arr[:, n] = x_esti[:, 0]
         prob_arr[:, n] = np.array(prob)
     print(len(filter))
+    print(filter)
 
     # plot
     n = np.arange(N)

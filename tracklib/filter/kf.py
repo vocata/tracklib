@@ -49,7 +49,7 @@ class KFilter():
         return self._len
 
     def __str__(self):
-        msg = 'normal linear kalman filter: \n'
+        msg = 'Normal linear kalman filter:\n\n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
@@ -162,7 +162,7 @@ class SeqKFilter():
         return self._len
 
     def __str__(self):
-        msg = 'sequential linear kalman filter: \n'
+        msg = 'Sequential linear kalman filter:\n\n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)

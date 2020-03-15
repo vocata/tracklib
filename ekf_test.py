@@ -59,7 +59,7 @@ def EKFilter_test():
         z = h(x, v)
         x_arr[:, n] = x[:, 0]
         z_arr[:, n] = utils.pol2cart(z[0, 0], z[1, 0])
-        x_pred, P_pred, x_up, P_up, K, innov, inP = ekf.step(0, z, f, h, Q, R, it=10)
+        x_pred, P_pred, x_up, P_up, K, innov, inP = ekf.step(0, z, f, h, Q, R, it=1)
 
         x_pred_arr[:, n] = x_pred[:, 0]
         x_up_arr[:, n] = x_up[:, 0]
