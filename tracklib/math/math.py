@@ -3,13 +3,10 @@
 import numpy as np
 from tracklib.utils import col
 
-__all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2']
+__all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
 
 
 def lagrange_interp_poly(x, y=None):
-    '''
-    拉格朗日多项式
-    '''
     x = col(x)
     N = len(x)
 
@@ -54,11 +51,15 @@ def lagrange_interp_poly(x, y=None):
 
 def num_diff(x, f, f_dim, N=1, epsilon=None):
     '''
-    一阶数值微分
+    First-order numerical differentiation which can be used
+    to calculate the Jacobian matrix.
     '''
     x = col(x)
-
     x_dim = x.shape[0]
+
+    if isinstance(epsilon, float):
+        epsilon = epsilon * np.ones_like(x)
+
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
         epsilon = col([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
@@ -119,11 +120,14 @@ def num_diff(x, f, f_dim, N=1, epsilon=None):
 
 def num_diff2(x, f, f_dim, N=1, epsilon=None):
     '''
-    二阶数值微分
+    Second-order numerical differentiation
     '''
     x = col(x)
-
     x_dim = x.shape[0]
+
+    if isinstance(epsilon, float):
+        epsilon = epsilon * np.ones_like(x)
+        
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
         epsilon = col([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
@@ -163,3 +167,40 @@ def num_diff2(x, f, f_dim, N=1, epsilon=None):
 # f = lambda x: np.log(x)
 # x = 1.0
 # print(num_diff2(x, f, 1))
+
+
+def num_diff_hessian(x, f, f_dim, N=1, epsilon=None):
+    '''
+    Second-order partial derivation used to calculate Hessian matrix
+    '''
+    x = col(x)
+    x_dim = x.shape[0]
+
+    if isinstance(epsilon, float):
+        epsilon = epsilon * np.ones_like(x)
+
+    # If epsilon is not specified, then use some ad-hoc default value
+    if epsilon is None:
+        epsilon = col([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
+    else:
+        epsilon = col([max(eps, 1e-7) for eps in epsilon])
+
+    hess = np.zeros((x_dim, x_dim, f_dim))
+    e1 = np.zeros((x_dim, 1))
+    e2 = np.zeros((x_dim, 1))
+    for i in range(x_dim):
+        e1[i] = 1
+        h = epsilon[i] * e1
+        e1[i] = 0
+        for j in range(x_dim):
+            e2[j] = 1
+            k = epsilon[j] * e2
+            e2[j] = 0
+            f1 = f(x + h + k)
+            f2 = f(x - h - k)
+            f3 = f(x - h + k)
+            f4 = f(x + h - k)
+            # central difference
+            hess[i, j, :] = ((f1 + f2 - f3 - f4) / (4 * h[i] * k[j])).reshape((-1,))
+            hess[j, i, :] = hess[i, j, :]
+    return hess

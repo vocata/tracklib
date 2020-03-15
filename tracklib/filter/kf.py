@@ -54,7 +54,7 @@ class KFilter():
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
         msg += 'updated error covariance matrix:\n%s\n\n' % str(self._P_up)
-        msg += 'kalman filter gain:\n%s\n' % str(self._K)
+        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):

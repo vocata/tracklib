@@ -32,9 +32,10 @@ def EKFilter_test():
     R = np.diag([rr**2, ra**2])
 
     x = utils.col([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x_dim)
+    P = 1 * np.eye(x_dim)
 
-    ekf = ft.EKFilter()
+    # ekf = ft.EKFilter_1st()
+    ekf = ft.EKFilter_2ed()
     ekf.init(x, P)
 
     x_arr = np.empty((x_dim, N))
@@ -58,7 +59,7 @@ def EKFilter_test():
         z = h(x, v)
         x_arr[:, n] = x[:, 0]
         z_arr[:, n] = utils.pol2cart(z[0, 0], z[1, 0])
-        x_pred, P_pred, x_up, P_up, K, innov, inP = ekf.step(0, z, f, h, Q, R, it=1)
+        x_pred, P_pred, x_up, P_up, K, innov, inP = ekf.step(0, z, f, h, Q, R, it=10)
 
         x_pred_arr[:, n] = x_pred[:, 0]
         x_up_arr[:, n] = x_up[:, 0]

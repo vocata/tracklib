@@ -55,6 +55,8 @@ def newton_sys(T, dim, axis):
     return F, L, H, M
 
 
+# TODO
+# 这只是在单个axis上的初始化
 def SP_init(z, R, v_max):
     '''
     state and error convariance initiation using single-point method
@@ -69,6 +71,8 @@ def SP_init(z, R, v_max):
     return x, P
 
 
+# TODO
+# 这只是在单个axis上的初始化
 def TPD_init(z1, z2, R1, R2, T):
     '''
     state and error convariance initiation using two-point

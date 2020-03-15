@@ -57,7 +57,7 @@ class AlphaFilter():
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
         msg += 'alpha: %s\n\n' % str(self._alpha)
-        msg += 'kalman filter gain:\n%s\n' % str(self._K)
+        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
@@ -152,7 +152,7 @@ class AlphaBetaFilter():
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
         msg += 'alpha: %s, beta: %s\n\n' % (str(self._alpha), str(self._beta))
-        msg += 'kalman filter gain:\n%s\n' % str(self._K)
+        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
@@ -252,7 +252,7 @@ class AlphaBetaGammaFilter():
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
         msg += 'alpha: %s, beta: %s, gamma: %s\n\n' % \
             (str(self._alpha), str(self._beta), str(self._gamma))
-        msg += 'kalman filter gain:\n%s\n' % str(self._K)
+        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
@@ -352,12 +352,10 @@ class SSFilter():
     def __str__(self):
         msg = 'steady-state linear kalman filter: \n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
-        msg += 'steady-state predicted error covariance matrix:\n%s\n\n' % str(
-            self._P_pred)
+        msg += 'steady-state predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'steady-state updated error covariance matrix:\n%s\n\n' % str(
-            self._P_up)
-        msg += 'steady-state kalman filter gain:\n%s\n' % str(self._K)
+        msg += 'steady-state updated error covariance matrix:\n%s\n\n' % str(self._P_up)
+        msg += 'steady-state kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
