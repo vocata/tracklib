@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from tracklib.utils import col
+from ..utils import col
 
 __all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
 

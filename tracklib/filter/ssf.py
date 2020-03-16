@@ -2,16 +2,17 @@
 
 import numpy as np
 import scipy.linalg as lg
-from tracklib import utils
+from .kfbase import KFBase
 from .model import newton_sys
+from ..utils import col
 '''
-steady-state kalman filter
+steady-state Kalman filter
 '''
 
 __all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 
-class AlphaFilter():
+class AlphaFilter(KFBase):
     '''
     alpha filter(one-state Newtonian system)
 
@@ -33,88 +34,67 @@ class AlphaFilter():
         axis: the number of target motion direction,
               such as x(1), xy(2) or xyz(3)
         '''
-        self._x_pred = None
-        self._x_up = None
-
-        self._x_init = None
-
+        super().__init__()
         self._alpha = alpha
-        diag_a = np.diag(self._alpha)
-        self._K = diag_a
+        self._gain = np.diag(self._alpha)
 
         self._T = T
         self._axis = axis
         self._F, _, self._H, _ = newton_sys(T, 1, axis)
 
-        self._len = 0
-        self._stage = 0
-
-    def __len__(self):
-        return self._len
-
     def __str__(self):
-        msg = 'Alpha filter: \n\n'
-        msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
-        msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s\n\n' % str(self._alpha)
-        msg += 'kalman gain:\n%s\n' % str(self._K)
+        msg = 'Alpha filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init):
-        self._x_init = x_init
-        self._x_pred = x_init
-        self._x_up = x_init
-
+    def init(self, state):
+        self._prior_state = state
+        self._post_state = state
         self._len = 0
         self._stage = 0
+        self._init = True
 
     def predict(self):
         assert (self._stage == 0)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_pred = self._F @ self._x_up
+        self._prior_state = self._F @ self._post_state
         self._stage = 1
-        return self._x_pred
 
     def update(self, z):
         assert (self._stage == 1)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_up = self._x_pred + self._K @ (z - self._H @ self._x_pred)
+        z_pred = self._H @ self._prior_state
+        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
         self._len += 1
         self._stage = 0
-        return self._x_up
 
     def step(self, z):
         assert (self._stage == 0)
-        return self.predict(), self.update(z)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-    @property
-    def x_pred(self):
-        return self._x_pred
-    
-    @property
-    def x_up(self):
-        return self._x_up
-    
-    @property
-    def K(self):
-        return self._K
+        self.predict()
+        self.update(z)
 
     @staticmethod
     def cal_params(sigma_w, sigma_v, T):
         '''
         obtain alpha and for which alpha filter
-        becomes a steady-state kalman filter
+        becomes a steady-state Kalman filter
         '''
-        sigma_w = utils.col(sigma_w)
-        sigma_v = utils.col(sigma_v)
+        sigma_w = col(sigma_w)
+        sigma_v = col(sigma_v)
         lamb = sigma_w * T**2 / sigma_v
         alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
         return alpha
 
-class AlphaBetaFilter():
+class AlphaBetaFilter(KFBase):
     '''
     alpha-beta filter(two-state Newtonian system)
 
@@ -136,84 +116,64 @@ class AlphaBetaFilter():
         axis: the number of target motion direction,
               such as x(1), xy(2) or xyz(3)
         '''
-        self._x_pred = None
-        self._x_up = None
-
-        self._x_init = None
-
+        super().__init__()
         self._alpha = alpha
         self._beta = beta
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._K = np.vstack((diag_a, diag_b / self._T))
+        self._gain = np.vstack((diag_a, diag_b / self._T))
 
         self._T = T
         self._axis = axis
         self._F, _, self._H, _= newton_sys(T, 2, axis)
 
-        self._len = 0
-        self._stage = 0
-
-    def __len__(self):
-        return self._len
-
     def __str__(self):
         msg = 'Alpha-beta filter:\n\n'
-        msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
-        msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s, beta: %s\n\n' % (str(self._alpha), str(self._beta))
-        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init):
-        self._x_init = x_init
-        self._x_pred = x_init
-        self._x_up = x_init
-
+    def init(self, state):
+        self._prior_state = state
+        self._post_state = state
         self._len = 0
         self._stage = 0
+        self._init = True
 
     def predict(self):
         assert (self._stage == 0)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_pred = self._F @ self._x_up
+        self._prior_state = self._F @ self._post_state
         self._stage = 1
-        return self._x_pred
 
     def update(self, z):
         assert (self._stage == 1)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_up = self._x_pred + self._K @ (z - self._H @ self._x_pred)
+        z_pred = self._H @ self._prior_state
+        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
         self._len += 1
         self._stage = 0
-        return self._x_up
 
     def step(self, z):
         assert (self._stage == 0)
-        return self.predict(), self.update(z)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-    @property
-    def x_pred(self):
-        return self._x_pred
-    
-    @property
-    def x_up(self):
-        return self._x_up
-    
-    @property
-    def K(self):
-        return self._K
+        self.predict()
+        self.update(z)
 
     @staticmethod
     def cal_params(sigma_w, sigma_v, T):
         '''
         obtain alpha, beta and for which alpha-beta
-        filter becomes a steady-state kalman filter
+        filter becomes a steady-state Kalman filter
         '''
-        sigma_w = utils.col(sigma_w)
-        sigma_v = utils.col(sigma_v)
+        sigma_w = col(sigma_w)
+        sigma_v = col(sigma_v)
         lamb = sigma_w * T**2 / sigma_v
         r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
         alpha = 1 - r**2
@@ -243,87 +203,66 @@ class AlphaBetaGammaFilter():
         axis: the number of target motion direction,
               such as x(1), xy(2) or xyz(3)
         '''
-        self._x_pred = None
-        self._x_up = None
-
-        self._x_init = None
-
+        super().__init__()
         self._alpha = alpha
         self._beta = beta
         self._gamma = gamma
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._K = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
+        self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
         self._T = T
         self._axis = axis
         self._F, _, self._H, _ = newton_sys(T, 3, axis)
 
-        self._len = 0
-        self._stage = 0
-
-    def __len__(self):
-        return self._len
-
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'
-        msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
-        msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'alpha: %s, beta: %s, gamma: %s\n\n' % \
-            (str(self._alpha), str(self._beta), str(self._gamma))
-        msg += 'kalman gain:\n%s\n' % str(self._K)
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init):
-        self._x_init = x_init
-        self._x_pred = x_init
-        self._x_up = x_init
-
+    def init(self, state):
+        self._prior_state = state
+        self._post_state = state
         self._len = 0
         self._stage = 0
+        self._init = True
 
     def predict(self):
         assert (self._stage == 0)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_pred = self._F @ self._x_up
+        self._prior_state = self._F @ self._post_state
         self._stage = 1
-        return self._x_pred
 
     def update(self, z):
         assert (self._stage == 1)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        self._x_up[:] = self._x_pred + self._K @ (z - self._H @ self._x_pred)
+        z_pred = self._H @ self._prior_state
+        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
         self._len += 1
         self._stage = 0
-        return self._x_up
 
     def step(self, z):
         assert (self._stage == 0)
-        return self.predict(), self.update(z)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-    @property
-    def x_pred(self):
-        return self._x_pred
-    
-    @property
-    def x_up(self):
-        return self._x_up
-    
-    @property
-    def K(self):
-        return self._K
+        self.predict()
+        self.update(z)
 
     @staticmethod
     def cal_params(sigma_w, sigma_v, T):
         '''
         obtain alpha, beta and gamma for which
         alpha-beta-gamma becomes a steady-state
-        kalman filter
+        Kalman filter
         '''
-        sigma_w = utils.col(sigma_w)
-        sigma_v = utils.col(sigma_v)
+        sigma_w = col(sigma_w)
+        sigma_v = col(sigma_v)
         lamb = sigma_w * T**2 / sigma_v
         b = lamb / 2 - 3
         c = lamb / 2 + 3
@@ -339,9 +278,9 @@ class AlphaBetaGammaFilter():
         return alpha, beta, gamma
 
 
-class SSFilter():
+class SSFilter(KFBase):
     '''
-    steady-state Kalman filter for multiple state systems
+    Steady-state Kalman filter for multiple state systems
 
     system model:
     x_k = F*x_k-1 + G*u_k-1 + L*w_k-1
@@ -352,15 +291,7 @@ class SSFilter():
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, F, L, H, M, Q, R, G=None):
-        self._x_pred = None
-        self._P_pred = None
-        self._x_up = None
-        self._P_up = None
-        self._K = None
-
-        self._x_init = None
-        self._P_init = None
-
+        super().__init__()
         # initiate relevant matrix
         self._F = F
         self._L = L
@@ -370,74 +301,54 @@ class SSFilter():
         self._R = R
         self._G = G
 
-        self._len = 0
-        self._stage = 0
-
-    def __len__(self):
-        return self._len
-
     def __str__(self):
-        msg = 'Steady-state linear kalman filter:\n\n'
-        msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
-        msg += 'steady-state predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
-        msg += 'updated state:\n%s\n\n' % str(self._x_up)
-        msg += 'steady-state updated error covariance matrix:\n%s\n\n' % str(self._P_up)
-        msg += 'steady-state kalman gain:\n%s\n' % str(self._K)
+        msg = 'Steady-state linear Kalman filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, x_init, P_init, it=5):
-        self._x_init = x_init
-        self._P_init = P_init
-        self._x_pred = x_init
-        self._x_up = x_init
-        self._K, self._P_pred, self._P_up = \
-            SSFilter.issv(P_init, self._F, self._L, self._H, self._M, self._Q, self._R, it=it)
+    def init(self, state, cov, it=5):
+        self._state = state
+        self._cov = cov
+        self._prior_state = state
+        self._post_state = state
+        self._gain, self._prior_cov, self._post_cov = \
+            SSFilter.issv(cov, self._F, self._L, self._H, self._M, self._Q, self._R, it=it)
+        R_tilde = self._M @ self._R @ self._M.T
+        self._innov_cov = self._H @ self._prior_cov @ self._H.T + R_tilde
+        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._len = 0
         self._stage = 0
+        self._init = True
 
     def predict(self, u=None):
         assert (self._stage == 0)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
         ctl = 0 if u is None else self._G @ u
-        self._x_pred = self._F @ self._x_up + ctl
+        self._prior_state = self._F @ self._post_state + ctl
         self._stage = 1
-        return self._x_pred
 
     def update(self, z):
         assert (self._stage == 1)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-        z_pred = self._H @ self._x_pred
-        self._x_up = self._x_pred + self._K @ (z - z_pred)
+        z_pred = self._H @ self._prior_state
+        self._innov = z - z_pred
+        self._post_state = self._prior_state + self._gain @ self._innov
         self._stage = 0
         self._len += 1
-        return self._x_up
 
     def step(self, z, u=None):
         assert (self._stage == 0)
-        return self.predict(u), self.update(z)
+        if self._init == False:
+            raise RuntimeError('The filter must be initialized with init() before use')
 
-    @property
-    def x_pred(self):
-        return self._x_pred
-    
-    @property
-    def x_up(self):
-        return self._x_up
-
-    @property
-    def P_pred(self):
-        return self._P_pred
-
-    @property
-    def P_up(self):
-        return self._P_up
-    
-    @property
-    def K(self):
-        return self._K
+        self.predict(u)
+        self.update(z)
 
     @staticmethod
     def issv(P, F, L, H, M, Q, R, it):
@@ -462,8 +373,8 @@ class SSFilter():
         tmp = psi @ np.vstack((P, I))
         A_inf = tmp[:P.shape[0], :]
         B_inf = tmp[P.shape[0]:, :]
-        P_pred = A_inf @ lg.inv(B_inf)
-        K = P_pred @ H.T @ lg.inv(H @ P_pred @ H.T + R_hat)
-        P_up = (I - K @ H) @ P_pred @ (I - K @ H).T + K @ R_hat @ K.T
+        prior_cov = A_inf @ lg.inv(B_inf)
+        K = prior_cov @ H.T @ lg.inv(H @ prior_cov @ H.T + R_hat)
+        post_cov = (I - K @ H) @ prior_cov @ (I - K @ H).T + K @ R_hat @ K.T
 
-        return K, P_pred, P_up
+        return K, prior_cov, post_cov

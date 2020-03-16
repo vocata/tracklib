@@ -1,8 +1,16 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 import tracklib.filter as ft
 import tracklib.utils as utils
+import matplotlib.pyplot as plt
+'''
+notes:
+vector is preferably a column vector, otherwise
+the program may yield uncertain result.
+'''
 
 
 def SSFilter_test():
@@ -20,13 +28,17 @@ def SSFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.SSFilter(F, L, H, M, Q, R)
-    kf.init(x, P, it=5)
+    ssf = ft.SSFilter(F, L, H, M, Q, R)
+    ssf.init(x, P)
 
-    x_arr = np.empty((x_dim, N))
-    z_arr = np.empty((z_dim, N))
-    x_pred_arr = np.empty((x_dim, N))
-    x_up_arr = np.empty((x_dim, N))
+    state_arr = np.empty((x_dim, N))
+    measure_arr = np.empty((z_dim, N))
+    prior_state_arr = np.empty((x_dim, N))
+    post_state_arr = np.empty((x_dim, N))
+    prior_cov_arr = np.empty((x_dim, x_dim, N))
+    post_cov_arr = np.empty((x_dim, x_dim, N))
+    innov_arr = np.empty((z_dim, N))
+    innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(N):
         wx = np.random.normal(0, qx)
@@ -38,38 +50,71 @@ def SSFilter_test():
 
         x = F @ x + L @ w
         z = H @ x + M @ v
-        x_arr[:, n] = x[:, 0]
-        z_arr[:, n] = z[:, 0]
-        x_pred, x_up = kf.step(z)
+        state_arr[:, n] = x[:, 0]
+        measure_arr[:, n] = z[:, 0]
+        ssf.step(z)
+        prior_state, prior_cov = ssf.prior_state, ssf.prior_cov
+        post_state, post_cov = ssf.post_state, ssf.post_cov
+        innov, innov_cov = ssf.innov, ssf.innov_cov
+        gain = ssf.gain
 
-        x_pred_arr[:, n] = x_pred[:, 0]
-        x_up_arr[:, n] = x_up[:, 0]
-    print(len(kf))
-    print(kf)
+        prior_state_arr[:, n] = prior_state[:, 0]
+        post_state_arr[:, n] = post_state[:, 0]
+        prior_cov_arr[:, :, n] = prior_cov
+        post_cov_arr[:, :, n] = post_cov
+        innov_arr[:, n] = innov[:, 0]
+        innov_cov_arr[:, :, n] = innov_cov
+    print(len(ssf))
+    print(ssf)
 
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, x_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, z_arr[0, :], '.')
-    ax[0].plot(n, x_pred_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, x_up_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, state_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, measure_arr[0, :], '.')
+    ax[0].plot(n, prior_state_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[0].set_title('x state')
-    ax[1].plot(n, x_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, z_arr[1, :], '.')
-    ax[1].plot(n, x_pred_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, x_up_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, measure_arr[1, :], '.')
+    ax[1].plot(n, prior_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[1].set_title('y state')
     plt.show()
 
+    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
+    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
+    print('y prior error variance {}'.format(prior_cov_arr[1, 1, -1]))
+    print('y posterior error variance {}'.format(post_cov_arr[1, 1, -1]))
+
+    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
+    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
+    _, ax = plt.subplots(2, 1)
+    ax[0].plot(n, innov_arr[0, :], linewidth=0.8)
+    ax[0].set_title('x innovation')
+    ax[1].plot(n, innov_arr[1, :], linewidth=0.8)
+    ax[1].set_title('y innovation')
+    plt.show()
+
+    print('x innovation variance {}'.format(innov_cov_arr[0, 0, -1]))
+    print('y innovation variance {}'.format(innov_cov_arr[1, 1, -1]))
+    _, ax = plt.subplots(2, 1)
+    ax[0].plot(n, innov_cov_arr[0, 0, :], linewidth=0.8)
+    ax[0].set_title('x innovation variance')
+    ax[1].plot(n, innov_cov_arr[1, 1, :], linewidth=0.8)
+    ax[1].set_title('y innovation variance')
+    plt.show()
+
+    print('Kalman gain:\n{}'.format(gain))
+
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(x_arr[0, 0], x_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(x_arr[0, :], x_arr[1, :], linewidth=0.8)
-    ax.plot(z_arr[0, :], z_arr[1, :], linewidth=0.8)
-    ax.plot(x_up_arr[0, :], x_up_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
+    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
@@ -77,5 +122,5 @@ def SSFilter_test():
     plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     SSFilter_test()
