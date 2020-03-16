@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import scipy.linalg as lg
 
-__all__ = ['newton_sys']
+__all__ = ['newton_sys', 'SP_init', 'TPD_init']
 
 
 def newton_sys(T, dim, axis):
@@ -40,17 +41,50 @@ def newton_sys(T, dim, axis):
 
     tmp = items.copy()
     for i in range(dim):
-        F_rows = np.concatenate(list(
-            map(np.diag, map(lambda x: [x] * axis, tmp[:dim]))),
-                                axis=1)
-        F = np.append(F, F_rows, axis=0)
+        F_rows = np.hstack(tuple(map(np.diag, map(lambda x: [x] * axis, tmp[:dim]))))
+        F = np.vstack((F, F_rows))
         L_rows = np.diag([items[-1 - i]] * axis)
-        L = np.append(L, L_rows, axis=0)
+        L = np.vstack((L, L_rows))
         H_cols = np.eye(axis) if i == 0 else np.zeros((axis, axis))
-        H = np.append(H, H_cols, axis=1)
+        H = np.hstack((H, H_cols))
 
         tmp[-1] = 0
         # right cyclically shift one element
         tmp = tmp[-1:] + tmp[:-1]
 
     return F, L, H, M
+
+
+# TODO
+# 这只是在单个axis上的初始化
+def SP_init(z, R, v_max):
+    '''
+    state and error convariance initiation using single-point method
+    '''
+    x = z
+    x = np.vstack((x, np.zeros_like(x)))
+
+    lt = R
+    rb = v_max**2 / 3 * np.eye(*R.shape)
+    P = lg.block_diag(lt, rb)
+
+    return x, P
+
+
+# TODO
+# 这只是在单个axis上的初始化
+def TPD_init(z1, z2, R1, R2, T):
+    '''
+    state and error convariance initiation using two-point
+    difference method. The initial state error covariance is
+    computed assuming there is no process noise.
+    '''
+    x = np.vstack((z2, z1))
+
+    lt = R2
+    lb = R2 / T
+    rt = R2 / T
+    rb = (R1 + R2) / T**2
+    P = np.hstack((np.vstack((lt, lb)), np.vstack((rt, rb))))
+
+    return x, P

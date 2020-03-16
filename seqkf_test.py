@@ -28,15 +28,15 @@ def SeqKFilter_test():
     x = utils.col([1, 2, 0.2, 0.3])
     P = 100 * np.eye(x_dim)
 
-    kf = ft.SeqKFilter(F, L, H, M, Q, R)
-    kf.init(x, P) 
+    seqkf = ft.SeqKFilter(F, L, H, M, Q, R)
+    seqkf.init(x, P) 
 
-    x_arr = np.zeros((x_dim, N))
-    z_arr = np.zeros((z_dim, N))
-    x_pred_arr = np.zeros((x_dim, N))
-    x_up_arr = np.zeros((x_dim, N))
-    P_pred_arr = np.zeros((x_dim, x_dim, N))
-    P_up_arr = np.zeros((x_dim, x_dim, N))
+    state_arr = np.zeros((x_dim, N))
+    measure_arr = np.zeros((z_dim, N))
+    prior_state_arr = np.zeros((x_dim, N))
+    post_state_arr = np.zeros((x_dim, N))
+    prior_cov_arr = np.zeros((x_dim, x_dim, N))
+    post_cov_arr = np.zeros((x_dim, x_dim, N))
 
     for n in range(N):
         wx = np.random.normal(0, qx)
@@ -48,51 +48,57 @@ def SeqKFilter_test():
 
         x = F @ x + L @ w
         z = H @ x + M @ v
-        x_arr[:, n] = x[:, 0]
-        z_arr[:, n] = z[:, 0]
-        x_pred, P_pred, x_up, P_up = kf.step(z)
+        state_arr[:, n] = x[:, 0]
+        measure_arr[:, n] = z[:, 0]
+        seqkf.step(z)
+        prior_state, prior_cov = seqkf.prior_state, seqkf.prior_cov
+        post_state, post_cov = seqkf.post_state, seqkf.post_cov
 
-        x_pred_arr[:, n] = x_pred[:, 0]
-        x_up_arr[:, n] = x_up[:, 0]
-        P_pred_arr[:, :, n] = P_pred
-        P_up_arr[:, :, n] = P_up
-    print(len(kf))
-    print(kf)
+        prior_state_arr[:, n] = prior_state[:, 0]
+        post_state_arr[:, n] = post_state[:, 0]
+        prior_cov_arr[:, :, n] = prior_cov
+        post_cov_arr[:, :, n] = post_cov
+    print(len(seqkf))
+    print(seqkf)
 
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, x_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, z_arr[0, :], '.')
-    ax[0].plot(n, x_pred_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, x_up_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, state_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, measure_arr[0, :], '.')
+    ax[0].plot(n, prior_state_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[0].set_title('x state')
-    ax[1].plot(n, x_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, z_arr[1, :], '.')
-    ax[1].plot(n, x_pred_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, x_up_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, measure_arr[1, :], '.')
+    ax[1].plot(n, prior_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[1].set_title('y state')
     plt.show()
 
+    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
+    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
+    print('y prior error variance {}'.format(prior_cov_arr[1, 1, -1]))
+    print('y posterior error variance {}'.format(post_cov_arr[1, 1, -1]))
     _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, P_pred_arr[0, 0, :], linewidth=0.8)
-    ax[0].plot(n, P_up_arr[0, 0, :], linewidth=0.8)
+    ax[0].plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
+    ax[0].plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
     ax[0].legend(['prediction', 'estimation'])
     ax[0].set_title('x error variance/mean square error')
-    ax[1].plot(n, P_pred_arr[1, 1, :], linewidth=0.8)
-    ax[1].plot(n, P_up_arr[1, 1, :], linewidth=0.8)
+    ax[1].plot(n, prior_cov_arr[1, 1, :], linewidth=0.8)
+    ax[1].plot(n, post_cov_arr[1, 1, :], linewidth=0.8)
     ax[1].legend(['prediction', 'estimation'])
     ax[1].set_title('y error variance/mean square error')
     plt.show()
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(x_arr[0, 0], x_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(x_arr[0, :], x_arr[1, :], linewidth=0.8)
-    ax.plot(z_arr[0, :], z_arr[1, :], linewidth=0.8)
-    ax.plot(x_up_arr[0, :], x_up_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
+    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
