@@ -129,7 +129,7 @@ class MMFilter():
         return self.update(z)
 
     @property
-    def x_weight(self):
+    def x(self):
         return self._x_weight
 
     @property
