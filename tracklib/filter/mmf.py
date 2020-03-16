@@ -61,7 +61,7 @@ class MMFilter():
         msg += 'model probability:\n%s\n' % str(self._prob)
         return msg
 
-    def __repr(self):
+    def __repr__(self):
         return self.__str__()
 
     def init(self, x_init, P_init):
@@ -128,6 +128,11 @@ class MMFilter():
         self.predict(u)
         return self.update(z)
 
+    @property
+    def x_weight(self):
+        return self._x_weight
+
+    @property
     def prob(self):
         return self._prob
 

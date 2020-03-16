@@ -90,7 +90,16 @@ class AlphaFilter():
         assert (self._stage == 0)
         return self.predict(), self.update(z)
 
-    def steady_params(self):
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def K(self):
         return self._K
 
     @staticmethod
@@ -185,7 +194,16 @@ class AlphaBetaFilter():
         assert (self._stage == 0)
         return self.predict(), self.update(z)
 
-    def steady_params(self):
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def K(self):
         return self._K
 
     @staticmethod
@@ -285,7 +303,16 @@ class AlphaBetaGammaFilter():
         assert (self._stage == 0)
         return self.predict(), self.update(z)
 
-    def steady_params(self):
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def K(self):
         return self._K
 
     @staticmethod
@@ -392,8 +419,25 @@ class SSFilter():
         assert (self._stage == 0)
         return self.predict(u), self.update(z)
 
-    def steady_params(self):
-        return self._K, self._P_pred, self._P_up
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+
+    @property
+    def P_pred(self):
+        return self._P_pred
+
+    @property
+    def P_up(self):
+        return self._P_up
+    
+    @property
+    def K(self):
+        return self._K
 
     @staticmethod
     def issv(P, F, L, H, M, Q, R, it):

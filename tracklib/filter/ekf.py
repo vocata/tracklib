@@ -136,6 +136,34 @@ class EKFilter_1st():
         update_ret = self.update(z, h, R, H=H, M=M, it=it)
         return pred_ret + update_ret
 
+    @property
+    def x_pred(self):
+        return self._x_pred
+
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def P_pred(self):
+        return self._P_pred
+
+    @property
+    def P_up(self):
+        return self._P_up
+
+    @property
+    def innov(self):
+        return self._innov
+
+    @property
+    def inP(self):
+        return self._inP
+    
+    @property
+    def K(self):
+        return self._K
+
 
 class EKFilter_2ed():
     '''
@@ -275,3 +303,32 @@ class EKFilter_2ed():
         pred_ret = self.predict(u, f, Q, F=F, L=L, f_Hess=f_Hess)
         update_ret = self.update(z, h, R, H=H, M=M, h_Hess=h_Hess, it=it)
         return pred_ret + update_ret
+
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def P_pred(self):
+        return self._P_pred
+
+    @property
+    def P_up(self):
+        return self._P_up
+
+    @property
+    def innov(self):
+        return self._innov
+
+    @property
+    def inP(self):
+        return self._inP
+    
+    @property
+    def K(self):
+        return self._K
+        

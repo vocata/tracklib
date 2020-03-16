@@ -9,7 +9,7 @@ __all__ = ['KFilter', 'SeqKFilter']
 
 class KFilter():
     '''
-    Normal linear kalman filter
+    Standard linear kalman filter
 
     system model:
     x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1
@@ -49,7 +49,7 @@ class KFilter():
         return self._len
 
     def __str__(self):
-        msg = 'Normal linear kalman filter:\n\n'
+        msg = 'Standard linear kalman filter:\n\n'
         msg += 'predicted state:\n%s\n\n' % str(self._x_pred)
         msg += 'predicted error covariance matrix:\n%s\n\n' % str(self._P_pred)
         msg += 'updated state:\n%s\n\n' % str(self._x_up)
@@ -117,6 +117,34 @@ class KFilter():
         pred_ret = self.predict(u, **kw)
         update_ret = self.update(z, **kw)
         return pred_ret + update_ret
+
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def P_pred(self):
+        return self._P_pred
+
+    @property
+    def P_up(self):
+        return self._P_up
+
+    @property
+    def innov(self):
+        return self._innov
+
+    @property
+    def inP(self):
+        return self._inP
+
+    @property
+    def K(self):
+        return self._K
 
 
 class SeqKFilter():
@@ -244,3 +272,19 @@ class SeqKFilter():
         pred_ret = self.predict(u, **kw)
         update_ret = self.update(z, **kw)
         return pred_ret + update_ret
+
+    @property
+    def x_pred(self):
+        return self._x_pred
+    
+    @property
+    def x_up(self):
+        return self._x_up
+    
+    @property
+    def P_pred(self):
+        return self._P_pred
+
+    @property
+    def P_up(self):
+        return self._P_up
