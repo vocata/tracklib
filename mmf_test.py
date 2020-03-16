@@ -26,7 +26,7 @@ def MMFilter_test():
         R = np.diag([rx**2, ry**2])
         F, L, H, M = ft.newton_sys(T, 2, 2)
         model = ft.KFilter(F, L, H, M, Q, R)
-        mmf.add_model(model, 1/model_n, str(i))
+        mmf.add_model(model, 1/model_n)
 
     # initial state and error convariance
     x = utils.col([1, 2, 0.2, 0.3])

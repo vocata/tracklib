@@ -16,24 +16,34 @@ class MMFilter(KFBase):
     '''
     def __init__(self):
         super().__init__()
-        self._model = []
-        self._name = []
-        self._prob = []
+        self._model = {}
         self._weight_state = None
         self._maxprob_state = None
         self._model_n = 0
 
-    # TODO
-    # 完整的多模型描述
     def __str__(self):
-        msg = 'Multiple model filter:\n'
+        msg = 'Multiple model filter:\n{\n  '
+        if self._model_n < 10:
+            sub = ['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(self._model_n)]
+            sub = '\n  '.join(sub)
+            # [i for i in range(self._model_n)]
+        else:
+            sub = ['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(3)]
+            sub.append('...')
+            sub.extend(['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(self._model_n - 3, self._model_n)])
+            sub = '\n  '.join(sub)
+        msg += sub
+        msg += '\n}'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    # TODO
-    # 实现索引
+    def __iter__(self):
+        return iter(self._model.values())
+
+    def __getitem__(self, n):
+        return self._model[n]
 
     def init(self, state=None, cov=None):
         '''
@@ -56,22 +66,20 @@ class MMFilter(KFBase):
             pass
         else:
             if isinstance(state, np.ndarray) and isinstance(cov, np.ndarray):
-                for model in self._model:
-                    model.init(state, cov)
+                for i in range(self._model_n):
+                    self._model[i][0].init(state, cov)
             elif isinstance(state, list) and isinstance(cov, list):
                 for i in range(self._model_n):
                     if state[i] is None or cov[i] is None:
                         continue
-                    self._model[i].init(state[i], cov[i])
+                    self._model[i][0].init(state[i], cov[i])
             else:
                 raise ValueError('state and cov must be a ndarray, list or None')
         self._len = 0
         self._stage = 0
         self._init = True
 
-    # TODO
-    # 实现相同索引判断
-    def add_model(self, model, prob, name=''):
+    def add_model(self, model, prob):
         '''
         Add new model
 
@@ -81,17 +89,13 @@ class MMFilter(KFBase):
             standard Kalman filter or extended Kalman filter
         probability : float
             model prior probability
-        name : str
-            model name(optional)
 
         Returns
         -------
             None
         '''
         if isinstance(model, (KFilter, EKFilter_1st, EKFilter_2ed)):
-            self._model.append(model)
-            self._prob.append(prob)
-            self._name.append(name)
+            self._model[self._model_n] = [model, prob]
             self._model_n += 1
 
     def predict(self, u=None):
@@ -99,8 +103,8 @@ class MMFilter(KFBase):
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
-        for model in self._model:
-            model.predict(u)
+        for i in range(self._model_n):
+            self._model[i][0].predict(u)
         self._stage = 1
 
     def update(self, z):
@@ -109,24 +113,28 @@ class MMFilter(KFBase):
             raise RuntimeError('The filter must be initialized with init() before use')
 
         pdf = []
-        for model in self._model:
-            model.update(z)
-            r = model.innov
-            S = model.innov_cov
+        for i in range(self._model_n):
+            self._model[i][0].update(z)
+            r = self._model[i][0].innov
+            S = self._model[i][0].innov_cov
             pdf.append((np.exp(-r.T @ lg.inv(S) @ r / 2) /
                         np.sqrt(lg.det(2 * np.pi * S))).item())
 
         # total probability
-        total = np.dot(pdf, self._prob)
+        total = 0
+        for i in range(self._model_n):
+            total += pdf[i] * self._model[i][1]
         # update all models' posterior probability
         for i in range(self._model_n):
-            self._prob[i] = pdf[i] * self._prob[i] / total 
+            self._model[i][1] = pdf[i] * self._model[i][1] / total 
 
+        prob = [self._model[i][1] for i in range(self._model_n)]
         # weighted state estimate
-        states = np.array([model.post_state.reshape(-1) for model in self._model]).T
-        self._weight_state = col(np.dot(states, self._prob))
+        states = np.array([self._model[i][0].post_state.reshape(-1) for i in range(self._model_n)]).T
+        self._weight_state = col(np.dot(states, prob))
         # max probability model state estimate
-        self._maxprob_state = self._model[np.argmax(self._prob)].post_state
+        max_index = np.argmax(prob)
+        self._maxprob_state = self._model[max_index][0].post_state
 
         self._len += 1
         self._stage = 0
@@ -147,7 +155,7 @@ class MMFilter(KFBase):
 
     @property
     def prob(self):
-        return self._prob
+        return [self._model[i][1] for i in range(self._model_n)]
 
     @property
     def prior_state(self):
