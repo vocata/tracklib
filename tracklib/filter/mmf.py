@@ -5,7 +5,6 @@ import scipy.linalg as lg
 from .kfbase import KFBase
 from .kf import KFilter
 from .ekf import EKFilter_1st, EKFilter_2ed
-from ..utils import col
 
 __all__ = ['MMFilter']
 
@@ -17,8 +16,6 @@ class MMFilter(KFBase):
     def __init__(self):
         super().__init__()
         self._model = {}
-        self._weight_state = None
-        self._maxprob_state = None
         self._model_n = 0
 
     def __str__(self):
@@ -128,13 +125,6 @@ class MMFilter(KFBase):
         for i in range(self._model_n):
             self._model[i][1] = pdf[i] * self._model[i][1] / total 
 
-        prob = [self._model[i][1] for i in range(self._model_n)]
-        # weighted state estimate
-        states = np.array([self._model[i][0].post_state.reshape(-1) for i in range(self._model_n)]).T
-        self._weight_state = col(np.dot(states, prob))
-        # max probability model state estimate
-        max_index = np.argmax(prob)
-        self._maxprob_state = self._model[max_index][0].post_state
 
         self._len += 1
         self._stage = 0
@@ -147,11 +137,17 @@ class MMFilter(KFBase):
         
     @property
     def weight_state(self):
-        return self._weight_state
+        # weighted state estimate
+        state = 0
+        for i in range(self._model_n):
+            state += self._model[i][1] * self._model[i][0].post_state
+        return state
 
     @property
     def maxprob_state(self):
-        return self._maxprob_state
+        # max probability model state estimate
+        max_index = np.argmax([self._model[i][1] for i in range(self._model_n)])
+        return self._model[max_index][0].post_state
 
     @property
     def prob(self):

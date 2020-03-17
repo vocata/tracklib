@@ -10,7 +10,7 @@ __all__ = ['KFilter', 'SeqKFilter']
 
 class KFilter(KFBase):
     '''
-    Standard linear gainalman filter
+    Standard linear Kalman filter
 
     system model:
     x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1
@@ -34,7 +34,7 @@ class KFilter(KFBase):
         self._R = R
 
     def __str__(self):
-        msg = 'Standard linear gainalman filter'
+        msg = 'Standard linear Kalman filter'
         return msg
 
     def __repr__(self):
@@ -103,7 +103,7 @@ class KFilter(KFBase):
 
 class SeqKFilter(KFBase):
     '''
-    Sequential linear gainalman filter
+    Sequential linear Kalman filter
 
     system model:
     x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1
@@ -131,7 +131,7 @@ class SeqKFilter(KFBase):
         self._D = np.diag(v)
 
     def __str__(self):
-        msg = 'Sequential linear gainalman filter'
+        msg = 'Sequential linear Kalman filter'
         return msg
 
     def __repr__(self):

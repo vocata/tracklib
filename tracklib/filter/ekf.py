@@ -11,7 +11,7 @@ __all__ = ['EKFilter_1st', 'EKFilter_2ed']
 
 class EKFilter_1st(KFBase):
     '''
-    First-order extended kalman filter
+    First-order extended Kalman filter
 
     system model:
     x_k = f_k-1(x_k-1, u_k-1, w_k-1)
@@ -31,7 +31,7 @@ class EKFilter_1st(KFBase):
         self._R = R
 
     def __str__(self):
-        msg = 'Fisrt-order extended kalman filter'
+        msg = 'Fisrt-order extended Kalman filter'
         return msg
 
     def __repr__(self):
@@ -144,7 +144,7 @@ class EKFilter_1st(KFBase):
 
 class EKFilter_2ed(KFBase):
     '''
-    Second-order extended kalman filter
+    Second-order extended Kalman filter
 
     system model:
     x_k = f_k-1(x_k-1, u_k-1, w_k-1)
@@ -164,7 +164,7 @@ class EKFilter_2ed(KFBase):
         self._R = R
 
     def __str__(self):
-        msg = 'Second-order kalman filter'
+        msg = 'Second-order Kalman filter'
         return msg
 
     def __repr__(self):
