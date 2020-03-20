@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
 import tracklib.utils as utils
 import tracklib.filter as ft
@@ -17,8 +16,8 @@ def SeqKFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim = 4, 2
-    qx, qy = math.sqrt(0.01), math.sqrt(0.02)
-    rx, ry = math.sqrt(1), math.sqrt(1)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    rx, ry = np.sqrt(1), np.sqrt(1)
 
     Q = np.diag([qx**2, qy**2])
     R = np.diag([rx**2, ry**2])

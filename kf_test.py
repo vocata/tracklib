@@ -1,11 +1,12 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
+import scipy.linalg as lg
 import tracklib.filter as ft
 import tracklib.utils as utils
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 '''
 notes:
 vector is preferably a column vector, otherwise
@@ -17,8 +18,8 @@ def KFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim = 4, 2
-    qx, qy = math.sqrt(0.01), math.sqrt(0.02)
-    rx, ry = math.sqrt(1), math.sqrt(1)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    rx, ry = np.sqrt(1), np.sqrt(1)
 
     Q = np.diag([qx**2, qy**2])
     R = np.diag([rx**2, ry**2])
@@ -130,6 +131,48 @@ def KFilter_test():
     ax.legend(['real', 'measurement', 'estimation'])
     ax.set_title('trajectory')
     plt.show()
+
+    # trajectory amination
+    # _, ax = plt.subplots()
+    # ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
+    # ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    # ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
+    # ax.plot(prior_state_arr[0, :], prior_state_arr[1, :], linewidth=0.8)
+    # ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.legend(['real', 'measurement', 'prior esti', 'post esti'])
+    # ax.set_title('trajectory')
+    # plt.ion()
+    # for i in range(N):
+    #     prior_state = prior_state_arr[:2, i]
+    #     prior_cov = prior_cov_arr[:2, :2, i]
+    #     post_state = post_state_arr[:2, i]
+    #     post_cov = post_cov_arr[:2, :2, i]
+    #     origin = prior_state
+    #     d, v = lg.eigh(prior_cov)
+    #     width = 2 * np.sqrt(d[0])
+    #     height = 2 * np.sqrt(d[1])
+    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[1, 1])).imag)
+    #     e = Ellipse(origin, width, height, angle)
+    #     e.set_facecolor('white')
+    #     e.set_edgecolor('black')
+    #     ax.add_patch(e)
+    #     plt.pause(0.2)
+    #     e.remove()
+    #     origin = post_state
+    #     d, v = lg.eigh(post_cov)
+    #     width = 2 * np.sqrt(d[0])
+    #     height = 2 * np.sqrt(d[1])
+    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[1, 1])).imag)
+    #     e = Ellipse(origin, width, height, angle)
+    #     e.set_facecolor('white')
+    #     e.set_edgecolor('red')
+    #     ax.add_patch(e)
+    #     plt.pause(0.2)
+    #     e.remove()
+    # plt.ioff()
+    # plt.show()
 
 
 if __name__ == '__main__':

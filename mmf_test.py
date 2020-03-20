@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
 import tracklib.filter as ft
 import tracklib.utils as utils
@@ -19,8 +18,8 @@ def MMFilter_test():
 
     mmf = ft.MMFilter()
     for i in range(model_n):
-        qx, qy = math.sqrt((i + 1)/10), math.sqrt((i + 1)/10)
-        rx, ry = math.sqrt(i + 1), math.sqrt(i + 1)
+        qx, qy = np.sqrt((i + 1)/10), np.sqrt((i + 1)/10)
+        rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
 
         Q = np.diag([qx**2, qy**2])
         R = np.diag([rx**2, ry**2])

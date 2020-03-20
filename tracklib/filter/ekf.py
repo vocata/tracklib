@@ -58,6 +58,7 @@ class EKFilter_1st(KFBase):
             self._f = kw['f']
         if 'Q' in kw:
             self._Q = kw['Q']
+
         if 'F' in kw:
             F = kw['F']
         else:
@@ -88,6 +89,7 @@ class EKFilter_1st(KFBase):
             self._h = kw['h']
         if 'R' in kw:
             self._R = kw['R']
+
         if 'H' in kw:
             H = kw['H']
             it = 0
@@ -191,6 +193,7 @@ class EKFilter_2ed(KFBase):
             self._f = kw['f']
         if 'Q' in kw:
             self._Q = kw['Q']
+
         if 'F' in kw:
             F = kw['F']
         else:
@@ -228,6 +231,7 @@ class EKFilter_2ed(KFBase):
             self._h = kw['h']
         if 'R' in kw:
             self._R = kw['R']
+
         if 'H' in kw:
             H = kw['H']
             it = 0

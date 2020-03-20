@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import math
 import numpy as np
 import scipy.linalg as lg
 import tracklib.filter as ft
@@ -18,10 +17,10 @@ def EKFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
-    # qx, qy = math.sqrt(0.01), math.sqrt(0.02)
-    # rr, ra = math.sqrt(5), math.sqrt(utils.deg2rad(0.1))
-    qx, qy = math.sqrt(0.00001), math.sqrt(0.00001)
-    rr, ra = math.sqrt(0.1), math.sqrt(0.01)
+    # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    # rr, ra = np.sqrt(5), np.sqrt(utils.deg2rad(0.1))
+    qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
+    rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
     f = lambda x, u, w: F @ x + w
