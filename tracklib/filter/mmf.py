@@ -102,6 +102,7 @@ class MMFilter(KFBase):
 
         for i in range(self._model_n):
             self._model[i][0].predict(u)
+
         self._stage = 1
 
     def update(self, z):
@@ -124,7 +125,6 @@ class MMFilter(KFBase):
         # update all models' posterior probability
         for i in range(self._model_n):
             self._model[i][1] = pdf[i] * self._model[i][1] / total 
-
 
         self._len += 1
         self._stage = 0
