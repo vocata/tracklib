@@ -4,7 +4,6 @@ import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
 from .model import newton_sys
-from ..utils import col
 '''
 steady-state Kalman filter
 '''
@@ -62,6 +61,7 @@ class AlphaFilter(KFBase):
             raise RuntimeError('The filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
+
         self._stage = 1
 
     def update(self, z):
@@ -69,8 +69,9 @@ class AlphaFilter(KFBase):
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
-        z_pred = self._H @ self._prior_state
-        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
+        z_prior = self._H @ self._prior_state
+        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+
         self._len += 1
         self._stage = 0
 
@@ -88,8 +89,27 @@ class AlphaFilter(KFBase):
         obtain alpha and for which alpha filter
         becomes a steady-state Kalman filter
         '''
-        sigma_w = col(sigma_w)
-        sigma_v = col(sigma_v)
+        if isinstance(sigma_w, np.ndarray):
+            pass
+        elif isinstance(sigma_w, (int, float)):
+            sigma_w = np.array([sigma_w], dtype=float)
+        elif isinstance(sigma_w, (list, tuple)):
+            sigma_w = np.array(sigma_w, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_w.__class__.__name__)
+        if isinstance(sigma_v, np.ndarray):
+            pass
+        elif isinstance(sigma_v, (int, float)):
+            sigma_v = np.array([sigma_v], dtype=float)
+        elif isinstance(sigma_v, (list, tuple)):
+            sigma_v = np.array(sigma_v, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_v.__class__.__name__)
+
         lamb = sigma_w * T**2 / sigma_v
         alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
         return alpha
@@ -146,6 +166,7 @@ class AlphaBetaFilter(KFBase):
             raise RuntimeError('The filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
+
         self._stage = 1
 
     def update(self, z):
@@ -153,8 +174,9 @@ class AlphaBetaFilter(KFBase):
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
-        z_pred = self._H @ self._prior_state
-        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
+        z_prior = self._H @ self._prior_state
+        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+        
         self._len += 1
         self._stage = 0
 
@@ -172,8 +194,27 @@ class AlphaBetaFilter(KFBase):
         obtain alpha, beta and for which alpha-beta
         filter becomes a steady-state Kalman filter
         '''
-        sigma_w = col(sigma_w)
-        sigma_v = col(sigma_v)
+        if isinstance(sigma_w, np.ndarray):
+            pass
+        elif isinstance(sigma_w, (int, float)):
+            sigma_w = np.array([sigma_w], dtype=float)
+        elif isinstance(sigma_w, (list, tuple)):
+            sigma_w = np.array(sigma_w, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_w.__class__.__name__)
+        if isinstance(sigma_v, np.ndarray):
+            pass
+        elif isinstance(sigma_v, (int, float)):
+            sigma_v = np.array([sigma_v], dtype=float)
+        elif isinstance(sigma_v, (list, tuple)):
+            sigma_v = np.array(sigma_v, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_v.__class__.__name__)
+
         lamb = sigma_w * T**2 / sigma_v
         r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
         alpha = 1 - r**2
@@ -234,6 +275,7 @@ class AlphaBetaGammaFilter():
             raise RuntimeError('The filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
+
         self._stage = 1
 
     def update(self, z):
@@ -241,8 +283,9 @@ class AlphaBetaGammaFilter():
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
-        z_pred = self._H @ self._prior_state
-        self._post_state[:] = self._prior_state + self._gain @ (z - z_pred)
+        z_prior = self._H @ self._prior_state
+        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+
         self._len += 1
         self._stage = 0
 
@@ -261,8 +304,27 @@ class AlphaBetaGammaFilter():
         alpha-beta-gamma becomes a steady-state
         Kalman filter
         '''
-        sigma_w = col(sigma_w)
-        sigma_v = col(sigma_v)
+        if isinstance(sigma_w, np.ndarray):
+            pass
+        elif isinstance(sigma_w, (int, float)):
+            sigma_w = np.array([sigma_w], dtype=float)
+        elif isinstance(sigma_w, (list, tuple)):
+            sigma_w = np.array(sigma_w, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_w.__class__.__name__)
+        if isinstance(sigma_v, np.ndarray):
+            pass
+        elif isinstance(sigma_v, (int, float)):
+            sigma_v = np.array([sigma_v], dtype=float)
+        elif isinstance(sigma_v, (list, tuple)):
+            sigma_v = np.array(sigma_v, dtype=float)
+        else:
+            raise TypeError(
+                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
+                sigma_v.__class__.__name__)
+                
         lamb = sigma_w * T**2 / sigma_v
         b = lamb / 2 - 3
         c = lamb / 2 + 3
@@ -329,6 +391,7 @@ class SSFilter(KFBase):
 
         ctl = 0 if u is None else self._G @ u
         self._prior_state = self._F @ self._post_state + ctl
+
         self._stage = 1
 
     def update(self, z):
@@ -336,16 +399,17 @@ class SSFilter(KFBase):
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
-        z_pred = self._H @ self._prior_state
-        self._innov = z - z_pred
+        z_prior = self._H @ self._prior_state
+        self._innov = z - z_prior
         self._post_state = self._prior_state + self._gain @ self._innov
+
         self._stage = 0
         self._len += 1
 
     def step(self, z, u=None):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u)
         self.update(z)

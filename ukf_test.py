@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.linalg as lg
 import tracklib.filter as ft
+import tracklib.utils as utils
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -12,23 +13,29 @@ the program may yield uncertain result.
 '''
 
 
-def KFilter_test():
+def UKFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim = 4, 2
-    qx, qy = np.sqrt(0.01), np.sqrt(0.02)
-    rx, ry = np.sqrt(1), np.sqrt(1)
+    x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
+    # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    # rr, ra = np.sqrt(5), np.sqrt(utils.deg2rad(0.1))
+    qx, qy = np.sqrt(0.01), np.sqrt(0.001)
+    rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
-    Q = np.diag([qx**2, qy**2])
-    R = np.diag([rx**2, ry**2])
-    F, L, H, M = ft.newton_sys(T, 2, 2)
+    F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
+    f = lambda x, u: F @ x
+    L = np.eye(x_dim)
+    Q = np.diag([0, 0, qx**2, qy**2])
 
-    # initial state and error convariance
-    x = np.array([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x_dim)
+    h = lambda x: utils.col([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
+    M = np.eye(z_dim)
+    R = np.diag([rr**2, ra**2])
 
-    kf = ft.KFilter(F, L, H, M, Q, R)
-    kf.init(x, P)
+    x = utils.col([1, 2, 0.2, 0.3])
+    P = 1 * np.eye(x_dim)
+
+    ukf = ft.UKFilter(f, L, h, M, Q, R, 3-x_dim)
+    ukf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
@@ -42,30 +49,29 @@ def KFilter_test():
     for n in range(N):
         wx = np.random.normal(0, qx)
         wy = np.random.normal(0, qy)
-        w = np.array([wx, wy])
-        vx = np.random.normal(0, rx)
-        vy = np.random.normal(0, ry)
-        v = np.array([vx, vy])
+        w = utils.col([0, 0, wx, wy])
+        vr = np.random.normal(0, rr)
+        va = np.random.normal(0, ra)
+        v = utils.col([vr, va])
 
-        x = F @ x + L @ w
-        z = H @ x + M @ v
-        state_arr[:, n] = x
-        measure_arr[:, n] = z
-        kf.step(z)
+        x = f(x, 0) + w
+        z = h(x) + v
+        state_arr[:, n] = x[:, 0]
+        measure_arr[:, n] = utils.pol2cart(z[0, 0], z[1, 0])
+        ukf.step(z)
+        prior_state, prior_cov = ukf.prior_state, ukf.prior_cov
+        post_state, post_cov = ukf.post_state, ukf.post_cov
+        innov, innov_cov = ukf.innov, ukf.innov_cov
+        gain = ukf.gain
 
-        prior_state, prior_cov = kf.prior_state, kf.prior_cov
-        post_state, post_cov = kf.post_state, kf.post_cov
-        innov, innov_cov = kf.innov, kf.innov_cov
-        gain = kf.gain
-
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
+        prior_state_arr[:, n] = prior_state[:, 0]
+        post_state_arr[:, n] = post_state[:, 0]
         prior_cov_arr[:, :, n] = prior_cov
         post_cov_arr[:, :, n] = post_cov
-        innov_arr[:, n] = innov
+        innov_arr[:, n] = innov[:, 0]
         innov_cov_arr[:, :, n] = innov_cov
-    print(len(kf))
-    print(kf)
+    print(len(ukf))
+    print(ukf)
 
     # plot
     n = np.arange(N)
@@ -99,8 +105,8 @@ def KFilter_test():
     ax[1].set_title('y error variance/mean square error')
     plt.show()
 
-    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
-    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
+    print('mean of x innovation: %f' % innov_arr[0, :].mean())
+    print('mean of y innovation: %f' % innov_arr[1, :].mean())
     _, ax = plt.subplots(2, 1)
     ax[0].plot(n, innov_arr[0, :], linewidth=0.8)
     ax[0].set_title('x innovation')
@@ -131,49 +137,6 @@ def KFilter_test():
     ax.set_title('trajectory')
     plt.show()
 
-    # trajectory amination
-    # from matplotlib.patches import Ellipse
-    # _, ax = plt.subplots()
-    # ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
-    # ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
-    # ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    # ax.plot(prior_state_arr[0, :], prior_state_arr[1, :], linewidth=0.8)
-    # ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.legend(['real', 'measurement', 'prior esti', 'post esti'])
-    # ax.set_title('trajectory')
-    # plt.ion()
-    # for i in range(N):
-    #     prior_state = prior_state_arr[:2, i]
-    #     prior_cov = prior_cov_arr[:2, :2, i]
-    #     post_state = post_state_arr[:2, i]
-    #     post_cov = post_cov_arr[:2, :2, i]
-    #     origin = prior_state
-    #     d, v = lg.eigh(prior_cov)
-    #     width = 2 * np.sqrt(d[0])
-    #     height = 2 * np.sqrt(d[1])
-    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[1, 1])).imag)
-    #     e = Ellipse(origin, width, height, angle)
-    #     e.set_facecolor('white')
-    #     e.set_edgecolor('black')
-    #     ax.add_patch(e)
-    #     plt.pause(0.2)
-    #     e.remove()
-    #     origin = post_state
-    #     d, v = lg.eigh(post_cov)
-    #     width = 2 * np.sqrt(d[0])
-    #     height = 2 * np.sqrt(d[1])
-    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[1, 1])).imag)
-    #     e = Ellipse(origin, width, height, angle)
-    #     e.set_facecolor('white')
-    #     e.set_edgecolor('red')
-    #     ax.add_patch(e)
-    #     plt.pause(0.2)
-    #     e.remove()
-    # plt.ioff()
-    # plt.show()
-
 
 if __name__ == '__main__':
-    KFilter_test()
+    UKFilter_test()

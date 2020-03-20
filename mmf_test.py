@@ -14,47 +14,48 @@ the program may yield uncertain result.
 
 def MMFilter_test():
     N, T = 200, 1
-    model_n = 2
+    model_n = 3
 
+    x_dim, z_dim = 4, 2
     mmf = ft.MMFilter()
     for i in range(model_n):
-        qx, qy = np.sqrt((i + 1)/10), np.sqrt((i + 1)/10)
+        qx, qy = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)
         rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
 
         Q = np.diag([qx**2, qy**2])
         R = np.diag([rx**2, ry**2])
         F, L, H, M = ft.newton_sys(T, 2, 2)
         model = ft.KFilter(F, L, H, M, Q, R)
-        mmf.add_model(model, 1/model_n)
+        mmf.add_model(model, 1 / model_n)
 
     # initial state and error convariance
-    x = utils.col([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x.shape[0])
+    x = np.array([1, 2, 0.2, 0.3])
+    P = 100 * np.eye(x_dim)
 
     mmf.init(x, P)
 
-    state_arr = np.empty((4, N))
-    measure_arr = np.empty((2, N))
-    weight_state_arr = np.empty((4, N))
-    maxprob_state_arr = np.empty((4, N))
+    state_arr = np.empty((x_dim, N))
+    measure_arr = np.empty((z_dim, N))
+    weight_state_arr = np.empty((x_dim, N))
+    maxprob_state_arr = np.empty((x_dim, N))
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
         wx = np.random.normal(0, qx)
         wy = np.random.normal(0, qy)
-        w = utils.col([wx, wy])
+        w = np.array([wx, wy])
         vx = np.random.normal(0, rx)
         vy = np.random.normal(0, ry)
-        v = utils.col([vx, vy])
+        v = np.array([vx, vy])
 
         x = F @ x + L @ w
         z = H @ x + M @ v
-        state_arr[:, n] = x[:, 0]
-        measure_arr[:, n] = z[:, 0]
-
+        state_arr[:, n] = x
+        measure_arr[:, n] = z
         mmf.step(z)
-        weight_state_arr[:, n] = mmf.weight_state[:, 0]
-        maxprob_state_arr[:, n] = mmf.maxprob_state[:, 0]
+        
+        weight_state_arr[:, n] = mmf.weight_state
+        maxprob_state_arr[:, n] = mmf.maxprob_state
         prob_arr[:, n] = mmf.prob
     print(len(mmf))
     print(mmf)
@@ -96,6 +97,7 @@ def MMFilter_test():
     ax.legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
     ax.set_title('trajectory')
     plt.show()
+
 
 if __name__ == '__main__':
     MMFilter_test()

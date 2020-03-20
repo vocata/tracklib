@@ -3,7 +3,6 @@
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
-from ..utils import row, col
 
 __all__ = ['KFilter', 'SeqKFilter']
 
@@ -65,6 +64,7 @@ class KFilter(KFBase):
         self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+
         self._stage = 1  # predict finished
 
     def update(self, z, **kw):
@@ -72,20 +72,22 @@ class KFilter(KFBase):
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
 
+        x_dim = len(self._prior_state)
+
         if len(kw) > 0:
             if 'H' in kw: self._H = kw['H']
             if 'M' in kw: self._M = kw['M']
             if 'R' in kw: self._R = kw['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        z_pred = self._H @ self._prior_state
-        self._innov = z - z_pred
+        z_prior = self._H @ self._prior_state
+        self._innov = z - z_prior
         self._innov_cov = self._H @ self._prior_cov @ self._H.T + R_tilde
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ self._H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
         # The Joseph-form covariance update is used for improved numerical
-        temp = np.eye(*self._F.shape) - self._gain @ self._H
+        temp = np.eye(x_dim) - self._gain @ self._H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
@@ -126,9 +128,8 @@ class SeqKFilter(KFBase):
         self._Q = Q
         self._R = R
         R_tilde = self._M @ self._R @ self._M.T
-        v, self._S = lg.eigh(R_tilde)
-        self._S = self._S.T
-        self._D = np.diag(v)
+        d, self._S = lg.eigh(R_tilde)
+        self._D = np.diag(d)
 
     def __str__(self):
         msg = 'Sequential linear Kalman filter'
@@ -162,13 +163,16 @@ class SeqKFilter(KFBase):
         self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        
         self._stage = 1  # predict finished
-        return self._prior_state, self._prior_cov
 
     def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('The filter must be initialized with init() before use')
+
+        x_dim = len(self._prior_state)
+        z_dim = len(z)
 
         if len(kw) > 0:
             if 'H' in kw: self._H = kw['H']
@@ -176,27 +180,26 @@ class SeqKFilter(KFBase):
             if 'R' in kw: self._R = kw['R']
             if 'M' in kw or 'R' in kw:
                 R_tilde = self._M @ self._R @ self._M.T
-                v, self._S = lg.eigh(R_tilde)
-                self._S = self._S.T
-                self._D = np.diag(v)
+                d, self._S = lg.eigh(R_tilde)
+                self._D = np.diag(d)
 
         prior_state = self._prior_state
         post_cov = self._prior_cov
-        H_tilde = self._S @ self._H
-        z_tilde = self._S @ z
-        for n in range(z.shape[0]):
-            H_n = row(H_tilde[n, :])
-            z_n = col(z_tilde[n])
+        H_tilde = self._S.T @ self._H
+        z_tilde = self._S.T @ z
+        for n in range(z_dim):
+            H_n = H_tilde[n, :]
+            z_n = z_tilde[n]
             r_n = self._D[n, n]
 
-            z_pred = H_n @ prior_state
-            innov = z_n - z_pred
-            innov_cov = H_n @ post_cov @ H_n.T + r_n
-            gain = (post_cov @ H_n.T) / innov_cov
-            prior_state = prior_state + gain @ innov
+            z_prior = H_n @ prior_state
+            innov = z_n - z_prior
+            innov_cov = H_n @ post_cov @ H_n + r_n
+            gain = (post_cov @ H_n) / innov_cov
+            prior_state = prior_state + gain * innov
             # The Joseph-form covariance update is used for improved numerical
-            temp = np.eye(*self._F.shape) - gain @ H_n
-            post_cov = temp @ post_cov @ temp.T + r_n * gain @ gain.T
+            temp = np.eye(x_dim) - np.outer(gain, H_n)
+            post_cov = temp @ post_cov @ temp.T + r_n * np.outer(gain, gain)
             post_cov = (post_cov + post_cov.T) / 2
         self._post_state = prior_state
         self._post_cov = post_cov

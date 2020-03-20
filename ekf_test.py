@@ -16,22 +16,23 @@ the program may yield uncertain result.
 def EKFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
+    x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(utils.deg2rad(0.1))
     qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
-    f = lambda x, u, w: F @ x + w
-    Q = np.diag([0, 0, qx**2, qy**2])
+    L = np.array([[0, 0], [0, 0], [1, 0], [0, 1]])
+    f = lambda x, u, w: F @ x + L @ w
+    Q = np.diag([qx**2, qy**2])
 
     wrap = lambda x: x
-    h = lambda x, v: utils.col([lg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
+    h = lambda x, v: np.array([lg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
     R = np.diag([rr**2, ra**2])
 
-    x = utils.col([1, 2, 0.2, 0.3])
-    P = 1 * np.eye(x_dim)
+    x = np.array([1, 2, 0.2, 0.3])
+    P = 10 * np.eye(x_dim)
 
     ekf = ft.EKFilter_1st(f, h, Q, R)
     # ekf = ft.EKFilter_2ed(f, h, Q, R)
@@ -49,26 +50,27 @@ def EKFilter_test():
     for n in range(N):
         wx = np.random.normal(0, qx)
         wy = np.random.normal(0, qy)
-        w = utils.col([0, 0, wx, wy])
+        w = np.array([wx, wy])
         vr = np.random.normal(0, rr)
         va = np.random.normal(0, ra)
-        v = utils.col([vr, va])
+        v = np.array([vr, va])
 
         x = f(x, 0, w)
         z = h(x, v)
-        state_arr[:, n] = x[:, 0]
-        measure_arr[:, n] = utils.pol2cart(z[0, 0], z[1, 0])
-        ekf.step(z, it=1)
+        state_arr[:, n] = x
+        measure_arr[:, n] = utils.pol2cart(z[0], z[1])
+        ekf.step(z, it=4)
+
         prior_state, prior_cov = ekf.prior_state, ekf.prior_cov
         post_state, post_cov = ekf.post_state, ekf.post_cov
         innov, innov_cov = ekf.innov, ekf.innov_cov
         gain = ekf.gain
 
-        prior_state_arr[:, n] = prior_state[:, 0]
-        post_state_arr[:, n] = post_state[:, 0]
+        prior_state_arr[:, n] = prior_state
+        post_state_arr[:, n] = post_state
         prior_cov_arr[:, :, n] = prior_cov
         post_cov_arr[:, :, n] = post_cov
-        innov_arr[:, n] = innov[:, 0]
+        innov_arr[:, n] = innov
         innov_cov_arr[:, :, n] = innov_cov
     print(len(ekf))
     print(ekf)
