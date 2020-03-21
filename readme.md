@@ -5,8 +5,9 @@
 依赖：
 
 ```python
-import numpy
-import scipy
+numpy
+scipy
+matplotlib
 ```
 
 - 滤波器：
@@ -14,7 +15,7 @@ import scipy
     2. Sequential kalman filter
     3. Extended kalman filter
     4. Multiple model filter
-    5. Unscented kalman filter（待实现）
+    5. Unscented kalman filter
     6. Partical filter（待实现）
 
 - 跟踪器：（待实现）

@@ -59,7 +59,7 @@ def EKFilter_test():
         z = h(x, v)
         state_arr[:, n] = x
         measure_arr[:, n] = utils.pol2cart(z[0], z[1])
-        ekf.step(z, it=4)
+        ekf.step(z, it=1)
 
         prior_state, prior_cov = ekf.prior_state, ekf.prior_cov
         post_state, post_cov = ekf.post_state, ekf.post_cov

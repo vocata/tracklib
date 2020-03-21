@@ -14,27 +14,33 @@ the program may yield uncertain result.
 
 
 def UKFilter_test():
-    N, T = 200, 1
+    N, T = 100, 1
 
-    x_dim, z_dim, w_dim, v_dim = 4, 2, 4, 2
+    x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(utils.deg2rad(0.1))
-    qx, qy = np.sqrt(0.01), np.sqrt(0.001)
+    qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
+    L = np.array([[0, 0], [0, 0], [1, 0], [0, 1]])
     f = lambda x, u: F @ x
-    L = np.eye(x_dim)
-    Q = np.diag([0, 0, qx**2, qy**2])
+    Q = np.diag([qx**2, qy**2])
 
-    h = lambda x: utils.col([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
+    wrap = lambda x: x
+    h = lambda x: np.array([lg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))])
     M = np.eye(z_dim)
     R = np.diag([rr**2, ra**2])
 
-    x = utils.col([1, 2, 0.2, 0.3])
+    x = np.array([1, 2, 0.2, 0.3])
     P = 1 * np.eye(x_dim)
 
-    ukf = ft.UKFilter(f, L, h, M, Q, R, 3-x_dim)
+    factory = ft.SimplexSigmaPoints(x_dim)
+    # factory = ft.SphericalSimplexSigmaPoints(x_dim)
+    # factory = ft.SymmetricSigmaPoint(x_dim)
+    # factory = ft.ScaledSigmaPoints(x_dim, 3-x_dim)
+
+    ukf = ft.UKFilter(f, L, h, M, Q, R, factory=factory)
     ukf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
@@ -49,26 +55,27 @@ def UKFilter_test():
     for n in range(N):
         wx = np.random.normal(0, qx)
         wy = np.random.normal(0, qy)
-        w = utils.col([0, 0, wx, wy])
+        w = np.array([wx, wy])
         vr = np.random.normal(0, rr)
         va = np.random.normal(0, ra)
-        v = utils.col([vr, va])
+        v = np.array([vr, va])
 
-        x = f(x, 0) + w
-        z = h(x) + v
-        state_arr[:, n] = x[:, 0]
-        measure_arr[:, n] = utils.pol2cart(z[0, 0], z[1, 0])
+        x = f(x, 0) + L @ w
+        z = h(x) + M @ v
+        state_arr[:, n] = x
+        measure_arr[:, n] = utils.pol2cart(z[0], z[1])
         ukf.step(z)
+
         prior_state, prior_cov = ukf.prior_state, ukf.prior_cov
         post_state, post_cov = ukf.post_state, ukf.post_cov
         innov, innov_cov = ukf.innov, ukf.innov_cov
         gain = ukf.gain
 
-        prior_state_arr[:, n] = prior_state[:, 0]
-        post_state_arr[:, n] = post_state[:, 0]
+        prior_state_arr[:, n] = prior_state
+        post_state_arr[:, n] = post_state
         prior_cov_arr[:, :, n] = prior_cov
         post_cov_arr[:, :, n] = post_cov
-        innov_arr[:, n] = innov[:, 0]
+        innov_arr[:, n] = innov
         innov_cov_arr[:, :, n] = innov_cov
     print(len(ukf))
     print(ukf)

@@ -354,7 +354,7 @@ class SSFilter(KFBase):
     '''
     def __init__(self, F, L, H, M, Q, R, G=None):
         super().__init__()
-        # initiate relevant matrix
+
         self._F = F
         self._L = L
         self._H = H

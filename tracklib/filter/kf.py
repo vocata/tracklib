@@ -21,16 +21,15 @@ class KFilter(KFBase):
     '''
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
-        self._at = at
 
-        # initiate relevant matrix
         self._F = F
-        self._G = G
         self._L = L
         self._H = H
         self._M = M
         self._Q = Q
         self._R = R
+        self._G = G
+        self._at = at
 
     def __str__(self):
         msg = 'Standard linear Kalman filter'
@@ -117,16 +116,15 @@ class SeqKFilter(KFBase):
     '''
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
-        self._at = at
 
-        # initiate relevant matrix
         self._F = F
-        self._G = G
         self._L = L
         self._H = H
         self._M = M
         self._Q = Q
         self._R = R
+        self._G = G
+        self._at = at
         R_tilde = self._M @ self._R @ self._M.T
         d, self._S = lg.eigh(R_tilde)
         self._D = np.diag(d)

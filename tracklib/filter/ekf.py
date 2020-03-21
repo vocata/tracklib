@@ -22,12 +22,12 @@ class EKFilter_1st(KFBase):
     '''
     def __init__(self, f, h, Q, R, at=1):
         super().__init__()
-        self._at = at
 
         self._f = f
         self._h = h
         self._Q = Q
         self._R = R
+        self._at = at
 
     def __str__(self):
         msg = 'Fisrt-order extended Kalman filter'
