@@ -38,7 +38,7 @@ def UKFilter_test():
     factory = ft.SimplexSigmaPoints(x_dim)
     # factory = ft.SphericalSimplexSigmaPoints(x_dim)
     # factory = ft.SymmetricSigmaPoint(x_dim)
-    # factory = ft.ScaledSigmaPoints(x_dim, 3-x_dim)
+    # factory = ft.ScaledSigmaPoints(x_dim, 3 - x_dim)
 
     ukf = ft.UKFilter(f, L, h, M, Q, R, factory=factory)
     ukf.init(x, P)

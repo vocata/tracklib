@@ -132,6 +132,7 @@ class UKFilter(KFBase):
 
 class SimplexSigmaPoints():
     def __init__(self, dim, w0=0, decompose='cholesky'):
+        assert (0 <= w0 and w0 < 1)
         self._dim = dim
         self._decompose = decompose
 
@@ -177,6 +178,7 @@ class SimplexSigmaPoints():
 
 class SphericalSimplexSigmaPoints():
     def __init__(self, dim, w0=0, decompose='cholesky'):
+        assert (0 <= w0 and w0 < 1)
         self._dim = dim
         self._decompose = decompose
 
