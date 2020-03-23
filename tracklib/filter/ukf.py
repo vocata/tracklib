@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
+'''
+This module includes unscented Kalman filtering and corresponding classes that generate sigma points.
+'''
+from __future__ import division, absolute_import, print_function
 
-import numpy as np
-import scipy.linalg as lg
-from .kfbase import KFBase
 
 __all__ = [
     'UKFilter', 'SimplexSigmaPoints', 'SphericalSimplexSigmaPoints',
     'SymmetricSigmaPoint', 'ScaledSigmaPoints'
 ]
+
+import numpy as np
+import scipy.linalg as lg
+from .kfbase import KFBase
 
 
 class UKFilter(KFBase):

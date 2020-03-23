@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import division, absolute_import, print_function
 
-import numpy as np
 
 __all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
+
+import numpy as np
 
 
 def lagrange_interp_poly(x, y=None):

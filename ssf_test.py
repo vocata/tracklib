@@ -3,6 +3,7 @@
 
 import numpy as np
 import tracklib.filter as ft
+import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -20,7 +21,7 @@ def SSFilter_test():
 
     Q = np.diag([qx**2, qy**2])
     R = np.diag([rx**2, ry**2])
-    F, L, H, M = ft.newton_sys(T, 2, 2)
+    F, L, H, M = model.newton_sys(T, 2, 2)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])

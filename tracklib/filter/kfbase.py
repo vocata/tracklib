@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+'''
+This model include Abstract base class named KFBase from which 
+all Kalman filter classes are inherited.
+'''
+from __future__ import division, absolute_import, print_function
+
+
+__all__ = ['KFBase']
 
 import abc
 

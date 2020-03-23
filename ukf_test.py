@@ -14,7 +14,7 @@ the program may yield uncertain result.
 
 
 def UKFilter_test():
-    N, T = 100, 1
+    N, T = 200, 1
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)

@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+'''
+This module includes stardand Kalman filter and Sequential Kalman Filter.
+'''
+from __future__ import division, absolute_import, print_function
 
-import numpy as np
-import scipy.linalg as lg
-from .kfbase import KFBase
 
 __all__ = ['KFilter', 'SeqKFilter']
+
+import numpy as np
+import numpy.linalg as lig
+import scipy.linalg as lg
+from .kfbase import KFBase
 
 
 class KFilter(KFBase):
@@ -161,7 +167,7 @@ class SeqKFilter(KFBase):
         self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
-        
+
         self._stage = 1  # predict finished
 
     def update(self, z, **kw):

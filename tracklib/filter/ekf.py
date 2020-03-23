@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
+'''
+This module includes first-order extended Kalman filter and
+sceond-order extended Kalman filter.
+'''
+from __future__ import division, absolute_import, print_function
+
+
+__all__ = ['EKFilter_1st', 'EKFilter_2ed']
 
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
-from ..math import num_diff, num_diff_hessian
-
-__all__ = ['EKFilter_1st', 'EKFilter_2ed']
+from tracklib.math import num_diff, num_diff_hessian
 
 
 class EKFilter_1st(KFBase):

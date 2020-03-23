@@ -4,6 +4,7 @@
 import numpy as np
 import tracklib.filter as ft
 import tracklib.utils as utils
+import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -24,9 +25,9 @@ def MMFilter_test():
 
         Q = np.diag([qx**2, qy**2])
         R = np.diag([rx**2, ry**2])
-        F, L, H, M = ft.newton_sys(T, 2, 2)
-        model = ft.KFilter(F, L, H, M, Q, R)
-        mmf.add_model(model, 1 / model_n)
+        F, L, H, M = model.newton_sys(T, 2, 2)
+        sub_filter = ft.KFilter(F, L, H, M, Q, R)
+        mmf.add_model(sub_filter, 1 / model_n)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])

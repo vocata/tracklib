@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import scipy.linalg as lg
+from __future__ import division, absolute_import, print_function
+
 
 __all__ = ['newton_sys', 'SP_init', 'TPD_init']
+
+import numpy as np
+import scipy.linalg as lg
 
 
 def newton_sys(T, dim, axis):
@@ -14,9 +17,11 @@ def newton_sys(T, dim, axis):
     T : int or float 
         Sample interval
     dim : int
-        Number of motion states in single axis
+        Number of motion states in single axis, correspond to
+        the position, velocity and acceleration.
     axis : int
-        Number of traget motion axes
+        Number of traget motion axes, correspond to the X, Y
+        or Z axis.
 
     Returns
     -------

@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
+'''
+The module includes various steady-state filters, including alpha filter, alpha-beta filter,
+alpha-beta-gamma filter and general Kalman steady-state filter.
+'''
+from __future__ import division, absolute_import, print_function
+
+
+__all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
-from .model import newton_sys
-'''
-steady-state Kalman filter
-'''
-
-__all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
+from tracklib.model import newton_sys
 
 
 class AlphaFilter(KFBase):
     '''
-    alpha filter(one-state Newtonian system)
+    Alpha filter(one-state Newtonian system)
 
     system model:
     x_k = F*x_k-1 + L*w_k-1
@@ -116,7 +119,7 @@ class AlphaFilter(KFBase):
 
 class AlphaBetaFilter(KFBase):
     '''
-    alpha-beta filter(two-state Newtonian system)
+    Alpha-beta filter(two-state Newtonian system)
 
     system model:
     x_k = F*x_k-1 + L*w_k-1
@@ -224,7 +227,7 @@ class AlphaBetaFilter(KFBase):
 
 class AlphaBetaGammaFilter():
     '''
-    alpha-beta-gamma filter(three-state Newtonian system)
+    Alpha-beta-gamma filter(three-state Newtonian system)
 
     system model:
     x_k = F*x_k-1 + L*w_k-1
