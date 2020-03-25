@@ -3,8 +3,10 @@
 
 import numpy as np
 import scipy.linalg as lg
+import tracklib as tlb
+import tracklib.init as init
 import tracklib.filter as ft
-import tracklib.utils as utils
+import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -18,25 +20,25 @@ def EKFilter_test():
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
-    # rr, ra = np.sqrt(5), np.sqrt(utils.deg2rad(0.1))
+    # rr, ra = np.sqrt(5), np.sqrt(tlb.math.deg2rad(0.1))
     qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
-    F = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
-    L = np.array([[0, 0], [0, 0], [1, 0], [0, 1]])
+    F = model.trans_mat(1, 1, T)
+    L = np.eye(x_dim)
     f = lambda x, u, w: F @ x + L @ w
-    Q = np.diag([qx**2, qy**2])
+    Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
 
-    wrap = lambda x: x
-    h = lambda x, v: np.array([lg.norm(x[0: 2]), wrap(np.arctan2(x[1], x[0]))]) + v
-    R = np.diag([rr**2, ra**2])
+    M = np.eye(z_dim)
+    h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
+    R = model.meas_noise_cov(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
-    P = 10 * np.eye(x_dim)
+    # P = 10 * np.eye(x_dim)
 
-    ekf = ft.EKFilter_1st(f, h, Q, R)
-    # ekf = ft.EKFilter_2ed(f, h, Q, R)
-    ekf.init(x, P)
+    # ekf = ft.EKFilter_1st(f, h, Q, R)
+    ekf = ft.EKFilter_2ed(f, h, Q, R)
+    # ekf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
@@ -47,18 +49,19 @@ def EKFilter_test():
     innov_arr = np.empty((z_dim, N))
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
-    for n in range(N):
-        wx = np.random.normal(0, qx)
-        wy = np.random.normal(0, qy)
-        w = np.array([wx, wy])
-        vr = np.random.normal(0, rr)
-        va = np.random.normal(0, ra)
-        v = np.array([vr, va])
+    for n in range(-1, N):
+        w = model.corr_noise(Q)
+        v = model.corr_noise(R)
 
         x = f(x, 0, w)
         z = h(x, v)
+        if n == -1:
+            x_init, P_init = init.single_point_init(z, R, 1)
+            # P_init = 10 * np.eye(x_dim)
+            ekf.init(x_init, P_init)
+            continue
         state_arr[:, n] = x
-        measure_arr[:, n] = utils.pol2cart(z[0], z[1])
+        measure_arr[:, n] = tlb.math.pol2cart(z[0], z[1])
         ekf.step(z, it=1)
 
         prior_state, prior_cov = ekf.prior_state, ekf.prior_cov

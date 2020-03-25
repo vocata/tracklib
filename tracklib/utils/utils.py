@@ -3,44 +3,13 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'is_matrix', 'is_square',
-    'is_column', 'is_row', 'is_diag', 'col', 'row'
+    'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'col', 'row'
 ]
 
 import numpy as np
 from collections.abc import Iterable, Iterator
 
 
-def deg2rad(deg):
-    rad = np.pi / 180 * deg
-    return rad
-
-
-def rad2deg(rad):
-    deg = 180 / np.pi * rad
-    return deg
-
-
-def cart2pol(x, y, z=None):
-    '''
-    Transform Cartesian to polar coordinates or cylindrical coordinates
-    '''
-
-    r = (x**2 + y**2)**(1 / 2)
-    th = np.arctan2(y, x)
-
-    return (r, th, z) if z else (r, th)
-
-
-def pol2cart(r, th, z=None):
-    '''
-    Transform polar coordinates or cylindrical coordinates to Cartesian
-    '''
-
-    x = r * np.cos(th)
-    y = r * np.sin(th)
-
-    return (x, y, z) if z else (x, y)
 
 
 def is_matrix(x):

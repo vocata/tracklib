@@ -2,9 +2,36 @@
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
+__all__ = [
+    'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'lagrange_interp_poly',
+    'num_diff', 'num_diff2', 'num_diff_hessian'
+]
 
 import numpy as np
+
+
+def deg2rad(deg):
+    rad = np.pi / 180 * deg
+    return rad
+
+
+def rad2deg(rad):
+    deg = 180 / np.pi * rad
+    return deg
+
+
+def cart2pol(x, y, z=None):
+    r = (x**2 + y**2)**(1 / 2)
+    th = np.arctan2(y, x)
+
+    return (r, th, z) if z else (r, th)
+
+
+def pol2cart(r, th, z=None):
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+
+    return (x, y, z) if z else (x, y)
 
 
 def lagrange_interp_poly(x, y=None):

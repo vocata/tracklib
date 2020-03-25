@@ -11,7 +11,7 @@ __all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
-from tracklib.model import newton_sys
+from tracklib.model import trans_mat, meas_mat
 
 
 class AlphaFilter(KFBase):
@@ -30,19 +30,20 @@ class AlphaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis, alpha):
+    def __init__(self, alpha, axis, T):
         '''
-        T: sample interval
-        axis: the number of target motion direction,
-              such as x(1), xy(2) or xyz(3)
+        axis : int
+            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
+            2 means x-axis and y-axis, etc.
+        T : float
+            The time-duration of the propagation interval.
         '''
         super().__init__()
         self._alpha = alpha
         self._gain = np.diag(self._alpha)
 
-        self._T = T
-        self._axis = axis
-        self._F, _, self._H, _ = newton_sys(T, 1, axis)
+        self._F = trans_mat(0, axis, T)
+        self._H = meas_mat(0, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -89,8 +90,7 @@ class AlphaFilter(KFBase):
     @staticmethod
     def cal_params(sigma_w, sigma_v, T):
         '''
-        obtain alpha and for which alpha filter
-        becomes a steady-state Kalman filter
+        Obtain alpha and for which alpha filter becomes a steady-state Kalman filter
         '''
         if isinstance(sigma_w, np.ndarray):
             pass
@@ -133,11 +133,13 @@ class AlphaBetaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis, alpha, beta):
+    def __init__(self, alpha, beta, axis, T):
         '''
-        T: sample interval
-        axis: the number of target motion direction,
-              such as x(1), xy(2) or xyz(3)
+        axis : int
+            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
+            2 means x-axis and y-axis, etc.
+        T : float
+            The time-duration of the propagation interval.
         '''
         super().__init__()
         self._alpha = alpha
@@ -145,9 +147,8 @@ class AlphaBetaFilter(KFBase):
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
         self._gain = np.vstack((diag_a, diag_b / self._T))
 
-        self._T = T
-        self._axis = axis
-        self._F, _, self._H, _= newton_sys(T, 2, axis)
+        self._F = trans_mat(1, axis, T)
+        self._H = meas_mat(1, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter:\n\n'
@@ -179,7 +180,7 @@ class AlphaBetaFilter(KFBase):
 
         z_prior = self._H @ self._prior_state
         self._post_state = self._prior_state + self._gain @ (z - z_prior)
-        
+
         self._len += 1
         self._stage = 0
 
@@ -194,8 +195,7 @@ class AlphaBetaFilter(KFBase):
     @staticmethod
     def cal_params(sigma_w, sigma_v, T):
         '''
-        obtain alpha, beta and for which alpha-beta
-        filter becomes a steady-state Kalman filter
+        Obtain alpha, beta and for which alpha-beta filter becomes a steady-state Kalman filter
         '''
         if isinstance(sigma_w, np.ndarray):
             pass
@@ -241,11 +241,13 @@ class AlphaBetaGammaFilter():
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, T, axis, alpha, beta, gamma):
+    def __init__(self, alpha, beta, gamma, axis, T):
         '''
-        T: sample interval
-        axis: the number of target motion direction,
-              such as x(1), xy(2) or xyz(3)
+        axis : int
+            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
+            2 means x-axis and y-axis, etc.
+        T : float
+            The time-duration of the propagation interval.
         '''
         super().__init__()
         self._alpha = alpha
@@ -254,9 +256,8 @@ class AlphaBetaGammaFilter():
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
         self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
-        self._T = T
-        self._axis = axis
-        self._F, _, self._H, _ = newton_sys(T, 3, axis)
+        self._F = trans_mat(2, axis, T)
+        self_H = meas_mat(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'
@@ -327,7 +328,7 @@ class AlphaBetaGammaFilter():
             raise TypeError(
                 'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
                 sigma_v.__class__.__name__)
-                
+
         lamb = sigma_w * T**2 / sigma_v
         b = lamb / 2 - 3
         c = lamb / 2 + 3
@@ -378,8 +379,14 @@ class SSFilter(KFBase):
         self._cov = cov
         self._prior_state = state
         self._post_state = state
-        self._gain, self._prior_cov, self._post_cov = \
-            SSFilter.issv(cov, self._F, self._L, self._H, self._M, self._Q, self._R, it=it)
+        self._gain, self._prior_cov, self._post_cov = SSFilter.issv(cov,
+                                                                    self._F,
+                                                                    self._L,
+                                                                    self._H,
+                                                                    self._M,
+                                                                    self._Q,
+                                                                    self._R,
+                                                                    it=it)
         R_tilde = self._M @ self._R @ self._M.T
         self._innov_cov = self._H @ self._prior_cov @ self._H.T + R_tilde
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
