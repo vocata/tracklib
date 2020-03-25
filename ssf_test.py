@@ -3,6 +3,7 @@
 
 import numpy as np
 import tracklib.filter as ft
+import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -18,9 +19,12 @@ def SSFilter_test():
     qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     rx, ry = np.sqrt(1), np.sqrt(1)
 
-    Q = np.diag([qx**2, qy**2])
-    R = np.diag([rx**2, ry**2])
-    F, L, H, M = ft.newton_sys(T, 2, 2)
+    F = model.trans_mat(1, 1, T)
+    H = model.meas_mat(1, 1)
+    L = np.eye(x_dim)
+    M = np.eye(z_dim)
+    Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
+    R = model.meas_noise_cov(1, [rx, ry])
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
@@ -39,12 +43,8 @@ def SSFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(N):
-        wx = np.random.normal(0, qx)
-        wy = np.random.normal(0, qy)
-        w = np.array([wx, wy])
-        vx = np.random.normal(0, rx)
-        vy = np.random.normal(0, ry)
-        v = np.array([vx, vy])
+        w = model.corr_noise(Q)
+        v = model.corr_noise(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

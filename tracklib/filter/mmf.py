@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
+'''
+The multiple model filter can use other Kalman filter classes
+as its submodules for filtering. Currently supported filters are
+stardard Kalman filter(KFilter) and extended Kalman filter(EKFilter_1st, EKFilter_2ed).
+'''
+from __future__ import division, absolute_import, print_function
+
+
+__all__ = ['MMFilter']
 
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
 from .kf import KFilter
 from .ekf import EKFilter_1st, EKFilter_2ed
-
-__all__ = ['MMFilter']
 
 
 class MMFilter(KFBase):

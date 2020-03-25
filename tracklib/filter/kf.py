@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+'''
+This module includes stardand Kalman filter and Sequential Kalman Filter.
+'''
+from __future__ import division, absolute_import, print_function
 
-import numpy as np
-import scipy.linalg as lg
-from .kfbase import KFBase
 
 __all__ = ['KFilter', 'SeqKFilter']
+
+import numpy as np
+import numpy.linalg as lig
+import scipy.linalg as lg
+from .kfbase import KFBase
 
 
 class KFilter(KFBase):
@@ -21,16 +27,15 @@ class KFilter(KFBase):
     '''
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
-        self._at = at
 
-        # initiate relevant matrix
         self._F = F
-        self._G = G
         self._L = L
         self._H = H
         self._M = M
         self._Q = Q
         self._R = R
+        self._G = G
+        self._at = at
 
     def __str__(self):
         msg = 'Standard linear Kalman filter'
@@ -117,16 +122,15 @@ class SeqKFilter(KFBase):
     '''
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
-        self._at = at
 
-        # initiate relevant matrix
         self._F = F
-        self._G = G
         self._L = L
         self._H = H
         self._M = M
         self._Q = Q
         self._R = R
+        self._G = G
+        self._at = at
         R_tilde = self._M @ self._R @ self._M.T
         d, self._S = lg.eigh(R_tilde)
         self._D = np.diag(d)
@@ -163,7 +167,7 @@ class SeqKFilter(KFBase):
         self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
-        
+
         self._stage = 1  # predict finished
 
     def update(self, z, **kw):

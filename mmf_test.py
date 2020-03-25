@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import tracklib as tlb
 import tracklib.filter as ft
-import tracklib.utils as utils
+import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -22,11 +23,15 @@ def MMFilter_test():
         qx, qy = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)
         rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
 
-        Q = np.diag([qx**2, qy**2])
-        R = np.diag([rx**2, ry**2])
-        F, L, H, M = ft.newton_sys(T, 2, 2)
-        model = ft.KFilter(F, L, H, M, Q, R)
-        mmf.add_model(model, 1 / model_n)
+        F = model.trans_mat(1, 1, T)
+        H = model.meas_mat(1, 1)
+        L = np.eye(x_dim)
+        M = np.eye(z_dim)
+        Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
+        R = model.meas_noise_cov(1, [rx, ry])
+
+        sub_filter = ft.KFilter(F, L, H, M, Q, R)
+        mmf.add_model(sub_filter, 1 / model_n)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
@@ -41,12 +46,8 @@ def MMFilter_test():
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
-        wx = np.random.normal(0, qx)
-        wy = np.random.normal(0, qy)
-        w = np.array([wx, wy])
-        vx = np.random.normal(0, rx)
-        vy = np.random.normal(0, ry)
-        v = np.array([vx, vy])
+        w = model.corr_noise(Q)
+        v = model.corr_noise(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v
