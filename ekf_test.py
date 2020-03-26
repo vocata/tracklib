@@ -21,7 +21,7 @@ def EKFilter_test():
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(tlb.math.deg2rad(0.1))
-    qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = model.trans_mat(1, 1, T)
@@ -36,8 +36,8 @@ def EKFilter_test():
     x = np.array([1, 2, 0.2, 0.3])
     # P = 10 * np.eye(x_dim)
 
-    # ekf = ft.EKFilter_1st(f, h, Q, R)
-    ekf = ft.EKFilter_2ed(f, h, Q, R)
+    ekf = ft.EKFilter_1st(f, h, Q, R)
+    # ekf = ft.EKFilter_2ed(f, h, Q, R)
     # ekf.init(x, P)
 
     state_arr = np.empty((x_dim, N))

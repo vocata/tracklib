@@ -21,7 +21,7 @@ def UKFilter_test():
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(tlb.math.deg2rad(0.1))
-    qx, qy = np.sqrt(0.00001), np.sqrt(0.00001)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = model.trans_mat(1, 1, T)

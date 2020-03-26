@@ -56,7 +56,7 @@ def trans_mat(order, axis, T):
     return F
 
 
-# F = poly_trans(2, 3, 2)
+# F = trans_mat(2, 3, 2)
 # print(F)
 
 

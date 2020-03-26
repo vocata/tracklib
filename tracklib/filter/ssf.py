@@ -19,7 +19,7 @@ class AlphaFilter(KFBase):
     Alpha filter(one-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj
@@ -122,7 +122,7 @@ class AlphaBetaFilter(KFBase):
     Alpha-beta filter(two-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj
@@ -230,7 +230,7 @@ class AlphaBetaGammaFilter():
     Alpha-beta-gamma filter(three-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj

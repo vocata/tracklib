@@ -8,7 +8,6 @@ from __future__ import division, absolute_import, print_function
 __all__ = ['KFilter', 'SeqKFilter']
 
 import numpy as np
-import numpy.linalg as lig
 import scipy.linalg as lg
 from .kfbase import KFBase
 

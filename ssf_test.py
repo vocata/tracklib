@@ -16,7 +16,7 @@ def SSFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim = 4, 2
-    qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rx, ry = np.sqrt(1), np.sqrt(1)
 
     F = model.trans_mat(1, 1, T)

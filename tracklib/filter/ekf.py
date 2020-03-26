@@ -59,19 +59,26 @@ class EKFilter_1st(KFBase):
         x_dim = len(self._prior_state)
         w_dim = self._Q.shape[0]
 
-        if 'f' in kw:
-            self._f = kw['f']
-        if 'Q' in kw:
-            self._Q = kw['Q']
+        if len(kw) > 0:
+            if 'f' in kw:
+                self._f = kw['f']
+            if 'Q' in kw:
+                self._Q = kw['Q']
 
-        if 'F' in kw:
-            F = kw['F']
+            if 'F' in kw:
+                # Jacobian matrix provided by user for transition function
+                F = kw['F']
+            else:
+                fx = lambda x: self._f(x, u, np.zeros(w_dim))
+                F = num_diff(self._post_state, fx, x_dim)
+            if 'L' in kw:
+                L = kw['L']
+            else:
+                fw = lambda w: self._f(self._post_state, u, w)
+                L = num_diff(np.zeros(w_dim), fw, x_dim)
         else:
             fx = lambda x: self._f(x, u, np.zeros(w_dim))
             F = num_diff(self._post_state, fx, x_dim)
-        if 'L' in kw:
-            L = kw['L']
-        else:
             fw = lambda w: self._f(self._post_state, u, w)
             L = num_diff(np.zeros(w_dim), fw, x_dim)
 
@@ -91,21 +98,29 @@ class EKFilter_1st(KFBase):
         z_dim = len(z)
         v_dim = self._R.shape[0]
 
-        if 'h' in kw:
-            self._h = kw['h']
-        if 'R' in kw:
-            self._R = kw['R']
+        if len(kw) > 0:
+            if 'h' in kw:
+                self._h = kw['h']
+            if 'R' in kw:
+                self._R = kw['R']
 
-        if 'H' in kw:
-            H = kw['H']
-            it = 0
+            if 'H' in kw:
+                # Jacobian matrix provided by user for measurement function
+                H = kw['H']
+                # If a user-defined Jacobian matrix is used, then iterated Kalman filter will not be used
+                it = 0
+            else:
+                hx = lambda x: self._h(x, np.zeros(v_dim))
+                H = num_diff(self._prior_state, hx, z_dim)
+            if 'M' in kw:
+                M = kw['M']
+                it = 0
+            else:
+                hv = lambda v: self._h(self._prior_state, v)
+                M = num_diff(np.zeros(v_dim), hv, z_dim)
         else:
             hx = lambda x: self._h(x, np.zeros(v_dim))
             H = num_diff(self._prior_state, hx, z_dim)
-        if 'M' in kw:
-            M = kw['M']
-            it = 0
-        else:
             hv = lambda v: self._h(self._prior_state, v)
             M = num_diff(np.zeros(v_dim), hv, z_dim)
 
@@ -195,26 +210,33 @@ class EKFilter_2ed(KFBase):
         x_dim = len(self._prior_state)
         w_dim = self._Q.shape[0]
 
-        if 'f' in kw:
-            self._f = kw['f']
-        if 'Q' in kw:
-            self._Q = kw['Q']
+        if len(kw) > 0:
+            if 'f' in kw:
+                self._f = kw['f']
+            if 'Q' in kw:
+                self._Q = kw['Q']
 
-        if 'F' in kw:
-            F = kw['F']
+            if 'F' in kw:
+                F = kw['F']
+            else:
+                fx = lambda x: self._f(x, u, np.zeros(w_dim))
+                F = num_diff(self._post_state, fx, x_dim)
+            if 'L' in kw:
+                L = kw['L']
+            else:
+                fw = lambda w: self._f(self._post_state, u, w)
+                L = num_diff(np.zeros(w_dim), fw, x_dim)
+            if 'f_Hess' in kw:
+                f_Hess = kw['f_Hess']
+            else:
+                fx = lambda x: self._f(x, u, np.zeros(w_dim))
+                f_Hess = num_diff_hessian(self._post_state, fx, x_dim)
         else:
             fx = lambda x: self._f(x, u, np.zeros(w_dim))
             F = num_diff(self._post_state, fx, x_dim)
-        if 'L' in kw:
-            L = kw['L']
-        else:
+            f_Hess = num_diff_hessian(self._post_state, fx, x_dim)
             fw = lambda w: self._f(self._post_state, u, w)
             L = num_diff(np.zeros(w_dim), fw, x_dim)
-        if 'f_Hess' in kw:
-            f_Hess = kw['f_Hess']
-        else:
-            fx = lambda x: self._f(x, u, np.zeros(w_dim))
-            f_Hess = num_diff_hessian(self._post_state, fx, x_dim)
 
         Q_tilde = L @ self._Q @ L.T
         self._prior_state = self._f(self._post_state, u, np.zeros(w_dim))
@@ -234,28 +256,35 @@ class EKFilter_2ed(KFBase):
         z_dim = len(z)
         v_dim = self._R.shape[0]
 
-        if 'h' in kw:
-            self._h = kw['h']
-        if 'R' in kw:
-            self._R = kw['R']
+        if len(kw) > 0:
+            if 'h' in kw:
+                self._h = kw['h']
+            if 'R' in kw:
+                self._R = kw['R']
 
-        if 'H' in kw:
-            H = kw['H']
-            it = 0
+            if 'H' in kw:
+                H = kw['H']
+                it = 0
+            else:
+                hx = lambda x: self._h(x, np.zeros(v_dim))
+                H = num_diff(self._prior_state, hx, z_dim)
+            if 'M' in kw:
+                M = kw['M']
+                it = 0
+            else:
+                hv = lambda v: self._h(self._prior_state, v)
+                M = num_diff(np.zeros(v_dim), hv, z_dim)
+            if 'h_Hess' in kw:
+                h_Hess = kw['h_Hess']
+            else:
+                hx = lambda x: self._h(x, np.zeros(v_dim))
+                h_Hess = num_diff_hessian(self._prior_state, hx, z_dim)
         else:
             hx = lambda x: self._h(x, np.zeros(v_dim))
             H = num_diff(self._prior_state, hx, z_dim)
-        if 'M' in kw:
-            M = kw['M']
-            it = 0
-        else:
+            h_Hess = num_diff_hessian(self._prior_state, hx, z_dim)
             hv = lambda v: self._h(self._prior_state, v)
             M = num_diff(np.zeros(v_dim), hv, z_dim)
-        if 'h_Hess' in kw:
-            h_Hess = kw['h_Hess']
-        else:
-            hx = lambda x: self._h(x, np.zeros(v_dim))
-            h_Hess = num_diff_hessian(self._prior_state, hx, z_dim)
 
         R_tilde = M @ self._R @ M.T
         quad = np.array([np.trace(h_Hess[:, :, i] @ self._prior_cov) for i in range(z_dim)])
