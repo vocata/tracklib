@@ -27,7 +27,7 @@ class EKFilterAN(KFBase):
     w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, order=1, at=1):
+    def __init__(self, f, L, h, M, Q, R, order=1):
         super().__init__()
 
         self._f = f
@@ -40,7 +40,6 @@ class EKFilterAN(KFBase):
             self._order = order
         else:
             raise ValueError('order must be 1 or 2, not %d' % order)
-        self._at = at
 
     def __str__(self):
         msg = '%s-order additive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
@@ -61,7 +60,7 @@ class EKFilterAN(KFBase):
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
         w_dim = self._Q.shape[0]
@@ -93,7 +92,7 @@ class EKFilterAN(KFBase):
         if self._order == 2:
             quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(x_dim)])
             self._prior_state += quad / 2
-        self._prior_cov = self._at**2 * F @ self._post_cov @ F.T + Q_tilde
+        self._prior_cov = F @ self._post_cov @ F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
         self._stage = 1
@@ -101,7 +100,7 @@ class EKFilterAN(KFBase):
     def update(self, z, it=0, **kw):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
         z_dim = len(z)
@@ -171,7 +170,7 @@ class EKFilterAN(KFBase):
     def step(self, z, u=None, it=0, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
         self.update(z, it=it, **kw)
@@ -190,7 +189,7 @@ class EKFilterNAN(KFBase):
     w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, order=1, at=1):
+    def __init__(self, f, h, Q, R, order=1):
         super().__init__()
 
         self._f = f
@@ -201,7 +200,6 @@ class EKFilterNAN(KFBase):
             self._order = order
         else:
             raise ValueError('order must be 1 or 2, not %d' % order)
-        self._at = at
 
     def __str__(self):
         msg = '%s-order nonadditive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
@@ -222,7 +220,7 @@ class EKFilterNAN(KFBase):
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
         w_dim = self._Q.shape[0]
@@ -260,7 +258,7 @@ class EKFilterNAN(KFBase):
         if self._order == 2:
             quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(x_dim)])
             self._prior_state += quad / 2
-        self._prior_cov = self._at**2 * F @ self._post_cov @ F.T + Q_tilde
+        self._prior_cov = F @ self._post_cov @ F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
         self._stage = 1
@@ -268,7 +266,7 @@ class EKFilterNAN(KFBase):
     def update(self, z, it=0, **kw):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
         z_dim = len(z)
@@ -347,7 +345,7 @@ class EKFilterNAN(KFBase):
     def step(self, z, u=None, it=0, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
         self.update(z, it=it, **kw)

@@ -13,7 +13,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'trans_mat', 'meas_mat', 'dc_proc_noise_cov', 'dd_proc_noise_cov',
-    'meas_noise_cov', 'corr_noise'
+    'meas_noise_cov'
 ]
 
 import numpy as np
@@ -193,45 +193,3 @@ def meas_noise_cov(axis, std):
     R = np.diag(std)**2
 
     return R
-
-
-def corr_noise(cov, N=1):
-    '''
-    Generating zero-mean correlated Gaussian noise according to covariance matrix 'cov'
-
-    Parameters
-    ----------
-    cov : ndarray
-        Noise covariance matrix
-    N : The number of noise
-
-    Returns
-    -------
-    noi : ndarray
-        Correlated Gaussian noise with mean zeros and covriance 'cov'.
-    '''
-    dim = cov.shape[0]
-    e, v = lg.eigh(cov)
-    std = np.sqrt(e)
-    if N == 1:
-        wgn = np.random.normal(size=(dim,))
-        noi = std * wgn
-    else:
-        wgn = np.random.normal(size=(dim, N))
-        noi = std.reshape(-1, 1) * wgn
-    noi = np.dot(v, noi)
-    return noi
-
-
-# Q = np.diag([1, 2, 3])
-# N = 1000
-# Q_MC = 0
-# mean_MC = 0
-# for i in range(N):
-#     noi = corr_noise(Q, 1000)
-#     Q_MC += np.cov(noi)
-#     mean_MC += np.mean(noi, axis=1)
-# Q_MC = Q_MC / N
-# mean_MC = mean_MC / N
-# print(Q, Q_MC, sep='\n')
-# print(mean_MC)

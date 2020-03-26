@@ -20,7 +20,7 @@ def EKFilter_test():
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
-    # rr, ra = np.sqrt(5), np.sqrt(tlb.math.deg2rad(0.1))
+    # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
@@ -49,8 +49,8 @@ def EKFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crandn(Q)
+        v = tlb.crandn(R)
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
@@ -60,7 +60,7 @@ def EKFilter_test():
             ekf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
-        measure_arr[:, n] = tlb.math.pol2cart(z[0], z[1])
+        measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         ekf.step(z, it=1)
 
         prior_state, prior_cov = ekf.prior_state, ekf.prior_cov

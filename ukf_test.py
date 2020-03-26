@@ -20,7 +20,7 @@ def UKFilter_test():
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
-    # rr, ra = np.sqrt(5), np.sqrt(tlb.math.deg2rad(0.1))
+    # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
@@ -36,10 +36,10 @@ def UKFilter_test():
     x = np.array([1, 2, 0.2, 0.3])
     # P = 1 * np.eye(x_dim)
 
-    factory = ft.SimplexSigmaPoints(x_dim)
-    # factory = ft.SphericalSimplexSigmaPoints(x_dim)
-    # factory = ft.SymmetricSigmaPoint(x_dim)
-    # factory = ft.ScaledSigmaPoints(x_dim, 3 - x_dim)
+    # factory = ft.SimplexSigmaPoints()
+    factory = ft.SphericalSimplexSigmaPoints()
+    # factory = ft.SymmetricSigmaPoints()
+    # factory = ft.ScaledSigmaPoints()
 
     ukf = ft.UKFilterAN(f, L, h, M, Q, R, factory=factory)
     # ukf.init(x, P)
@@ -54,8 +54,8 @@ def UKFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crandn(Q)
+        v = tlb.crandn(R)
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
@@ -65,7 +65,7 @@ def UKFilter_test():
             ukf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
-        measure_arr[:, n] = tlb.math.pol2cart(z[0], z[1])
+        measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         ukf.step(z)
 
         prior_state, prior_cov = ukf.prior_state, ukf.prior_cov

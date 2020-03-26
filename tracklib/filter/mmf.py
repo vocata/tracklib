@@ -106,7 +106,7 @@ class MMFilter(KFBase):
     def predict(self, u=None):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         for i in range(self._model_n):
             self._model[i][0].predict(u)
@@ -116,7 +116,7 @@ class MMFilter(KFBase):
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         pdf = []
         for i in range(self._model_n):

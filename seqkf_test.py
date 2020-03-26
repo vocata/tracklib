@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.model as model
 import matplotlib.pyplot as plt
@@ -41,8 +42,8 @@ def SeqKFilter_test():
     post_cov_arr = np.zeros((x_dim, x_dim, N))
 
     for n in range(N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crandn(Q)
+        v = tlb.crandn(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

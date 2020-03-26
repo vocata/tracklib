@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.model as model
 import matplotlib.pyplot as plt
@@ -43,8 +44,8 @@ def SSFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crandn(Q)
+        v = tlb.crandn(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

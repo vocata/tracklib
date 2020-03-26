@@ -55,7 +55,7 @@ class KFilter(KFBase):
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
             if 'F' in kw: self._F = kw['F']
@@ -74,7 +74,7 @@ class KFilter(KFBase):
     def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
 
@@ -101,7 +101,7 @@ class KFilter(KFBase):
     def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
         self.update(z, **kw)
@@ -153,7 +153,7 @@ class SeqKFilter(KFBase):
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
             if 'F' in kw: self._F = kw['F']
@@ -172,7 +172,7 @@ class SeqKFilter(KFBase):
     def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
         z_dim = len(z)
@@ -213,7 +213,7 @@ class SeqKFilter(KFBase):
     def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
         self.update(z, **kw)

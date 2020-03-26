@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.linalg as lg
+import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
@@ -45,8 +46,8 @@ def KFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crandn(Q)
+        v = tlb.crandn(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v
