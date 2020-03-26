@@ -6,8 +6,8 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'UKFilter', 'SimplexSigmaPoints', 'SphericalSimplexSigmaPoints',
-    'SymmetricSigmaPoint', 'ScaledSigmaPoints'
+    'UKFilterAN', 'UKFilterNAN', 'SimplexSigmaPoints',
+    'SphericalSimplexSigmaPoints', 'SymmetricSigmaPoint', 'ScaledSigmaPoints'
 ]
 
 import numpy as np
@@ -15,7 +15,7 @@ import scipy.linalg as lg
 from .kfbase import KFBase
 
 
-class UKFilter(KFBase):
+class UKFilterAN(KFBase):
     '''
     Unscented Kalman filter
 
@@ -25,6 +25,7 @@ class UKFilter(KFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
+    w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, L, h, M, Q, R, factory, at=1):
@@ -40,7 +41,7 @@ class UKFilter(KFBase):
         self._at = at
 
     def __str__(self):
-        msg = 'Unscented Kalman filter'
+        msg = 'Additive noise unscented Kalman filter'
         return msg
 
     def __repr__(self):
@@ -290,3 +291,20 @@ class ScaledSigmaPoints():
             pts[:, self._dim +
                 i] = mean - np.sqrt(self._dim + self._lamb) * cov_sqrt[:, i]
         return pts
+
+
+class UKFilterNAN(KFBase):
+    '''
+    Unscented Kalman filter
+
+    system model:
+    x_k = f_k-1(x_k-1, u_k-1, w_k)
+    z_k = h_k(x_k, v_k)
+    E(w_k*w_j') = Q_k*δ_kj
+    E(v_k*v_j') = R_k*δ_kj
+
+    w_k and v_k are nonadditive noise
+    w_k, v_k, x_0 are uncorrelated to each other
+    '''
+    pass
+

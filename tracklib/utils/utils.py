@@ -10,8 +10,6 @@ import numpy as np
 from collections.abc import Iterable, Iterator
 
 
-
-
 def is_matrix(x):
     return isinstance(x, np.ndarray) and len(x.shape) == 2
 

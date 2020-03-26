@@ -26,18 +26,17 @@ def EKFilter_test():
 
     F = model.trans_mat(1, 1, T)
     L = np.eye(x_dim)
-    f = lambda x, u, w: F @ x + L @ w
+    f = lambda x, u: F @ x
     Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
 
     M = np.eye(z_dim)
-    h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
+    h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
     R = model.meas_noise_cov(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
     # P = 10 * np.eye(x_dim)
 
-    ekf = ft.EKFilter_1st(f, h, Q, R)
-    # ekf = ft.EKFilter_2ed(f, h, Q, R)
+    ekf = ft.EKFilterAN(f, L, h, M, Q, R, order=1)
     # ekf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
@@ -53,8 +52,8 @@ def EKFilter_test():
         w = model.corr_noise(Q)
         v = model.corr_noise(R)
 
-        x = f(x, 0, w)
-        z = h(x, v)
+        x = f(x, 0) + L @ w
+        z = h(x) + M @ v
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
             # P_init = 10 * np.eye(x_dim)
