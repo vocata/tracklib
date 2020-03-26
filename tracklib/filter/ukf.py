@@ -149,13 +149,15 @@ class UKFilterNAN(KFBase):
     w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, factory):
+    def __init__(self, f, h, Q, R, factory, epsilon=0.01):
         super().__init__()
 
         self._f = f
         self._h = h
-        self._Q = Q
-        self._R = R
+        # Since the convariance matrix may be semi-definite, adding a small value
+        # on the diagonal can make it positive definite.
+        self._Q = Q + epsilon * np.diag(Q.diagonal())
+        self._R = R + epsilon * np.diag(R.diagonal())
         self._factory = factory
 
     def __str__(self):
