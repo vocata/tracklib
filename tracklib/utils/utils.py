@@ -32,12 +32,11 @@ def is_diag(x):
     return is_matrix(x) and (x == np.diag(x.diagonal())).all()
 
 
-def col(x, *args, dtype='float64', **kw):
+def col(x, *args, dtype=float, **kw):
     '''
     Converts numbers or iterable objects to column vectors
-    and sets the data type to 'float64' default.
+    and sets the data type to 'float' default.
     '''
-
     if isinstance(x, int) or isinstance(x, float):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((-1, 1))
     elif isinstance(x, Iterator):
@@ -49,12 +48,11 @@ def col(x, *args, dtype='float64', **kw):
     return x
 
 
-def row(x, *args, dtype='float64', **kw):
+def row(x, *args, dtype=float, **kw):
     '''
     Converts numbers or iterable objects to row vectors
-    and sets the data type to 'float64' default.
+    and sets the data type to 'float' default.
     '''
-
     if isinstance(x, int) or isinstance(x, float):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((1, -1))
     elif isinstance(x, Iterator):
