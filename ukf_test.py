@@ -26,22 +26,22 @@ def UKFilter_test():
 
     F = model.trans_mat(1, 1, T)
     L = np.eye(x_dim)
-    f = lambda x, u: F @ x
+    f = lambda x, u, w: F @ x + L @ w
     Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
 
     M = np.eye(z_dim)
-    h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
+    h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
     R = model.meas_noise_cov(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
     # P = 1 * np.eye(x_dim)
 
-    # factory = ft.SimplexSigmaPoints()
-    factory = ft.SphericalSimplexSigmaPoints()
+    factory = ft.SimplexSigmaPoints()
+    # factory = ft.SphericalSimplexSigmaPoints()
     # factory = ft.SymmetricSigmaPoints()
     # factory = ft.ScaledSigmaPoints()
 
-    ukf = ft.UKFilterAN(f, L, h, M, Q, R, factory=factory)
+    ukf = ft.UKFilterNAN(f, h, Q, R, factory=factory)
     # ukf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
@@ -57,8 +57,8 @@ def UKFilter_test():
         w = tlb.crandn(Q)
         v = tlb.crandn(R)
 
-        x = f(x, 0) + L @ w
-        z = h(x) + M @ v
+        x = f(x, 0, w)
+        z = h(x, v)
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
             # P_init = 10 * np.eye(x_dim)

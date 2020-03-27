@@ -271,7 +271,7 @@ class UKFilterNAN(KFBase):
 
 
 class SimplexSigmaPoints():
-    def __init__(self, w0=0, decompose='svd'):
+    def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
         self._decompose = decompose
@@ -327,7 +327,7 @@ class SimplexSigmaPoints():
 
 
 class SphericalSimplexSigmaPoints():
-    def __init__(self, w0=0, decompose='svd'):
+    def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
         self._decompose = decompose
@@ -382,7 +382,7 @@ class SphericalSimplexSigmaPoints():
 
 
 class SymmetricSigmaPoints():
-    def __init__(self, decompose='svd'):
+    def __init__(self, decompose='cholesky'):
         self._decompose = decompose
         self._init = False
 
@@ -421,7 +421,7 @@ class SymmetricSigmaPoints():
 
 
 class ScaledSigmaPoints():
-    def __init__(self, alpha=1, beta=2, kappa=None, decompose='svd'):
+    def __init__(self, alpha=1, beta=2, kappa=None, decompose='cholesky'):
         '''
         The best choice of kappa is 3-dim for Gaussian noise, but here we set it to 0
         '''
