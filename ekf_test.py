@@ -24,14 +24,14 @@ def EKFilter_test():
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
-    F = model.trans_mat(1, 1, T)
+    F = model.F_poly_trans(1, 1, T)
     L = np.eye(x_dim)
     f = lambda x, u: F @ x
-    Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
+    Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
 
     M = np.eye(z_dim)
     h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
-    R = model.meas_noise_cov(1, [rr, ra])
+    R = model.R_only_pos_meas_noise(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
     # P = 10 * np.eye(x_dim)

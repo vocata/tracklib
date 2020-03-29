@@ -11,7 +11,7 @@ __all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 import numpy as np
 import scipy.linalg as lg
 from .kfbase import KFBase
-from tracklib.model import trans_mat, meas_mat
+from tracklib.model import F_poly_trans, H_only_pos_meas
 
 
 class AlphaFilter(KFBase):
@@ -42,8 +42,8 @@ class AlphaFilter(KFBase):
         self._alpha = alpha
         self._gain = np.diag(self._alpha)
 
-        self._F = trans_mat(0, axis, T)
-        self._H = meas_mat(0, axis)
+        self._F = F_poly_trans(0, axis, T)
+        self._H = H_only_pos_meas(0, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -147,8 +147,8 @@ class AlphaBetaFilter(KFBase):
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
         self._gain = np.vstack((diag_a, diag_b / self._T))
 
-        self._F = trans_mat(1, axis, T)
-        self._H = meas_mat(1, axis)
+        self._F = F_poly_trans(1, axis, T)
+        self._H = H_only_pos_meas(1, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter:\n\n'
@@ -256,8 +256,8 @@ class AlphaBetaGammaFilter():
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
         self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
-        self._F = trans_mat(2, axis, T)
-        self_H = meas_mat(2, axis)
+        self._F = F_poly_trans(2, axis, T)
+        self_H = H_only_pos_meas(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'

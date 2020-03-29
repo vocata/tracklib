@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 REFERENCES:
-[1] Mallick, M.,La Scala, B., "Comparison of single-point and two-point
-    difference track initiation algorithms using position measurements". 
-    Acta Automatica Sinica, 2008.
-[2] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, Estimation with
+[1] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, Estimation with
     Applications to Tracking and Navigation. New York: John Wiley and
     Sons, Inc, 2001.
 '''
@@ -12,8 +9,8 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'trans_mat', 'meas_mat', 'dc_proc_noise_cov', 'dd_proc_noise_cov',
-    'meas_noise_cov'
+    'F_poly_trans', 'Q_dc_ploy_proc_noise', 'Q_dd_poly_proc_noise',
+    'H_only_pos_meas', 'R_only_pos_meas_noise'
 ]
 
 import numpy as np
@@ -21,10 +18,10 @@ import scipy.linalg as lg
 from scipy.special import factorial
 
 
-def trans_mat(order, axis, T):
+def F_poly_trans(order, axis, T):
     '''
-    This transition matrix is used with discretized continuous-time models
-    as well as with direct discrete-time models.
+    This polynomial transition matrix is used with discretized continuous-time
+    models as well as direct discrete-time models. see [1] section 6.2 and 6.3.
 
     Parameters
     ----------
@@ -56,42 +53,14 @@ def trans_mat(order, axis, T):
     return F
 
 
-# F = trans_mat(2, 3, 2)
+# F = F_poly_trans(2, 3, 2)
 # print(F)
 
 
-def meas_mat(order, axis):
+def Q_dc_ploy_proc_noise(order, axis, T, std):
     '''
-    This measurement matrix is used with discretized continuous-time models
-    as well as with direct discrete-time models.
-
-    Parameters
-    ----------
-    order : int
-        The order >=0 of the filter. If order=1, then it is constant velocity,
-        2 means constant acceleration, 3 means constant jerk, etc.
-    axis : int
-        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        2 means x-axis and y-axis, etc.
-
-    Returns
-    -------
-    H : ndarray
-        the measurement or obervation matrix
-    '''
-    assert (0 <= order)
-    assert (0 <= axis)
-
-    H = np.zeros((axis + 1, (order + 1) * (axis + 1)))
-    H[:axis + 1, :axis + 1] = np.eye(axis + 1)
-
-    return H
-
-
-def dc_proc_noise_cov(order, axis, T, std):
-    '''
-    Construct a process noise covariance matrix used with discretized
-    continuous-time models.
+    Process noise covariance matrix used with discretized continuous-time models.
+    see [1] section 6.2.
 
     Parameters
     ----------
@@ -124,14 +93,14 @@ def dc_proc_noise_cov(order, axis, T, std):
     return Q
 
 
-# Q = dc_proc_noise_cov(2, 2, 1, [1, 2, 3])
+# Q = Q_dc_poly_proc_noise(2, 2, 1, [1, 2, 3])
 # print(Q)
 
 
-def dd_proc_noise_cov(order, axis, T, std, ht=None):
+def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
     '''
-    Construct a process noise covariance matrix used with direct discrete-time
-    models.
+    Process noise covariance matrix used with direct discrete-time models.
+    see [1] section 6.3.
 
     Parameters
     ----------
@@ -146,11 +115,12 @@ def dd_proc_noise_cov(order, axis, T, std, ht=None):
     std : number, list or ndarray
         The standard deviation of discrete-time porcess noise
     ht : int
-        The order of the noise higher than the highest order in the state,
-        e.g., if the highest order is acceleration, then ht=0 means that
-        the noise is acceleration and the model is DWPA[2], and if the 
-        highest order is velocity, the n=1 means the noise is acceleration
-        and the model is DWNA[2]
+        ht means that the order of the noise is 'ht' greater than the highest order
+        of the state, e.g., if the highest order of state is acceleration, then ht=0
+        means that the noise is of the same order as the highest order of state, that
+        is, the noise is acceleration and the model is DWPA, see[1] section 6.3.3. If
+        the highest order is velocity, the ht=1 means the noise is acceleration and
+        the model is DWNA, see[1] section 6.3.2.
 
     Returns
     -------
@@ -179,14 +149,42 @@ def dd_proc_noise_cov(order, axis, T, std, ht=None):
     return Q
 
 
-# Q = dd_proc_noise_cov(2, 2, 1, [1, 2, 3], 1)
+# Q = Q_dd_proc_noise(2, 2, 1, [1, 2, 3], 1)
 # print(Q)
 
 
-def meas_noise_cov(axis, std):
+def H_only_pos_meas(order, axis):
     '''
-    Construct a measurement noise covariance matrix used with discretized
-    continuous-time models as well as with direct discrete-time models.
+    Only-position measurement matrix is used with discretized continuous-time models
+    as well as direct discrete-time models. see [1] section 6.5.
+
+    Parameters
+    ----------
+    order : int
+        The order >=0 of the filter. If order=1, then it is constant velocity,
+        2 means constant acceleration, 3 means constant jerk, etc.
+    axis : int
+        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
+        2 means x-axis and y-axis, etc.
+
+    Returns
+    -------
+    H : ndarray
+        the measurement or obervation matrix
+    '''
+    assert (0 <= order)
+    assert (0 <= axis)
+
+    H = np.zeros((axis + 1, (order + 1) * (axis + 1)))
+    H[:axis + 1, :axis + 1] = np.eye(axis + 1)
+
+    return H
+
+
+def R_only_pos_meas_noise(axis, std):
+    '''
+    Only-position measurement noise covariance matrix and note that the noise
+    of each axis are independent of each other. That is, R is diagonal matrix.
     '''
     if isinstance(std, (int, float)):
         std = [std] * (axis + 1)
