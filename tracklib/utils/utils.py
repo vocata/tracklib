@@ -3,8 +3,9 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'col', 'row',
-    'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crandn'
+    'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
+    'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crandn'
 ]
 
 import numpy as np
@@ -30,6 +31,38 @@ def is_row(x):
 
 def is_diag(x):
     return is_matrix(x) and (x == np.diag(x.diagonal())).all()
+
+
+def is_symmetirc(x):
+    return not np.any(x - x.T)
+
+
+def is_posi_def(x):
+    if not is_symmetirc(x):
+        return False
+    e, _ = lg.eigh(x)
+    return np.all(e > 0)
+
+
+def is_posi_semidef(x):
+    if not is_symmetirc(x):
+        return False
+    e, _ = lg.eigh(x)
+    return np.all(e >= 0) and np.any(e == 0)
+
+
+def is_neg_def(x):
+    if not is_symmetirc(x):
+        return False
+    e, _ = lg.eigh(x)
+    return np.all(e < 0)
+
+
+def is_neg_semidef(x):
+    if not is_symmetirc(x):
+        return False
+    e, _ = lg.eigh(x)
+    return np.all(e <= 0) and np.any(e == 0)
 
 
 def col(x, *args, dtype=float, **kw):
@@ -105,6 +138,8 @@ def crandn(cov, N=1):
     '''
     dim = cov.shape[0]
     e, v = lg.eigh(cov)
+    if np.any(e < 0):
+        raise ValueError('convariance matrix must be posotive definite')
     std = np.sqrt(e)
     if N == 1:
         wgn = np.random.normal(size=(dim,))
