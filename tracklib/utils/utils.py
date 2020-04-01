@@ -5,7 +5,7 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crandn'
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crnd', 'drnd'
 ]
 
 import numpy as np
@@ -121,9 +121,9 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crandn(cov, N=1):
+def crnd(cov, N=1):
     '''
-    Generating zero-mean correlated Gaussian noise according to covariance matrix 'cov'
+    Generate zero-mean correlated Gaussian noise according to covariance matrix 'cov'
 
     Parameters
     ----------
@@ -151,15 +151,25 @@ def crandn(cov, N=1):
     return noi
 
 
-# Q = np.diag([1, 2, 3])
-# N = 1000
-# Q_MC = 0
-# mean_MC = 0
-# for i in range(N):
-#     noi = corr_noise(Q, 1000)
-#     Q_MC += np.cov(noi)
-#     mean_MC += np.mean(noi, axis=1)
-# Q_MC = Q_MC / N
-# mean_MC = mean_MC / N
-# print(Q, Q_MC, sep='\n')
-# print(mean_MC)
+def drnd(prob, N, scope=None):
+    '''
+    Sample discrete random varialbes from the given probability.
+    '''
+    if np.sum(prob) != 1:
+        raise ValueError('the sum of prob must be 1')
+
+    rv_num = len(prob)
+    if scope is None:
+        scope = list(range(rv_num))
+    cdf = list(range(rv_num + 1))
+
+    for i in range(rv_num):
+        cdf[i + 1] = cdf[i] + prob[i]
+    rv = []
+    for i in range(N):
+        n = 0
+        rnd = np.random.rand()
+        while cdf[n] < rnd:
+            n += 1
+        rv.append(scope[n - 1])
+    return rv
