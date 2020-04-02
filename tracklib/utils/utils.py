@@ -5,7 +5,7 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crnd', 'drnd'
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crndn', 'drnd'
 ]
 
 import numpy as np
@@ -121,7 +121,7 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crnd(cov, N=1):
+def crndn(cov, N=1):
     '''
     Generate zero-mean correlated Gaussian noise according to covariance matrix 'cov'
 

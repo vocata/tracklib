@@ -46,8 +46,8 @@ def KFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = tlb.crandn(Q)
-        v = tlb.crandn(R)
+        w = tlb.crndn(Q)
+        v = tlb.crndn(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

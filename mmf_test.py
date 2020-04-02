@@ -46,8 +46,8 @@ def MMFilter_test():
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
-        w = tlb.crandn(Q)
-        v = tlb.crandn(R)
+        w = tlb.crndn(Q)
+        v = tlb.crndn(R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v
