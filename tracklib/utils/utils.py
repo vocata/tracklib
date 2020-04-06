@@ -129,7 +129,8 @@ def crndn(cov, N=1):
     ----------
     cov : ndarray
         Noise covariance matrix
-    N : The number of noise
+    N : int
+        The number of noise
 
     Returns
     -------
@@ -146,7 +147,7 @@ def crndn(cov, N=1):
         noi = std * wgn
     else:
         wgn = np.random.normal(size=(dim, N))
-        noi = std.reshape(-1, 1) * wgn
+        noi = std.reshape(-1, 1) * wgn  # broadcast for row
     noi = np.dot(v, noi)
     return noi
 
@@ -154,6 +155,17 @@ def crndn(cov, N=1):
 def drnd(prob, N, scope=None):
     '''
     Sample discrete random varialbes from the given probability.
+
+    Parameters
+    ----------
+    prob : ndarray
+        discrete probability
+    N : int
+        Samples' number
+    Returns
+    -------
+    rv : ndarray
+        Samples sampled from the discrete distribution
     '''
     if np.sum(prob) != 1:
         raise ValueError('the sum of prob must be 1')
@@ -161,15 +173,15 @@ def drnd(prob, N, scope=None):
     rv_num = len(prob)
     if scope is None:
         scope = list(range(rv_num))
-    cdf = list(range(rv_num + 1))
+    cdf = np.zeros(rv_num + 1)
 
     for i in range(rv_num):
         cdf[i + 1] = cdf[i] + prob[i]
-    rv = []
+    rv = np.zeros(N)
     for i in range(N):
         n = 0
         rnd = np.random.rand()
         while cdf[n] < rnd:
             n += 1
-        rv.append(scope[n - 1])
+        rv[i] = scope[n - 1]
     return rv

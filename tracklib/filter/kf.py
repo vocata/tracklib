@@ -9,7 +9,7 @@ __all__ = ['KFilter', 'SeqKFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
+from .base import KFBase
 
 
 class KFilter(KFBase):

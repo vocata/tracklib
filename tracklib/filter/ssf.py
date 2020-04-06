@@ -10,7 +10,7 @@ __all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
+from .base import KFBase
 from tracklib.model import F_poly_trans, H_only_pos_meas
 
 

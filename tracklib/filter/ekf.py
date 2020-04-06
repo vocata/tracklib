@@ -10,7 +10,7 @@ __all__ = ['EKFilterAN', 'EKFilterNAN']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
+from .base import KFBase
 from tracklib.math import num_diff, num_diff_hessian
 
 

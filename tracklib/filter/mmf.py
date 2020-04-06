@@ -11,7 +11,7 @@ __all__ = ['MMFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
+from .base import KFBase
 from .kf import KFilter
 from .ekf import EKFilterAN, EKFilterNAN
 from .ukf import UKFilterAN, UKFilterNAN
