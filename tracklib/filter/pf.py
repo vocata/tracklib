@@ -25,7 +25,7 @@ class SIRPFilter(PFBase):
     w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, Ns=50):
+    def __init__(self, f, L, h, M, Q, R, Ns=50, resample_alg='roulette'):
         super().__init__()
 
         self._f = f
@@ -35,6 +35,7 @@ class SIRPFilter(PFBase):
         self._Q = Q
         self._R = R
         self._Ns = Ns
+        self._resample_alg = resample_alg
 
     def __str__(self):
         msg = 'SIR particle filter'
@@ -78,7 +79,7 @@ class SIRPFilter(PFBase):
         self._weights[:] = self._weights / np.sum(self._weights)
         
         # resampling
-        self._samples[:], _ = drnd(self._weights, self._Ns, self._samples)
+        self._samples[:], _ = drnd(self._weights, self._Ns, self._samples, alg=self._resample_alg)
         self._weights[:] = 1 / self._Ns
 
         self._len += 1

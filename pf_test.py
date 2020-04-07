@@ -16,7 +16,7 @@ the program may yield uncertain result.
 
 
 def PFilter_test():
-    N, T = 200, 1
+    N, T = 250, 1
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
@@ -36,7 +36,7 @@ def PFilter_test():
     x = np.array([1, 2, 0.2, 0.3])
     # P = 10 * np.eye(x_dim)
 
-    pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=200)
+    pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=800, resample_alg='roulette')
     # ekf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
@@ -56,7 +56,7 @@ def PFilter_test():
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
-        pf.step(z, it=1)
+        pf.step(z) 
 
         post_state = pf.mmse
         post_state_arr[:, n] = post_state

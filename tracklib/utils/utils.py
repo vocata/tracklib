@@ -164,7 +164,7 @@ def crndn(mean, cov, Ns=1, axis=0):
     return mean + out
 
 
-def drnd(prob, Ns=1, scope=None):
+def drnd(prob, Ns=1, scope=None, alg='roulette'):
     '''
     Draw random samples from a discrete distribution
 
@@ -176,6 +176,8 @@ def drnd(prob, Ns=1, scope=None):
         Number of samples
     scope : list, optional
         The scope in which the samples will be drawn. Default is 0
+    alg : str, optional
+        Sample algorithm, it can be 'roulette' and 'low_var'
 
     Returns
     -------
@@ -184,23 +186,36 @@ def drnd(prob, Ns=1, scope=None):
     index : list
         The index corresponding to the sample drawn from the scope
     '''
-    if np.fabs(np.sum(prob) - 1) > EPSILON:
-        raise ValueError('the sum of prob must be 1')
-
     rv_num = len(prob)
     if scope is None:
         scope = list(range(rv_num))
-    cdf = list(range(rv_num + 1))
 
-    for i in range(rv_num):
-        cdf[i + 1] = cdf[i] + prob[i]
     rv = []
     index = []
-    for i in range(Ns):
-        n = 0
-        rnd = np.random.rand()
-        while cdf[n] < rnd:
-            n += 1
-        rv.append(scope[n - 1])
-        index.append(n - 1)
+
+    if alg == 'roulette':
+        cdf = list(range(rv_num + 1))
+        for i in range(rv_num):
+            cdf[i + 1] = cdf[i] + prob[i]
+        for i in range(Ns):
+            idx = 0
+            rnd = np.random.rand()
+            while cdf[idx] < rnd:
+                idx += 1
+            rv.append(scope[idx - 1])
+            index.append(idx - 1)
+    elif alg == 'low_var':
+        rnd = np.random.rand() / Ns
+        cdf = prob[0]
+        idx = 0
+        for i in range(Ns):
+            u = rnd + i / Ns
+            while u > cdf:
+                idx += 1
+                cdf += prob[idx]
+            rv.append(scope[idx])
+            index.append(idx)
+    else:
+        raise ValueError("alg must be 'roulette' or 'low_var', not %s" % alg)
+
     return rv, index
