@@ -44,7 +44,7 @@ class SIRPFilter(PFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._samples = state + crndn(cov, self._Ns, axis=0)
+        self._samples = crndn(state, cov, self._Ns, axis=0)
         self._weights = np.zeros(self._Ns) + 1 / self._Ns
         self._len = 0
         self._init = True
@@ -63,7 +63,7 @@ class SIRPFilter(PFBase):
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T
-        proc_noi = crndn(Q_tilde, self._Ns, axis=0)
+        proc_noi = crndn(0, Q_tilde, self._Ns, axis=0)
         for i in range(self._Ns):
             self._samples[i] = self._f(self._samples[i], u) + proc_noi[i]
 
@@ -78,7 +78,7 @@ class SIRPFilter(PFBase):
         self._weights[:] = self._weights / np.sum(self._weights)
         
         # resampling
-        self._samples[:] = drnd(self._weights, self._Ns, self._samples)
+        self._samples[:], _ = drnd(self._weights, self._Ns, self._samples)
         self._weights[:] = 1 / self._Ns
 
         self._len += 1

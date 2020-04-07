@@ -44,8 +44,8 @@ def PFilter_test():
     post_state_arr = np.empty((x_dim, N))
 
     for n in range(-1, N):
-        w = tlb.crndn(Q)
-        v = tlb.crndn(R)
+        w = tlb.crndn(0, Q)
+        v = tlb.crndn(0, R)
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
@@ -58,7 +58,7 @@ def PFilter_test():
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         pf.step(z, it=1)
 
-        post_state = pf.MMSE()
+        post_state = pf.mmse
         post_state_arr[:, n] = post_state
     print(len(pf))
     print(pf)

@@ -49,8 +49,8 @@ def EKFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = tlb.crndn(Q)
-        v = tlb.crndn(R)
+        w = tlb.crndn(0, Q)
+        v = tlb.crndn(0, R)
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v

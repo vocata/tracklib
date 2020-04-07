@@ -42,8 +42,8 @@ def SeqKFilter_test():
     post_cov_arr = np.zeros((x_dim, x_dim, N))
 
     for n in range(N):
-        w = tlb.crndn(Q)
-        v = tlb.crndn(R)
+        w = tlb.crndn(0, Q)
+        v = tlb.crndn(0, R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

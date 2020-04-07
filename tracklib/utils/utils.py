@@ -123,64 +123,68 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crndn(cov, N=1, axis=0):
+def crndn(mean, cov, Ns=1, axis=0):
     '''
-    Generate correlated Gaussian noise with zero-mean and covariance
+    Draw random samples from a normal (Gaussian) distribution with mean and cov
 
     Parameters
     ----------
-    cov : ndarray
-        Noise covariance matrix
-    N : int, optional
-        The number of noise. Default is 0
+    mean : 1-D array_like, of length N
+        Mean of the N-dimensional distribution.
+    cov : 2-D array_like, of shape (N, N)
+        Covariance matrix of the distribution. It must be symmetric and
+        positive-semidefinite for proper sampling.
+    Ns : int, optional
+        Number of samples. Default is 0
     axis : int, optional
         The axis along which the noise will be generated. Default is 0
 
     Returns
     -------
-    noi : ndarray
-        Correlated Gaussian noise with zero-mean and covariance.
+    out : ndarray
+        The drawn samples of shape (Ns, N) if axis is 0 or (N, Ns) axis is 1
     '''
-    dim = cov.shape[0]
+    N = cov.shape[0]
     e, v = lg.eigh(cov)
-    if np.any(e < 0):
+    if is_symmetirc(cov) and np.any(e < 0):
         raise ValueError('convariance matrix must be posotive definite')
     std = np.sqrt(e)
-    if N == 1:
-        wgn = np.random.randn(dim)
-        noi = std * wgn
+    if Ns == 1:
+        wgn = np.random.randn(N)
+        out = std * wgn
     else:
-        wgn = np.random.randn(dim, N)
-        noi = std.reshape(-1, 1) * wgn  # broadcast for row
+        wgn = np.random.randn(N, Ns)
+        out = std.reshape(-1, 1) * wgn  # broadcast for row
     if axis == 0:
-        noi = np.dot(noi.T, v)
+        out = np.dot(out.T, v.T)
     elif axis == 1:
-        noi = np.dot(v, noi)
+        out = np.dot(v, out)
     else:
         raise ValueError('axis must be 0 or 1, not %s' % axis)
-    return noi
+    return mean + out
 
 
-def drnd(prob, N=1, scope=None):
+def drnd(prob, Ns=1, scope=None):
     '''
-    Sample discrete random varialbes from the given probability.
+    Draw random samples from a discrete distribution
 
     Parameters
     ----------
-    prob : list, ndarray(flattened)
-        discrete probability
-    N : int, optional
+    prob : list, of length N
+        Discrete probability
+    Ns : int, optional
         Number of samples
     scope : list, optional
-        Items corresponding to discrete probability 'prob'
+        The scope in which the samples will be drawn. Default is 0
 
     Returns
     -------
     rv : list
-        Samples sampled from the discrete distribution
+        The drawn samples from scope
+    index : list
+        The index corresponding to the sample drawn from the scope
     '''
     if np.fabs(np.sum(prob) - 1) > EPSILON:
-        print(sum(prob))
         raise ValueError('the sum of prob must be 1')
 
     rv_num = len(prob)
@@ -191,10 +195,12 @@ def drnd(prob, N=1, scope=None):
     for i in range(rv_num):
         cdf[i + 1] = cdf[i] + prob[i]
     rv = []
-    for i in range(N):
+    index = []
+    for i in range(Ns):
         n = 0
         rnd = np.random.rand()
         while cdf[n] < rnd:
             n += 1
         rv.append(scope[n - 1])
-    return rv
+        index.append(n - 1)
+    return rv, index
