@@ -144,7 +144,7 @@ class MMFilter(KFBase):
         self.update(z)
         
     @property
-    def weight_state(self):
+    def weighted_state(self):
         # weighted state estimate
         state = 0
         for i in range(self._model_n):

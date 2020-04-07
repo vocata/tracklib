@@ -77,6 +77,9 @@ def EKFilter_test():
     print(len(ekf))
     print(ekf)
 
+    state_err = state_arr - post_state_arr
+    print(np.var(state_err, axis=1))
+
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)

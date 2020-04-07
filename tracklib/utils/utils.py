@@ -12,6 +12,8 @@ import numpy as np
 import scipy.linalg as lg
 from collections.abc import Iterable, Iterator
 
+EPSILON = 0.000001
+
 
 def is_matrix(x):
     return isinstance(x, np.ndarray) and len(x.shape) == 2
@@ -121,21 +123,23 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crndn(cov, N=1):
+def crndn(cov, N=1, axis=0):
     '''
-    Generate zero-mean correlated Gaussian noise according to covariance matrix 'cov'
+    Generate correlated Gaussian noise with zero-mean and covariance
 
     Parameters
     ----------
     cov : ndarray
         Noise covariance matrix
-    N : int
-        The number of noise
+    N : int, optional
+        The number of noise. Default is 0
+    axis : int, optional
+        The axis along which the noise will be generated. Default is 0
 
     Returns
     -------
     noi : ndarray
-        Correlated Gaussian noise with mean zeros and covriance 'cov'.
+        Correlated Gaussian noise with zero-mean and covariance.
     '''
     dim = cov.shape[0]
     e, v = lg.eigh(cov)
@@ -143,45 +147,54 @@ def crndn(cov, N=1):
         raise ValueError('convariance matrix must be posotive definite')
     std = np.sqrt(e)
     if N == 1:
-        wgn = np.random.normal(size=(dim,))
+        wgn = np.random.randn(dim)
         noi = std * wgn
     else:
-        wgn = np.random.normal(size=(dim, N))
+        wgn = np.random.randn(dim, N)
         noi = std.reshape(-1, 1) * wgn  # broadcast for row
-    noi = np.dot(v, noi)
+    if axis == 0:
+        noi = np.dot(noi.T, v)
+    elif axis == 1:
+        noi = np.dot(v, noi)
+    else:
+        raise ValueError('axis must be 0 or 1, not %s' % axis)
     return noi
 
 
-def drnd(prob, N, scope=None):
+def drnd(prob, N=1, scope=None):
     '''
     Sample discrete random varialbes from the given probability.
 
     Parameters
     ----------
-    prob : ndarray
+    prob : list, ndarray(flattened)
         discrete probability
-    N : int
-        Samples' number
+    N : int, optional
+        Number of samples
+    scope : list, optional
+        Items corresponding to discrete probability 'prob'
+
     Returns
     -------
-    rv : ndarray
+    rv : list
         Samples sampled from the discrete distribution
     '''
-    if np.sum(prob) != 1:
+    if np.fabs(np.sum(prob) - 1) > EPSILON:
+        print(sum(prob))
         raise ValueError('the sum of prob must be 1')
 
     rv_num = len(prob)
     if scope is None:
         scope = list(range(rv_num))
-    cdf = np.zeros(rv_num + 1)
+    cdf = list(range(rv_num + 1))
 
     for i in range(rv_num):
         cdf[i + 1] = cdf[i] + prob[i]
-    rv = np.zeros(N)
+    rv = []
     for i in range(N):
         n = 0
         rnd = np.random.rand()
         while cdf[n] < rnd:
             n += 1
-        rv[i] = scope[n - 1]
+        rv.append(scope[n - 1])
     return rv

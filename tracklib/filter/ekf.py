@@ -63,7 +63,6 @@ class EKFilterAN(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         x_dim = len(self._prior_state)
-        w_dim = self._Q.shape[0]
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
@@ -77,7 +76,7 @@ class EKFilterAN(KFBase):
                 F = num_diff(self._post_state, fx, x_dim)
             if self._order == 2:
                 if 'FH' in kw:
-                    FH = kw['FH']
+                    FH = kw['FH']   # Hessian matrix of f
                 else:
                     fx = lambda x: self._f(x, u)
                     FH = num_diff_hessian(self._post_state, fx, x_dim)
@@ -104,7 +103,6 @@ class EKFilterAN(KFBase):
 
         x_dim = len(self._prior_state)
         z_dim = len(z)
-        v_dim = self._R.shape[0]
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
@@ -119,7 +117,7 @@ class EKFilterAN(KFBase):
                 H = num_diff(self._prior_state, hx, z_dim)
             if self._order == 2:
                 if 'HH' in kw:
-                    HH = kw['HH']
+                    HH = kw['HH']   # Hessian matrix of h
                 else:
                     hx = lambda x: self._h(x)
                     HH = num_diff_hessian(self._prior_state, hx, z_dim)
@@ -241,7 +239,7 @@ class EKFilterNAN(KFBase):
                 L = num_diff(np.zeros(w_dim), fw, x_dim)
             if self._order == 2:
                 if 'FH' in kw:
-                    FH = kw['FH']
+                    FH = kw['FH']   # Hessian matrix of f
                 else:
                     fx = lambda x: self._f(x, u, np.zeros(w_dim))
                     FH = num_diff_hessian(self._post_state, fx, x_dim)
@@ -290,7 +288,7 @@ class EKFilterNAN(KFBase):
                 M = num_diff(np.zeros(v_dim), hv, z_dim)
             if self._order == 2:
                 if 'HH' in kw:
-                    HH = kw['HH']
+                    HH = kw['HH']   # Hessian matrix of h
                 else:
                     hx = lambda x: self._h(x, np.zeros(v_dim))
                     HH = num_diff_hessian(self._prior_state, hx, z_dim)

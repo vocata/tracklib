@@ -95,7 +95,6 @@ class PFBase(abc.ABC):
         self._weights = None
 
         self._len = 0
-        self._stage = 0
         self._init = False
 
     def __len__(self):
@@ -107,14 +106,20 @@ class PFBase(abc.ABC):
     
     @property
     def samples(self):
-        if self._innov_cov is None:
+        if self._samples is None:
             raise AttributeError("'%s' object has no attribute 'samples'" %
                                  self.__class__.__name__)
         return self._samples
         
     @property
     def weights(self):
-        if self._innov_cov is None:
+        if self._weights is None:
             raise AttributeError("'%s' object has no attribute 'weights'" %
                                  self.__class__.__name__)
         return self._weights
+
+    def MMSE(self):
+        if self.samples is None or self._weights is None:
+            raise AttributeError("'%s' object has no attribute 'MMSE'" %
+                                 self.__class__.__name__)
+        return self._weights @ self._samples
