@@ -23,12 +23,12 @@ def MMFilter_test():
         qx, qy = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)
         rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
 
-        F = model.trans_mat(1, 1, T)
-        H = model.meas_mat(1, 1)
+        F = model.F_poly_trans(1, 1, T)
+        H = model.H_only_pos_meas(1, 1)
         L = np.eye(x_dim)
         M = np.eye(z_dim)
-        Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
-        R = model.meas_noise_cov(1, [rx, ry])
+        Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
+        R = model.R_only_pos_meas_noise(1, [rx, ry])
 
         sub_filter = ft.KFilter(F, L, H, M, Q, R)
         mmf.add_model(sub_filter, 1 / model_n)
@@ -46,8 +46,8 @@ def MMFilter_test():
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crndn(0, Q)
+        v = tlb.crndn(0, R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v
@@ -55,7 +55,7 @@ def MMFilter_test():
         measure_arr[:, n] = z
         mmf.step(z)
         
-        weight_state_arr[:, n] = mmf.weight_state
+        weight_state_arr[:, n] = mmf.weighted_state
         maxprob_state_arr[:, n] = mmf.maxprob_state
         prob_arr[:, n] = mmf.prob
     print(len(mmf))

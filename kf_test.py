@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.linalg as lg
+import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
@@ -18,15 +19,15 @@ def KFilter_test():
     N, T = 200, 1
 
     x_dim, z_dim = 4, 2
-    qx, qy = np.sqrt(0.01), np.sqrt(0.02)
+    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rx, ry = np.sqrt(1), np.sqrt(1)
 
-    F = model.trans_mat(1, 1, T)
-    H = model.meas_mat(1, 1)
+    F = model.F_poly_trans(1, 1, T)
+    H = model.H_only_pos_meas(1, 1)
     L = np.eye(x_dim)
     M = np.eye(z_dim)
-    Q = model.dd_proc_noise_cov(1, 1, T, [qx, qy])
-    R = model.meas_noise_cov(1, [rx, ry])
+    Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
+    R = model.R_only_pos_meas_noise(1, [rx, ry])
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
@@ -45,8 +46,8 @@ def KFilter_test():
     innov_cov_arr = np.empty((z_dim, z_dim, N))
 
     for n in range(-1, N):
-        w = model.corr_noise(Q)
-        v = model.corr_noise(R)
+        w = tlb.crndn(0, Q)
+        v = tlb.crndn(0, R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v

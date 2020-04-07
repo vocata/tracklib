@@ -10,8 +10,8 @@ __all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
-from tracklib.model import trans_mat, meas_mat
+from .base import KFBase
+from tracklib.model import F_poly_trans, H_only_pos_meas
 
 
 class AlphaFilter(KFBase):
@@ -19,7 +19,7 @@ class AlphaFilter(KFBase):
     Alpha filter(one-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj
@@ -42,8 +42,8 @@ class AlphaFilter(KFBase):
         self._alpha = alpha
         self._gain = np.diag(self._alpha)
 
-        self._F = trans_mat(0, axis, T)
-        self._H = meas_mat(0, axis)
+        self._F = F_poly_trans(0, axis, T)
+        self._H = H_only_pos_meas(0, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -62,7 +62,7 @@ class AlphaFilter(KFBase):
     def predict(self):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
 
@@ -71,7 +71,7 @@ class AlphaFilter(KFBase):
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
         self._post_state = self._prior_state + self._gain @ (z - z_prior)
@@ -82,7 +82,7 @@ class AlphaFilter(KFBase):
     def step(self, z):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict()
         self.update(z)
@@ -122,7 +122,7 @@ class AlphaBetaFilter(KFBase):
     Alpha-beta filter(two-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj
@@ -147,8 +147,8 @@ class AlphaBetaFilter(KFBase):
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
         self._gain = np.vstack((diag_a, diag_b / self._T))
 
-        self._F = trans_mat(1, axis, T)
-        self._H = meas_mat(1, axis)
+        self._F = F_poly_trans(1, axis, T)
+        self._H = H_only_pos_meas(1, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter:\n\n'
@@ -167,7 +167,7 @@ class AlphaBetaFilter(KFBase):
     def predict(self):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
 
@@ -176,7 +176,7 @@ class AlphaBetaFilter(KFBase):
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
         self._post_state = self._prior_state + self._gain @ (z - z_prior)
@@ -187,7 +187,7 @@ class AlphaBetaFilter(KFBase):
     def step(self, z):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict()
         self.update(z)
@@ -230,7 +230,7 @@ class AlphaBetaGammaFilter():
     Alpha-beta-gamma filter(three-state Newtonian system)
 
     system model:
-    x_k = F*x_k-1 + L*w_k-1
+    x_k = F*x_k-1 + w_k-1
     z_k = H*x_k + v_k
     E(w_k*w_j') = Q*δ_kj
     E(v_k*v_j') = R*δ_kj
@@ -256,8 +256,8 @@ class AlphaBetaGammaFilter():
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
         self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
-        self._F = trans_mat(2, axis, T)
-        self_H = meas_mat(2, axis)
+        self._F = F_poly_trans(2, axis, T)
+        self_H = H_only_pos_meas(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'
@@ -276,7 +276,7 @@ class AlphaBetaGammaFilter():
     def predict(self):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self._prior_state = self._F @ self._post_state
 
@@ -285,7 +285,7 @@ class AlphaBetaGammaFilter():
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
         self._post_state = self._prior_state + self._gain @ (z - z_prior)
@@ -296,7 +296,7 @@ class AlphaBetaGammaFilter():
     def step(self, z):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict()
         self.update(z)
@@ -397,7 +397,7 @@ class SSFilter(KFBase):
     def predict(self, u=None):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         ctl = 0 if u is None else self._G @ u
         self._prior_state = self._F @ self._post_state + ctl
@@ -407,7 +407,7 @@ class SSFilter(KFBase):
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
         self._innov = z - z_prior

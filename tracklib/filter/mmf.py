@@ -2,7 +2,7 @@
 '''
 The multiple model filter can use other Kalman filter classes
 as its submodules for filtering. Currently supported filters are
-stardard Kalman filter(KFilter) and extended Kalman filter(EKFilter_1st, EKFilter_2ed).
+stardard Kalman filter(KFilter) and extended Kalman filter
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -11,9 +11,10 @@ __all__ = ['MMFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .kfbase import KFBase
+from .base import KFBase
 from .kf import KFilter
-from .ekf import EKFilter_1st, EKFilter_2ed
+from .ekf import EKFilterAN, EKFilterNAN
+from .ukf import UKFilterAN, UKFilterNAN
 
 
 class MMFilter(KFBase):
@@ -98,14 +99,14 @@ class MMFilter(KFBase):
         -------
             None
         '''
-        if isinstance(model, (KFilter, EKFilter_1st, EKFilter_2ed)):
+        if isinstance(model, (KFilter, EKFilterAN, EKFilterNAN, UKFilterAN, UKFilterNAN)):
             self._model[self._model_n] = [model, prob]
             self._model_n += 1
 
     def predict(self, u=None):
         assert (self._stage == 0)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         for i in range(self._model_n):
             self._model[i][0].predict(u)
@@ -115,7 +116,7 @@ class MMFilter(KFBase):
     def update(self, z):
         assert (self._stage == 1)
         if self._init == False:
-            raise RuntimeError('The filter must be initialized with init() before use')
+            raise RuntimeError('the filter must be initialized with init() before use')
 
         pdf = []
         for i in range(self._model_n):
@@ -143,7 +144,7 @@ class MMFilter(KFBase):
         self.update(z)
         
     @property
-    def weight_state(self):
+    def weighted_state(self):
         # weighted state estimate
         state = 0
         for i in range(self._model_n):
