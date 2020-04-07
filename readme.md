@@ -16,7 +16,7 @@ matplotlib
     3. Extended kalman filter
     4. Multiple model filter
     5. Unscented kalman filter
-    6. Partical filter（待实现）
+    6. Partical filter
 
 - 跟踪器：（待实现）
     1. PDA
