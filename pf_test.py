@@ -37,7 +37,6 @@ def PFilter_test():
     # P = 10 * np.eye(x_dim)
 
     pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=800, resample_alg='roulette')
-    # ekf.init(x, P)
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
@@ -58,7 +57,7 @@ def PFilter_test():
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         pf.step(z) 
 
-        post_state = pf.mmse
+        post_state = pf.post_state
         post_state_arr[:, n] = post_state
     print(len(pf))
     print(pf)

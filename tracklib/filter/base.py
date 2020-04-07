@@ -119,7 +119,7 @@ class PFBase(abc.ABC):
         return self._weights
 
     @property
-    def mmse(self):
+    def post_state(self):
         if self.samples is None or self._weights is None:
             raise AttributeError("'%s' object has no attribute 'MMSE'" %
                                  self.__class__.__name__)

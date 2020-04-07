@@ -188,7 +188,7 @@ def drnd(prob, Ns=1, scope=None, alg='roulette'):
     '''
     rv_num = len(prob)
     if scope is None:
-        scope = list(range(rv_num))
+        scope = np.arange(rv_num)
 
     rv = []
     index = []
