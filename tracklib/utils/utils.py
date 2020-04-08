@@ -164,7 +164,7 @@ def multi_normal(mean, cov, Ns=1, axis=0):
         out = np.dot(D, wgn)
         out += np.reshape(mean, (-1, 1))
     else:
-        raise ValueError('axis must be 0 or 1, not %s' % axis)
+        raise ValueError('axis must be 0 or 1')
     return out
 
 
@@ -220,6 +220,6 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
             rv.append(scope[idx])
             index.append(idx)
     else:
-        raise ValueError("alg must be 'roulette' or 'low_var', not %s" % alg)
+        raise ValueError("alg must be 'roulette' or 'low_var'")
 
     return rv, index

@@ -4,7 +4,7 @@ Particle filter
 '''
 from __future__ import division, absolute_import, print_function
 
-__all__ = ['SIRPFilter', 'RPFilter']
+__all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GuassianKernal']
 
 import numpy as np
 import scipy.linalg as lg
@@ -89,7 +89,7 @@ class SIRPFilter(PFBase):
 
 
 class RPFilter(PFBase):
-    def __init__(self, f, L, h, M, Q, R, Ns, Neff=None, resample_alg='roulette', kernal='epanechnikov'):
+    def __init__(self, f, L, h, M, Q, R, kernal, Ns, Neff=None, resample_alg='roulette'):
         super().__init__()
 
         self._f = f
@@ -99,12 +99,9 @@ class RPFilter(PFBase):
         self._Q = Q
         self._R = R
         self._Ns = Ns
+        self._kernal = kernal
         self._Neff = Ns if Neff is None else Neff
         self._resample_alg = resample_alg
-        if kernal.lower() == 'epanechnikov' or kernal.lower() == 'gaussian':
-            self._kernal = kernal
-        else:
-            raise ValueError('kernal must be epanechnikov or gaussian')
 
     def __str__(self):
         msg = 'regularized particle filter'
@@ -116,10 +113,6 @@ class RPFilter(PFBase):
     def init(self, state, cov):
         self._samples = multi_normal(state, cov, Ns=self._Ns, axis=0)
         self._weights = np.zeros(self._Ns) + 1 / self._Ns
-        if self._kernal == 'epanechnikov':
-            self._kernal = EpanechnikovKernal(len(state), self._Ns)
-        else:
-            self._kernal = GuassianKernal(len(state), self._Ns)
 
         self._len = 0
         self._init = True
@@ -184,11 +177,13 @@ class EpanechnikovKernal():
 
         # sample from beta distribution
         beta = np.random.beta(self._dim / 2, 2, self._Ns)
-        # sample from a uniform distribution of unit sphere
+        # sample from a uniform distribution over unit sphere
         r = np.random.rand(self._Ns)
+        r = r**(1 / self._dim)      # cdf: r^n
         theta = np.random.randn(self._dim, self._Ns)
-        T = r * theta / np.sum(theta, axis=0)
-        eps = np.sqrt(beta) * T
+        theta = theta / lg.norm(theta, axis=0)       # normalize random vector
+        T = r * theta
+        eps = np.sqrt(beta) * T     # sample from epanechnikov kernal
         sample[:] = sample + self.opt_bandwidth * np.dot(D, eps).T
 
         return sample, weight
