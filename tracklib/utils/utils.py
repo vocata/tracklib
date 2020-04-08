@@ -5,7 +5,8 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crndn', 'drnd'
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'multi_normal',
+    'disc_random'
 ]
 
 import numpy as np
@@ -123,7 +124,7 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crndn(mean, cov, Ns=1, axis=0):
+def multi_normal(mean, cov, Ns=1, axis=0):
     '''
     Draw random samples from a normal (Gaussian) distribution with mean and cov
 
@@ -167,7 +168,7 @@ def crndn(mean, cov, Ns=1, axis=0):
     return out
 
 
-def drnd(prob, Ns=1, scope=None, alg='roulette'):
+def disc_random(prob, Ns=1, scope=None, alg='roulette'):
     '''
     Draw random samples from a discrete distribution
 

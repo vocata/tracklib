@@ -37,6 +37,7 @@ def PFilter_test():
     # P = 10 * np.eye(x_dim)
 
     # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=1000, Neff=300, resample_alg='roulette')
+    # pf = ft.RPFilter(f, L, h, M, Q, R, Ns=500, Neff=300, resample_alg='roulette', kernal='gaussian')
     pf = ft.RPFilter(f, L, h, M, Q, R, Ns=1000, Neff=300, resample_alg='roulette')
 
     state_arr = np.empty((x_dim, N))
@@ -44,8 +45,8 @@ def PFilter_test():
     post_state_arr = np.empty((x_dim, N))
 
     for n in range(-1, N):
-        w = tlb.crndn(0, Q)
-        v = tlb.crndn(0, R)
+        w = tlb.multi_normal(0, Q)
+        v = tlb.multi_normal(0, R)
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
