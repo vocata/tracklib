@@ -42,7 +42,7 @@ def PFilter_test():
 
     kernal = ft.EpanechnikovKernal(x_dim, Ns)
     # kernal = ft.GuassianKernal(x_dim, Ns)
-    pf = ft.RPFilter(f, L, h, M, Q, R, kernal=kernal, Ns=Ns, Neff=Neff, resample_alg='roulette')
+    pf = ft.RPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, kernal=kernal, resample_alg='roulette')
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))

@@ -25,7 +25,7 @@ class SIRPFilter(PFBase):
     w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, Ns, Neff=None, resample_alg='roulette'):
+    def __init__(self, f, L, h, M, Q, R, Ns, Neff, resample_alg='roulette'):
         super().__init__()
 
         self._f = f
@@ -35,7 +35,7 @@ class SIRPFilter(PFBase):
         self._Q = Q
         self._R = R
         self._Ns = Ns
-        self._Neff = Ns if Neff is None else Neff
+        self._Neff = Neff
         self._resample_alg = resample_alg
 
     def __str__(self):
@@ -89,7 +89,7 @@ class SIRPFilter(PFBase):
 
 
 class RPFilter(PFBase):
-    def __init__(self, f, L, h, M, Q, R, kernal, Ns, Neff=None, resample_alg='roulette'):
+    def __init__(self, f, L, h, M, Q, R, Ns, Neff, kernal, resample_alg='roulette'):
         super().__init__()
 
         self._f = f
@@ -99,8 +99,8 @@ class RPFilter(PFBase):
         self._Q = Q
         self._R = R
         self._Ns = Ns
+        self._Neff = Neff
         self._kernal = kernal
-        self._Neff = Ns if Neff is None else Neff
         self._resample_alg = resample_alg
 
     def __str__(self):
