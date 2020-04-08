@@ -5,7 +5,8 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'crndn', 'drnd'
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'multi_normal',
+    'disc_random'
 ]
 
 import numpy as np
@@ -50,7 +51,7 @@ def is_posi_semidef(x):
     if not is_symmetirc(x):
         return False
     e, _ = lg.eigh(x)
-    return np.all(e >= 0) and np.any(e == 0)
+    return np.all(e >= 0)
 
 
 def is_neg_def(x):
@@ -64,7 +65,7 @@ def is_neg_semidef(x):
     if not is_symmetirc(x):
         return False
     e, _ = lg.eigh(x)
-    return np.all(e <= 0) and np.any(e == 0)
+    return np.all(e <= 0)
 
 
 def col(x, *args, dtype=float, **kw):
@@ -123,7 +124,7 @@ def pol2cart(r, th, z=None):
     return (x, y, z) if z else (x, y)
 
 
-def crndn(mean, cov, Ns=1, axis=0):
+def multi_normal(mean, cov, Ns=1, axis=0):
     '''
     Draw random samples from a normal (Gaussian) distribution with mean and cov
 
@@ -144,27 +145,30 @@ def crndn(mean, cov, Ns=1, axis=0):
     out : ndarray
         The drawn samples of shape (Ns, N) if axis is 0 or (N, Ns) axis is 1
     '''
+    if not is_posi_semidef(cov):
+        raise ValueError('convariance matrix must be posotive semi-definite')
+
     N = cov.shape[0]
-    e, v = lg.eigh(cov)
-    if is_symmetirc(cov) and np.any(e < 0):
-        raise ValueError('convariance matrix must be posotive definite')
-    std = np.sqrt(e)
+    if isinstance(mean, int):
+        mean = np.zeros(N) + mean
+    U, S, V = lg.svd(cov)
+    D = U @ np.diag(np.sqrt(S)) @ V.T
     if Ns == 1:
         wgn = np.random.randn(N)
-        out = std * wgn
     else:
         wgn = np.random.randn(N, Ns)
-        out = std.reshape(-1, 1) * wgn  # broadcast for row
     if axis == 0:
-        out = np.dot(out.T, v.T)
+        out = np.dot(wgn.T, D.T)
+        out += mean
     elif axis == 1:
-        out = np.dot(v, out)
+        out = np.dot(D, wgn)
+        out += np.reshape(mean, (-1, 1))
     else:
-        raise ValueError('axis must be 0 or 1, not %s' % axis)
-    return mean + out
+        raise ValueError('axis must be 0 or 1')
+    return out
 
 
-def drnd(prob, Ns=1, scope=None, alg='roulette'):
+def disc_random(prob, Ns=1, scope=None, alg='roulette'):
     '''
     Draw random samples from a discrete distribution
 
@@ -216,6 +220,6 @@ def drnd(prob, Ns=1, scope=None, alg='roulette'):
             rv.append(scope[idx])
             index.append(idx)
     else:
-        raise ValueError("alg must be 'roulette' or 'low_var', not %s" % alg)
+        raise ValueError("alg must be 'roulette' or 'low_var'")
 
     return rv, index
