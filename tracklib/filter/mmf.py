@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-The multiple model filter can use other Kalman filter classes
-as its submodules for filtering. Currently supported filters are
-stardard Kalman filter(KFilter) and extended Kalman filter
+The multiple model filter can use other types of Kalman filters as its submodels
+for filtering. Currently supported filters are stardard Kalman filter(KFilter),
+extended Kalman filter and unscented Kalman filter. For the non-linear system with
+additive Gaussian noise, this multiple model filter can be viewed as Gaussian sum
+filter by setting different initial state and convariance of each non-linear filters
+or submodels.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -90,8 +93,8 @@ class MMFilter(KFBase):
 
         Parameters
         ----------
-        model : KFilter or EKFilter
-            standard Kalman filter or extended Kalman filter
+        model : KFilter, EKFilterAN, EKFilterNAN, UKFilterAN, UKFilterNAN
+            standard Kalman filter, extended Kalman filter or unscented Kalman filter
         probability : float
             model prior probability
 
@@ -153,7 +156,7 @@ class MMFilter(KFBase):
 
     @property
     def maxprob_state(self):
-        # max probability model state estimate
+        # state estimate of models with maximum probability
         max_index = np.argmax([self._model[i][1] for i in range(self._model_n)])
         return self._model[max_index][0].post_state
 
