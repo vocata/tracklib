@@ -45,9 +45,8 @@ def GSFilter_test():
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
     P = []
-    P.append(10 * np.eye(x_dim))
-    P.append(15 * np.eye(x_dim))
-    P.append(20 * np.eye(x_dim))
+    for i in range(model_n):
+        P.append((10 + i * 5) * np.eye(x_dim))
 
     gsf.init(x, P)
 
