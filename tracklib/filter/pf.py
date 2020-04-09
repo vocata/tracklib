@@ -71,7 +71,6 @@ class SIRPFilter(PFBase):
 
         # update weights
         R_tilde = self._M @ self._R @ self._M.T
-        v_dim = R_tilde.shape[0]
         for i in range(self._Ns):
             z_prior = self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
