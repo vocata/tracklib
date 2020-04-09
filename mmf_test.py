@@ -35,7 +35,7 @@ def MMFilter_test():
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x_dim)
+    P = 10 * np.eye(x_dim)
 
     mmf.init(x, P)
 
