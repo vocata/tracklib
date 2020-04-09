@@ -63,7 +63,7 @@ def PFilter_test():
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         pf.step(z) 
 
-        post_state = pf.post_state
+        post_state = pf.mmse
         post_state_arr[:, n] = post_state
     print(len(pf))
     print(pf)

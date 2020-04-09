@@ -104,7 +104,7 @@ class RPFilter(PFBase):
         self._resample_alg = resample_alg
 
     def __str__(self):
-        msg = 'regularized particle filter'
+        msg = 'Regularized particle filter'
         return msg
 
     def __repr__(self):
@@ -183,7 +183,8 @@ class EpanechnikovKernal():
         theta = np.random.randn(self._dim, self._Ns)
         theta = theta / lg.norm(theta, axis=0)       # normalize random vector
         T = r * theta
-        eps = np.sqrt(beta) * T     # sample from epanechnikov kernal
+        # sample from epanechnikov kernal
+        eps = np.sqrt(beta) * T
         sample[:] = sample + self.opt_bandwidth * np.dot(D, eps).T
 
         return sample, weight
