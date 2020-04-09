@@ -179,7 +179,7 @@ class EpanechnikovKernal():
         beta = np.random.beta(self._dim / 2, 2, self._Ns)
         # sample from a uniform distribution over unit sphere
         r = np.random.rand(self._Ns)
-        r = r**(1 / self._dim)      # cdf: r^n
+        r = r**(1 / self._dim)      # cdf: r^(1/n)
         theta = np.random.randn(self._dim, self._Ns)
         theta = theta / lg.norm(theta, axis=0)       # normalize random vector
         T = r * theta
