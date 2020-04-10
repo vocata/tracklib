@@ -15,10 +15,9 @@ the program may yield uncertain result.
 '''
 
 
-def PFilter_test():
+def GPFilter_test():
     N, T = 200, 1
     Ns = 200
-    Neff = 100
 
     x_dim, z_dim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
@@ -38,15 +37,14 @@ def PFilter_test():
     x = np.array([1, 2, 0.2, 0.3])
     # P = 10 * np.eye(x_dim)
 
-    # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, resample_alg='roulette')
-
-    kernal = ft.EpanechnikovKernal(x_dim, Ns)
-    # kernal = ft.GuassianKernal(x_dim, Ns)
-    pf = ft.RPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, kernal=kernal, resample_alg='roulette')
+    gpf = ft.GPFilter(f, L, h, M, Q, R, Ns=Ns)
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
+    prior_state_arr = np.empty((x_dim, N))
     post_state_arr = np.empty((x_dim, N))
+    prior_cov_arr = np.empty((x_dim, x_dim, N))
+    post_cov_arr = np.empty((x_dim, x_dim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -57,32 +55,55 @@ def PFilter_test():
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
             # P_init = 10 * np.eye(x_dim)
-            pf.init(x_init, P_init)
+            gpf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
-        pf.step(z) 
+        gpf.step(z) 
 
-        post_state = pf.mmse
+        prior_state, prior_cov = gpf.prior_state, gpf.prior_cov
+        post_state, post_cov = gpf.post_state, gpf.post_cov
+
+        prior_state_arr[:, n] = prior_state
         post_state_arr[:, n] = post_state
-    print(len(pf))
-    print(pf)
+        prior_cov_arr[:, :, n] = prior_cov
+        post_cov_arr[:, :, n] = post_cov
+    print(len(gpf))
+    print(gpf)
 
     state_err = state_arr - post_state_arr
     print(np.var(state_err, axis=1))
+
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
     ax[0].plot(n, state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, measure_arr[0, :], '.')
+    ax[0].plot(n, prior_state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax[0].legend(['real', 'measurement', 'estimation'])
+    ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[0].set_title('x state')
     ax[1].plot(n, state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
+    ax[1].plot(n, prior_state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
-    ax[1].legend(['real', 'measurement', 'estimation'])
+    ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[1].set_title('y state')
+    plt.show()
+
+    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
+    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
+    print('y prior error variance {}'.format(prior_cov_arr[1, 1, -1]))
+    print('y posterior error variance {}'.format(post_cov_arr[1, 1, -1]))
+    _, ax = plt.subplots(2, 1)
+    ax[0].plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
+    ax[0].plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax[0].legend(['prediction', 'estimation'])
+    ax[0].set_title('x error variance/mean square error')
+    ax[1].plot(n, prior_cov_arr[1, 1, :], linewidth=0.8)
+    ax[1].plot(n, post_cov_arr[1, 1, :], linewidth=0.8)
+    ax[1].legend(['prediction', 'estimation'])
+    ax[1].set_title('y error variance/mean square error')
     plt.show()
 
     # trajectory
@@ -99,4 +120,4 @@ def PFilter_test():
 
 
 if __name__ == '__main__':
-    PFilter_test()
+    GPFilter_test()

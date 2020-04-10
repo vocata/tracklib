@@ -71,7 +71,6 @@ class SIRPFilter(PFBase):
 
         # update weights
         R_tilde = self._M @ self._R @ self._M.T
-        v_dim = R_tilde.shape[0]
         for i in range(self._Ns):
             z_prior = self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
@@ -104,7 +103,7 @@ class RPFilter(PFBase):
         self._resample_alg = resample_alg
 
     def __str__(self):
-        msg = 'regularized particle filter'
+        msg = 'Regularized particle filter'
         return msg
 
     def __repr__(self):
@@ -179,11 +178,12 @@ class EpanechnikovKernal():
         beta = np.random.beta(self._dim / 2, 2, self._Ns)
         # sample from a uniform distribution over unit sphere
         r = np.random.rand(self._Ns)
-        r = r**(1 / self._dim)      # cdf: r^n
+        r = r**(1 / self._dim)      # cdf: r^(1/n)
         theta = np.random.randn(self._dim, self._Ns)
         theta = theta / lg.norm(theta, axis=0)       # normalize random vector
         T = r * theta
-        eps = np.sqrt(beta) * T     # sample from epanechnikov kernal
+        # sample from epanechnikov kernal
+        eps = np.sqrt(beta) * T
         sample[:] = sample + self.opt_bandwidth * np.dot(D, eps).T
 
         return sample, weight

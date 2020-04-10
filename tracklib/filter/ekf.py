@@ -27,7 +27,7 @@ class EKFilterAN(KFBase):
     w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, order=1):
+    def __init__(self, f, L, h, M, Q, R, order=1, it=0):
         super().__init__()
 
         self._f = f
@@ -39,7 +39,8 @@ class EKFilterAN(KFBase):
         if order == 1 or order == 2:
             self._order = order
         else:
-            raise ValueError('order must be 1 or 2, not %d' % order)
+            raise ValueError('order must be 1 or 2')
+        self._it = it
 
     def __str__(self):
         msg = '%s-order additive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
@@ -96,7 +97,7 @@ class EKFilterAN(KFBase):
 
         self._stage = 1
 
-    def update(self, z, it=0, **kw):
+    def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -111,13 +112,14 @@ class EKFilterAN(KFBase):
 
             if 'H' in kw:
                 H = kw['H']
-                it = 0
+                self._it = 0    # if H is given, disable iterated EKF, the same as HH
             else:
                 hx = lambda x: self._h(x)
                 H = num_diff(self._prior_state, hx, z_dim)
             if self._order == 2:
                 if 'HH' in kw:
                     HH = kw['HH']   # Hessian matrix of h
+                    self._it = 0
                 else:
                     hx = lambda x: self._h(x)
                     HH = num_diff_hessian(self._prior_state, hx, z_dim)
@@ -137,12 +139,12 @@ class EKFilterAN(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # The Joseph-form covariance update is used for improved numerical
+        # the Joseph-form covariance update is used for improved numerical
         temp = np.eye(x_dim) - self._gain @ H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
-        for _ in range(it):
+        for _ in range(self._it):
             hx = lambda x: self._h(x)
             H = num_diff(self._post_state, hx, z_dim)
             if self._order == 2:
@@ -165,13 +167,13 @@ class EKFilterAN(KFBase):
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None, it=0, **kw):
+    def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
-        self.update(z, it=it, **kw)
+        self.update(z, **kw)
 
 
 class EKFilterNAN(KFBase):
@@ -187,7 +189,7 @@ class EKFilterNAN(KFBase):
     w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, order=1):
+    def __init__(self, f, h, Q, R, order=1, it=0):
         super().__init__()
 
         self._f = f
@@ -197,7 +199,8 @@ class EKFilterNAN(KFBase):
         if order == 1 or order == 2:
             self._order = order
         else:
-            raise ValueError('order must be 1 or 2, not %d' % order)
+            raise ValueError('order must be 1 or 2')
+        self._it = it
 
     def __str__(self):
         msg = '%s-order nonadditive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
@@ -261,7 +264,7 @@ class EKFilterNAN(KFBase):
 
         self._stage = 1
 
-    def update(self, z, it=0, **kw):
+    def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -276,19 +279,20 @@ class EKFilterNAN(KFBase):
 
             if 'H' in kw:
                 H = kw['H']
-                it = 0
+                self._it = 0
             else:
                 hx = lambda x: self._h(x, np.zeros(v_dim))
                 H = num_diff(self._prior_state, hx, z_dim)
             if 'M' in kw:
                 M = kw['M']
-                it = 0
+                self._it = 0
             else:
                 hv = lambda v: self._h(self._prior_state, v)
                 M = num_diff(np.zeros(v_dim), hv, z_dim)
             if self._order == 2:
                 if 'HH' in kw:
                     HH = kw['HH']   # Hessian matrix of h
+                    self._it = 0
                 else:
                     hx = lambda x: self._h(x, np.zeros(v_dim))
                     HH = num_diff_hessian(self._prior_state, hx, z_dim)
@@ -310,12 +314,12 @@ class EKFilterNAN(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # The Joseph-form covariance update is used for improved numerical
+        # the Joseph-form covariance update is used for improved numerical
         temp = np.eye(x_dim) - self._gain @ H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
-        for _ in range(it):
+        for _ in range(self._it):
             hx = lambda x: self._h(x, np.zeros(v_dim))
             H = num_diff(self._post_state, hx, z_dim)
             hv = lambda v: self._h(self._post_state, v)
@@ -340,10 +344,10 @@ class EKFilterNAN(KFBase):
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None, it=0, **kw):
+    def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         self.predict(u, **kw)
-        self.update(z, it=it, **kw)
+        self.update(z, **kw)

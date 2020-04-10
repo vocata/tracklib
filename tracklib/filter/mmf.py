@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-The multiple model filter can use other Kalman filter classes
-as its submodules for filtering. Currently supported filters are
-stardard Kalman filter(KFilter) and extended Kalman filter
+The multiple model filter can use other types of Kalman filters as its submodels
+for filtering. Currently supported filters are stardard Kalman filter(KFilter),
+extended Kalman filter and unscented Kalman filter. For the non-linear system with
+additive Gaussian noise, this multiple model filter can be used as Gaussian sum
+filter by setting different initial state and convariance of each non-linear filters
+or submodels.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -19,23 +22,22 @@ from .ukf import UKFilterAN, UKFilterNAN
 
 class MMFilter(KFBase):
     '''
-    Hybird multiple model filter
+    Hybrid multiple model filter
     '''
     def __init__(self):
         super().__init__()
-        self._model = {}
-        self._model_n = 0
+        self._models = {}
+        self._models_n = 0
 
     def __str__(self):
-        msg = 'Multiple model filter:\n{\n  '
-        if self._model_n < 10:
-            sub = ['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(self._model_n)]
+        msg = 'Hybrid multiple model filter:\n{\n  '
+        if self._models_n < 10:
+            sub = ['{}: model: {}, probability: {}'.format(i, self._models[i][0], self._models[i][1]) for i in range(self._models_n)]
             sub = '\n  '.join(sub)
-            # [i for i in range(self._model_n)]
         else:
-            sub = ['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(3)]
+            sub = ['{}: model: {}, probability: {}'.format(i, self._models[i][0], self._models[i][1]) for i in range(3)]
             sub.append('...')
-            sub.extend(['{}: model: {}, probability: {}'.format(i, self._model[i][0], self._model[i][1]) for i in range(self._model_n - 3, self._model_n)])
+            sub.extend(['{}: model: {}, probability: {}'.format(i, self._models[i][0], self._models[i][1]) for i in range(self._models_n - 3, self._models_n)])
             sub = '\n  '.join(sub)
         msg += sub
         msg += '\n}'
@@ -45,10 +47,10 @@ class MMFilter(KFBase):
         return self.__str__()
 
     def __iter__(self):
-        return iter(self._model.values())
+        return iter(self._models.values())
 
     def __getitem__(self, n):
-        return self._model[n]
+        return self._models[n]
 
     def init(self, state=None, cov=None):
         '''
@@ -56,30 +58,30 @@ class MMFilter(KFBase):
 
         Parameters
         ----------
-        state : ndarray or list or None
+        state : ndarray or list
             Initial prior state estimate
-        cov : ndarray or list or None
+        cov : ndarray or list
             Initial error convariance matrix
-
-        Note : if state or cov is None, the model has been initialized outside 
 
         Returns
         -------
             None
         '''
-        if state is None and cov is None:
+        if isinstance(state, list):
             pass
+        elif isinstance(state, np.ndarray):
+            state = [state] * self._models_n
         else:
-            if isinstance(state, np.ndarray) and isinstance(cov, np.ndarray):
-                for i in range(self._model_n):
-                    self._model[i][0].init(state, cov)
-            elif isinstance(state, list) and isinstance(cov, list):
-                for i in range(self._model_n):
-                    if state[i] is None or cov[i] is None:
-                        continue
-                    self._model[i][0].init(state[i], cov[i])
-            else:
-                raise ValueError('state and cov must be a ndarray, list or None')
+            raise TypeError('state must be a ndarray, list, not %s' % state.__class__.__name__)
+        if isinstance(cov, list):
+            pass
+        elif isinstance(cov, np.ndarray):
+            cov = [cov] * self._models_n
+        else:
+            raise TypeError('cov must be a ndarray, list, not %s' % cov.__class__.__name__)
+
+        for i in range(self._models_n):
+            self._models[i][0].init(state[i], cov[i])
         self._len = 0
         self._stage = 0
         self._init = True
@@ -90,8 +92,8 @@ class MMFilter(KFBase):
 
         Parameters
         ----------
-        model : KFilter or EKFilter
-            standard Kalman filter or extended Kalman filter
+        model : KFilter, EKFilterAN, EKFilterNAN, UKFilterAN, UKFilterNAN
+            standard Kalman filter, extended Kalman filter or unscented Kalman filter
         probability : float
             model prior probability
 
@@ -100,91 +102,96 @@ class MMFilter(KFBase):
             None
         '''
         if isinstance(model, (KFilter, EKFilterAN, EKFilterNAN, UKFilterAN, UKFilterNAN)):
-            self._model[self._model_n] = [model, prob]
-            self._model_n += 1
+            self._models[self._models_n] = [model, prob]
+            self._models_n += 1
+        else:
+            raise TypeError(
+                'model must be a KFilter, EKFilterAn, EKFilterNAN, UKFilterAn, UKFilterNAN, not %s'
+                % model.__class__.__name__)
 
-    def predict(self, u=None):
+    def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        for i in range(self._model_n):
-            self._model[i][0].predict(u)
+        for i in range(self._models_n):
+            self._models[i][0].predict(u, **kw)
 
         self._stage = 1
 
-    def update(self, z):
+    def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         pdf = []
-        for i in range(self._model_n):
-            self._model[i][0].update(z)
-            r = self._model[i][0].innov
-            S = self._model[i][0].innov_cov
-            pdf.append((np.exp(-r.T @ lg.inv(S) @ r / 2) /
-                        np.sqrt(lg.det(2 * np.pi * S))).item())
+        for i in range(self._models_n):
+            self._models[i][0].update(z, **kw)
+            r = self._models[i][0].innov
+            S = self._models[i][0].innov_cov
+            # If there is a singular value, exp will be very small and all values in the pdf will be 0,
+            # then total defined below will be 0 and an ZeroDivisionError will occur.
+            pdf.append((np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))).item())
 
         # total probability
         total = 0
-        for i in range(self._model_n):
-            total += pdf[i] * self._model[i][1]
+        for i in range(self._models_n):
+            total += pdf[i] * self._models[i][1]
         # update all models' posterior probability
-        for i in range(self._model_n):
-            self._model[i][1] = pdf[i] * self._model[i][1] / total 
+        for i in range(self._models_n):
+            self._models[i][1] = pdf[i] * self._models[i][1] / total
 
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None):
+    def step(self, z, u=None, **kw):
         assert (self._stage == 0)
 
-        self.predict(u)
-        self.update(z)
-        
+        self.predict(u, **kw)
+        self.update(z, **kw)
+
     @property
     def weighted_state(self):
         # weighted state estimate
         state = 0
-        for i in range(self._model_n):
-            state += self._model[i][1] * self._model[i][0].post_state
+        for i in range(self._models_n):
+            state += self._models[i][1] * self._models[i][0].post_state
         return state
 
     @property
     def maxprob_state(self):
-        # max probability model state estimate
-        max_index = np.argmax([self._model[i][1] for i in range(self._model_n)])
-        return self._model[max_index][0].post_state
+        # state estimate of models with maximum probability
+        max_index = np.argmax([self._models[i][1] for i in range(self._models_n)])
+        return self._models[max_index][0].post_state
 
     @property
     def prob(self):
-        return [self._model[i][1] for i in range(self._model_n)]
+        return [self._models[i][1] for i in range(self._models_n)]
 
     @property
     def prior_state(self):
-        return [m.prior_state for m in self._model]
+        return [m.prior_state for m in self._models]
 
     @property
     def post_state(self):
-        return [m.post_state for m in self._model]
+        return [m.post_state for m in self._models]
 
     @property
     def prior_cov(self):
-        return [m.prior_cov for m in self._model]
+        return [m.prior_cov for m in self._models]
 
     @property
     def post_cov(self):
-        return [m.post_cov for m in self._model]
+        return [m.post_cov for m in self._models]
 
     @property
     def innov(self):
-        return [m.innov for m in self._model]
+        return [m.innov for m in self._models]
 
     @property
     def innov_cov(self):
-        return [m.innov_cov for m in self._model]
+        return [m.innov_cov for m in self._models]
 
     @property
     def gain(self):
-        return [m.gain for m in self._model]
+        return [m.gain for m in self._models]
