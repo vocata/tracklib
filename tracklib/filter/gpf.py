@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 '''
 Gaussian particle filter
+In fact, Gaussian particle filter belongs to Kalman filter rather than particle filter,
+because Monte Carlo method is only used to propagate expectation and convariance, then
+posterior probability density is approximated by Gaussian with the expectation and covariance
+rather than samples(or particle) and weights.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -66,11 +70,15 @@ class GPFilter(KFBase):
             if 'Q' in kw: self._Q = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
+        # draw samples from the posterior density
         self._samples[:] = multi_normal(self._post_state, self._post_cov, self._Ns, axis=0)
         self._weights[:] = 1 / self._Ns
+        # draw samples from prior density by drawing samples from transition density conditioned on
+        # posterior samples drawn above. And the prior samples can be used in update step.
         proc_noi = multi_normal(0, Q_tilde, self._Ns, axis=0)
         for i in range(self._Ns):
             self._samples[i] = self._f(self._samples[i], u) + proc_noi[i]
+
         # compute prior_state and prior_cov
         self._prior_state = np.dot(self._weights, self._samples)
         self._prior_cov = 0
@@ -90,15 +98,15 @@ class GPFilter(KFBase):
             if 'h' in kw: self._h = kw['h']
             if 'M' in kw: self._M = kw['M']
             if 'R' in kw: self._R = kw['R']
-
+        # update weights to approximate the posterior density
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):
             z_prior = self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-0.5 * (z - z_prior) @ lg.inv(R_tilde) @ (z - z_prior))
-            self._weights[i] *= pdf
+            self._weights[i] = pdf
         self._weights[:] = self._weights / np.sum(self._weights)    # normalize
-        # compute post_state and post_cov
+        # compute post_state and post_cov and the samples have been drawn in predict step
         self._post_state = np.dot(self._weights, self._samples)
         self._post_cov = 0
         for i in range(self._Ns):
