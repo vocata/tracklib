@@ -75,7 +75,6 @@ def GPFilter_test():
     print(np.var(state_err, axis=1))
 
     # plot
-    # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
     ax[0].plot(n, state_arr[0, :], linewidth=0.8)

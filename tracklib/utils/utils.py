@@ -80,7 +80,7 @@ def col(x, *args, dtype=float, **kw):
     elif isinstance(x, Iterable):
         x = np.array(x, *args, dtype=dtype, **kw).reshape((-1, 1))
     else:
-        raise ValueError('parametes must be number or iterable')
+        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
     return x
 
 
@@ -96,7 +96,7 @@ def row(x, *args, dtype=float, **kw):
     elif isinstance(x, Iterable):
         x = np.array(x, *args, dtype=dtype, **kw).reshape((1, -1))
     else:
-        raise ValueError('parametes must be number or iterable')
+        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
     return x
 
 

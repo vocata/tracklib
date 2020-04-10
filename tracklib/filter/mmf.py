@@ -72,13 +72,13 @@ class MMFilter(KFBase):
         elif isinstance(state, np.ndarray):
             state = [state] * self._models_n
         else:
-            raise ValueError('state must be a ndarray, list, not %s' % state.__class__.__name__)
+            raise TypeError('state must be a ndarray, list, not %s' % state.__class__.__name__)
         if isinstance(cov, list):
             pass
         elif isinstance(cov, np.ndarray):
             cov = [cov] * self._models_n
         else:
-            raise ValueError('cov must be a ndarray, list, not %s' % cov.__class__.__name__)
+            raise TypeError('cov must be a ndarray, list, not %s' % cov.__class__.__name__)
 
         for i in range(self._models_n):
             self._models[i][0].init(state[i], cov[i])
@@ -104,6 +104,10 @@ class MMFilter(KFBase):
         if isinstance(model, (KFilter, EKFilterAN, EKFilterNAN, UKFilterAN, UKFilterNAN)):
             self._models[self._models_n] = [model, prob]
             self._models_n += 1
+        else:
+            raise TypeError(
+                'model must be a KFilter, EKFilterAn, EKFilterNAN, UKFilterAn, UKFilterNAN, not %s'
+                % model.__class__.__name__)
 
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
@@ -125,7 +129,7 @@ class MMFilter(KFBase):
             self._models[i][0].update(z, **kw)
             r = self._models[i][0].innov
             S = self._models[i][0].innov_cov
-            # If there is a wild value, exp will be very small and all values in the pdf will be 0,
+            # If there is a singular value, exp will be very small and all values in the pdf will be 0,
             # then total defined below will be 0 and an ZeroDivisionError will occur.
             pdf.append((np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))).item())
 
@@ -135,7 +139,7 @@ class MMFilter(KFBase):
             total += pdf[i] * self._models[i][1]
         # update all models' posterior probability
         for i in range(self._models_n):
-            self._models[i][1] = pdf[i] * self._models[i][1] / total 
+            self._models[i][1] = pdf[i] * self._models[i][1] / total
 
         self._len += 1
         self._stage = 0
@@ -145,7 +149,7 @@ class MMFilter(KFBase):
 
         self.predict(u, **kw)
         self.update(z, **kw)
-        
+
     @property
     def weighted_state(self):
         # weighted state estimate
