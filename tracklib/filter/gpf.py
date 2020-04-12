@@ -5,6 +5,9 @@ In fact, Gaussian particle filter belongs to Kalman filter rather than particle 
 because Monte Carlo method is only used to propagate expectation and convariance, then
 posterior probability density is approximated by Gaussian with the expectation and covariance
 rather than samples(or particle) and weights.
+
+REFERENCE:
+[1]. Gaussian Particle Filtering
 '''
 from __future__ import division, absolute_import, print_function
 

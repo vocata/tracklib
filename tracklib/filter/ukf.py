@@ -148,6 +148,8 @@ class UKFilterNAN(KFBase):
 
     w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
+
+    REFERENCE: Kalman Filtering and Neural Networks. pp.232
     '''
     def __init__(self, f, h, Q, R, factory, epsilon=0.01):
         super().__init__()

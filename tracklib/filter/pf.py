@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 '''
 Particle filter
+
+REFERENCE:
+[1]. A Tutorial on Particle Filters for Online Nonlinear Non-Gaussian Bayesian Tracking
+[2]. Sequential Monte Carlo Methods in Practice
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -88,6 +92,20 @@ class SIRPFilter(PFBase):
 
 
 class RPFilter(PFBase):
+    '''
+    Regularized particle filter
+
+    system model:
+    x_k = f_k-1(x_k-1, u_k-1) + L_k-1*w_k-1
+    z_k = h_k(x_k) + M_k*v_k
+    E(w_k*w_j') = Q_k*δ_kj
+    E(v_k*v_j') = R_k*δ_kj
+
+    w_k and v_k are additive noise
+    w_k, v_k, x_0 are uncorrelated to each other
+
+    mainly solves sample impoverishment problem
+    '''
     def __init__(self, f, L, h, M, Q, R, Ns, Neff, kernal, resample_alg='roulette'):
         super().__init__()
 
