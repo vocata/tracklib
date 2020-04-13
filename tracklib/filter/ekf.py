@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-This module includes first-order extended Kalman filter and
-sceond-order extended Kalman filter.
+Extended Kalman filter
+
+REFERENCE:
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -16,7 +18,7 @@ from tracklib.math import num_diff, num_diff_hessian
 
 class EKFilterAN(KFBase):
     '''
-    Extended Kalman filter
+    Additive extended Kalman filter, see[1]
 
     system model:
     x_k = f_k-1(x_k-1, u_k-1) + L_k-1*w_k-1
@@ -24,7 +26,6 @@ class EKFilterAN(KFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, L, h, M, Q, R, order=1, it=0):
@@ -178,7 +179,7 @@ class EKFilterAN(KFBase):
 
 class EKFilterNAN(KFBase):
     '''
-    Extended Kalman filter
+    Nonadditive Extended Kalman filter, see[1]
 
     system model:
     x_k = f_k-1(x_k-1, u_k-1, w_k-1)
@@ -186,7 +187,6 @@ class EKFilterNAN(KFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, h, Q, R, order=1, it=0):

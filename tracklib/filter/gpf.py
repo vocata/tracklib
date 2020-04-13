@@ -7,7 +7,7 @@ posterior probability density is approximated by Gaussian with the expectation a
 rather than samples(or particle) and weights.
 
 REFERENCE:
-[1]. Gaussian Particle Filtering
+[1]. J. H. Kotecha and P. M. Djuric, "Gaussian particle filtering," in IEEE Transactions on Signal Processing, vol. 51, no. 10, pp. 2592-2601, Oct. 2003.
 '''
 from __future__ import division, absolute_import, print_function
 

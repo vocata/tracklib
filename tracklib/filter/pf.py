@@ -3,8 +3,10 @@
 Particle filter
 
 REFERENCE:
-[1]. A Tutorial on Particle Filters for Online Nonlinear Non-Gaussian Bayesian Tracking
-[2]. Sequential Monte Carlo Methods in Practice
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
+[2]. M. S. Arulampalam, S. Maskell, N. Gordon and T. Clapp, "A tutorial on particle filters for online nonlinear/non-Gaussian Bayesian tracking," in IEEE Transactions on Signal Processing, vol. 50, no. 2, pp. 174-188, Feb. 2002.
+[3]. A. Doucet, J. F. G. de Freitas, and N. J. Gordon, Eds. "Sequential Monte Carlo Methods in Practice," New York: Springer-Verlag, 2001.
+[4]. A. Doucet, S. Godsill and C. Andrieu, "On sequential Monte Carlo sampling methods for Bayesian filtering," Statistics and Computing 10, 197–208 (2000).
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -26,7 +28,6 @@ class SIRPFilter(PFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, L, h, M, Q, R, Ns, Neff, resample_alg='roulette'):
@@ -101,9 +102,7 @@ class RPFilter(PFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
-
     mainly solves sample impoverishment problem
     '''
     def __init__(self, f, L, h, M, Q, R, Ns, Neff, kernal, resample_alg='roulette'):

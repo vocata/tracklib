@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-The module includes various steady-state filters, including alpha filter, alpha-beta filter,
-alpha-beta-gamma filter and general Kalman steady-state filter.
+Steady-state Filter
+
+REFERENCE:
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
+[2]. P. R. Kalata, "The Tracking Index: A Generalized Parameter for α-β and α-β-γ Target Trackers," in IEEE Transactions on Aerospace and Electronic Systems, vol. AES-20, no. 2, pp. 174-182, March 1984.
+[3]. Bar-Shalom Y., Li, X. R. and Kirubarajan, T, "Estimation with Applications to Tracking and Navigation," New York: John Wiley & Sons, 2001.
 '''
 from __future__ import division, absolute_import, print_function
 

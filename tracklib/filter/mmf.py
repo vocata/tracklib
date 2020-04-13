@@ -6,6 +6,8 @@ extended Kalman filter and unscented Kalman filter. For the non-linear system wi
 additive Gaussian noise, this multiple model filter can be used as Gaussian sum
 filter by setting different initial state and convariance of each non-linear filters
 or submodels.
+
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
 '''
 from __future__ import division, absolute_import, print_function
 
