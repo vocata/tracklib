@@ -7,6 +7,7 @@ REFERENCE:
 [2]. M. S. Arulampalam, S. Maskell, N. Gordon and T. Clapp, "A tutorial on particle filters for online nonlinear/non-Gaussian Bayesian tracking," in IEEE Transactions on Signal Processing, vol. 50, no. 2, pp. 174-188, Feb. 2002.
 [3]. A. Doucet, J. F. G. de Freitas, and N. J. Gordon, Eds. "Sequential Monte Carlo Methods in Practice," New York: Springer-Verlag, 2001.
 [4]. A. Doucet, S. Godsill and C. Andrieu, "On sequential Monte Carlo sampling methods for Bayesian filtering," Statistics and Computing 10, 197–208 (2000).
+[5]. J. Candy, "Bayesian signal processing: Classical, modern, and particle filtering methods, second edition", Wiley Online Books, 2016
 '''
 from __future__ import division, absolute_import, print_function
 
