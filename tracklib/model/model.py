@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 REFERENCES:
-[1] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, Estimation with
-    Applications to Tracking and Navigation. New York: John Wiley and
-    Sons, Inc, 2001.
+[1] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation," New York: John Wiley and Sons, Inc, 2001.
 '''
 from __future__ import division, absolute_import, print_function
 

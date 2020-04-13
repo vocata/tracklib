@@ -5,6 +5,7 @@ tracking library which contains a varity of algorithms:
 'model': dynamic motion model
 'math': numerical algorithm
 'utils': misclineous tools
+'init': filter initiation algorithm
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -16,4 +17,5 @@ from . import filter
 from . import model
 from . import math
 from . import utils
+from . import init
 from .utils import *

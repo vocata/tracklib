@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 '''
-This module includes unscented Kalman filtering and corresponding classes that generate sigma points.
+Unscented Kalman filter
+
+REFERENCE:
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
+[2]. S. Julier and J. Uhlmann, "Unscented filtering and nonlinear estimation," Proceedings of the IEEE, 92(3), pp. 401-422 (March 2004)
+[3]. M. GREWAL and A. ANDREWS, "Kalman Filtering Theory and Practice Using MATLAB," John Wiley & Sons, Inc., Hoboken, New Jersey, 2015.
+[4]. S. Haykin, "Kalman Filtering and Neural Networks," John Wiley & Sons, New York, 2001.
+[5]. S. Julier, “The spherical simplex unscented transformation,” American Con- trol Conference, pp. 2430-2434, 2003.
+[6]. E. A. Wan and R. Van Der Merwe, "The unscented Kalman filter for nonlinear estimation," Proceedings of the IEEE, 2000, pp. 153-158.
+[7]. I. Arasaratnam and S. Haykin, "Cubature Kalman Filters," in IEEE Transactions on Automatic Control, vol. 54, no. 6, pp. 1254-1269, June 2009.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -25,7 +34,6 @@ class UKFilterAN(KFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are additive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, L, h, M, Q, R, factory):
@@ -146,7 +154,6 @@ class UKFilterNAN(KFBase):
     E(w_k*w_j') = Q_k*δ_kj
     E(v_k*v_j') = R_k*δ_kj
 
-    w_k and v_k are nonadditive noise
     w_k, v_k, x_0 are uncorrelated to each other
     '''
     def __init__(self, f, h, Q, R, factory, epsilon=0.01):
@@ -382,6 +389,9 @@ class SphericalSimplexSigmaPoints():
 
 
 class SymmetricSigmaPoints():
+    '''
+    Note that if select symmetric sigma points then UKF will become CKF
+    '''
     def __init__(self, decompose='cholesky'):
         self._decompose = decompose
         self._init = False
@@ -423,7 +433,19 @@ class SymmetricSigmaPoints():
 class ScaledSigmaPoints():
     def __init__(self, alpha=1, beta=2, kappa=None, decompose='cholesky'):
         '''
-        The best choice of kappa is 3-dim for Gaussian noise, but here we set it to 0
+        alpha:
+            Determines the spread of the sigma points around the mean state value.
+            It is usually a small positive value. The spread of sigma points is
+            proportional to alpha. Smaller values correspond to sigma points closer
+            to the mean state.
+        beta
+            Incorporates prior knowledge of the distribution of the state. For Gaussian
+            distributions, beta = 2 is optimal.
+        kappa
+            A second scaling parameter that is usually set to 0. Smaller values correspond
+            to sigma points closer to the mean state. The spread is proportional to the
+            square-root of kappa. if kappa = 3 - n, n is the dimension of state, it is
+            possible to match some of the fourth order terms when state is Gaussian.
         '''
         self._alpha = alpha
         self._beta = beta

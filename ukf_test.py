@@ -38,7 +38,7 @@ def UKFilter_test():
 
     # factory = ft.SimplexSigmaPoints()
     # factory = ft.SphericalSimplexSigmaPoints()
-    # factory = ft.SymmetricSigmaPoints()
+    # factory = ft.SymmetricSigmaPoints()       # turn to CKF
     factory = ft.ScaledSigmaPoints()
 
     ukf = ft.UKFilterNAN(f, h, Q, R, factory=factory)

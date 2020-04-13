@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+'''
+REFERENCE:
+[1]. R. L. Burden and J. D. Faires, "Numerical Analysis," 9th ed. Boston, MA: Brooks/ Cole, 2011.
+'''
 from __future__ import division, absolute_import, print_function
 
 

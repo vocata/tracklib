@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-This module includes stardand Kalman filter and Sequential Kalman Filter.
+Linear Kalman filter
+
+REFERENCE:
+[1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -14,7 +17,7 @@ from .base import KFBase
 
 class KFilter(KFBase):
     '''
-    Standard linear Kalman filter
+    Standard linear Kalman filter, see[1]
 
     system model:
     x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1
@@ -109,7 +112,7 @@ class KFilter(KFBase):
 
 class SeqKFilter(KFBase):
     '''
-    Sequential linear Kalman filter
+    Sequential linear Kalman filter, see[1]
 
     system model:
     x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1

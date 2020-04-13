@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 REFERENCES:
-[1] Mallick, M.,La Scala, B., "Comparison of single-point and two-point
-    difference track initiation algorithms using position measurements". 
-    Acta Automatica Sinica, 2008.
+[1]. Mallick, M.,La Scala, B., "Comparison of single-point and two-point difference track initiation algorithms using position measurements". Acta Automatica Sinica, 2008.
 '''
 from __future__ import division, absolute_import, print_function
 
