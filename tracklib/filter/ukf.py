@@ -390,7 +390,7 @@ class SphericalSimplexSigmaPoints():
 
 class SymmetricSigmaPoints():
     '''
-    Note that if select symmetric sigma points then UKF will become CKF
+    Note that if symmetrical sigma points are selected, UKF is CKF
     '''
     def __init__(self, decompose='cholesky'):
         self._decompose = decompose
