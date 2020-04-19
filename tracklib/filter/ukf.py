@@ -390,7 +390,9 @@ class SphericalSimplexSigmaPoints():
 
 class SymmetricSigmaPoints():
     '''
-    Note that if symmetrical sigma points are selected, UKF is CKF
+    Note that if symmetrical sigma points are selected, UKF is CKF.
+    This symmetric sample point set often results in better statistical
+    stability and avoids divergence which might occur in UKF
     '''
     def __init__(self, decompose='cholesky'):
         self._decompose = decompose
@@ -446,6 +448,8 @@ class ScaledSigmaPoints():
             to sigma points closer to the mean state. The spread is proportional to the
             square-root of kappa. if kappa = 3 - n, n is the dimension of state, it is
             possible to match some of the fourth order terms when state is Gaussian.
+        Note that a CKF is essentially equivalent to a UKF when the parameters are set 
+        to alpha = 1, beta = 0, and kappa = 0
         '''
         self._alpha = alpha
         self._beta = beta
