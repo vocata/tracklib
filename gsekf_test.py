@@ -14,9 +14,9 @@ the program may yield uncertain result.
 '''
 
 
-def GSFilter_test():
+def GSEKFilter_test():
     '''
-    Gaussian sum filter test program
+    Gaussian sum extended Kalman filter test program
     '''
     N, T = 200, 1
     model_n = 3
@@ -112,4 +112,4 @@ def GSFilter_test():
 
 
 if __name__ == '__main__':
-    GSFilter_test()
+    GSEKFilter_test()
