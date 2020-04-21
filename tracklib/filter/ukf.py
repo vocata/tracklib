@@ -392,7 +392,8 @@ class SymmetricSigmaPoints():
     '''
     Note that if symmetrical sigma points are selected, UKF is CKF.
     This symmetric sample point set often results in better statistical
-    stability and avoids divergence which might occur in UKF
+    stability and avoids divergence which might occur in UKF, especially
+    when running in a single-precision platform. 
     '''
     def __init__(self, decompose='cholesky'):
         self._decompose = decompose

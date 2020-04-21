@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 '''
-The multiple model filter can use other types of Kalman filters as its submodels
-for filtering. Currently supported filters are stardard Kalman filter(KFilter),
-extended Kalman filter and unscented Kalman filter. For the non-linear system with
-additive Gaussian noise, this multiple model filter can be used as Gaussian sum
-filter by setting different initial state and convariance of each non-linear filters
-or submodels.
+The static multiple model filter can use other types of Kalman filters as its submodels
+for filtering. Currently supported filters are stardard Kalman filter, extended Kalman
+filter and unscented Kalman filter. For the non-linear system with additive Gaussian noise,
+this multiple model filter can be used as Gaussian sum filter which by setting different initial
+state and convariance of each non-linear filters or submodels and viewing model probability
+as weight of each Gaussian density constituting the Gaussian mixture.
 
 [1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
+[2]. Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation: Theory, Algorithms and Software," New York: Wiley, 2001
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -24,7 +25,7 @@ from .ukf import UKFilterAN, UKFilterNAN
 
 class MMFilter(KFBase):
     '''
-    Hybrid multiple model filter
+    Static multiple model filter
     '''
     def __init__(self):
         super().__init__()
@@ -32,7 +33,7 @@ class MMFilter(KFBase):
         self._models_n = 0
 
     def __str__(self):
-        msg = 'Hybrid multiple model filter:\n{\n  '
+        msg = 'Static multiple model filter:\n{\n  '
         if self._models_n < 10:
             sub = ['{}: model: {}, probability: {}'.format(i, self._models[i][0], self._models[i][1]) for i in range(self._models_n)]
             sub = '\n  '.join(sub)

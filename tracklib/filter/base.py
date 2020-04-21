@@ -119,8 +119,16 @@ class PFBase(abc.ABC):
         return self._weights
 
     @property
-    def mmse(self):
+    def MMSE(self):
         if self.samples is None or self._weights is None:
-            raise AttributeError("'%s' object has no attribute 'mmse'" %
+            raise AttributeError("'%s' object has no attribute 'MMSE'" %
                                  self.__class__.__name__)
         return self._weights @ self._samples
+
+    # not a good estimate for particle filter
+    @property
+    def MAP(self):
+        if self.samples is None or self._weights is None:
+            raise AttributeError("'%s' object has no attribute 'MAP'" %
+                                 self.__class__.__name__)
+        return self._samples[self._weights.argmax()]

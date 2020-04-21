@@ -46,7 +46,8 @@ def PFilter_test():
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
-    post_state_arr = np.empty((x_dim, N))
+    MMSE_arr = np.empty((x_dim, N))
+    MAP_arr = np.empty((x_dim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -63,25 +64,29 @@ def PFilter_test():
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         pf.step(z) 
 
-        post_state = pf.mmse
-        post_state_arr[:, n] = post_state
+        MMSE = pf.MMSE
+        MAP = pf.MAP
+        MMSE_arr[:, n] = MMSE
+        MAP_arr[:, n] = MAP
     print(len(pf))
     print(pf)
 
-    state_err = state_arr - post_state_arr
+    state_err = state_arr - MMSE_arr
     print(np.var(state_err, axis=1))
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
     ax[0].plot(n, state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, measure_arr[0, :], '.')
-    ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax[0].legend(['real', 'measurement', 'estimation'])
+    ax[0].plot(n, MMSE_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, MAP_arr[0, :], linewidth=0.8)
+    ax[0].legend(['real', 'measurement', 'MMSE', 'MAP'])
     ax[0].set_title('x state')
     ax[1].plot(n, state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
-    ax[1].legend(['real', 'measurement', 'estimation'])
+    ax[1].plot(n, MMSE_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, MAP_arr[1, :], linewidth=0.8)
+    ax[1].legend(['real', 'measurement', 'MMSE', 'MAP'])
     ax[1].set_title('y state')
     plt.show()
 
@@ -90,7 +95,8 @@ def PFilter_test():
     ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
     ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
+    ax.plot(MMSE_arr[0, :], MMSE_arr[1, :], linewidth=0.8)
+    ax.plot(MAP_arr[0, :], MAP_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
