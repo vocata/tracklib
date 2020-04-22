@@ -157,6 +157,9 @@ class MMFilter(KFBase):
     @property
     def weighted_state(self):
         # weighted state estimate
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'weighted_state'" %
+                                 self.__class__.__name__)
         state = 0
         for i in range(self._models_n):
             state += self._probs[i] * self._models[i].post_state
@@ -165,27 +168,45 @@ class MMFilter(KFBase):
     @property
     def maxprob_state(self):
         # state estimate of models with maximum probability
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'maxprob_state'" %
+                                 self.__class__.__name__)
         return self._models[np.argmax(self._probs)].post_state
 
     @property
     def models(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'models'" %
+                                 self.__class__.__name__)
         return self._models
 
     @property
     def probs(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'probs'" %
+                                 self.__class__.__name__)
         return self._probs
 
     @property
     def post_state(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'post_state'" %
+                                 self.__class__.__name__)
         return self.weighted_state
     
     @post_state.setter
     def post_state(self, state):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'post_state'" %
+                                 self.__class__.__name__)
         for i in range(self._models_n):
             self._models[i].post_state = state
     
     @property
     def post_cov(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'post_cov'" %
+                                 self.__class__.__name__)
         post_state = self.post_state
         post_cov = 0
         for i in range(self._models_n):
@@ -195,5 +216,8 @@ class MMFilter(KFBase):
 
     @post_cov.setter
     def post_cov(self, cov):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'post_cov'" %
+                                 self.__class__.__name__)
         for i in range(self._models_n):
             self._models_n[i].post_cov = cov

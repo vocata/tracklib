@@ -39,6 +39,7 @@ class KFBase(abc.ABC):
     def step(self, *args, **kw):
         pass
 
+    # only post_state and post_cov have setter, others are read-only
     @property
     def prior_state(self):
         if self._prior_state is None:
