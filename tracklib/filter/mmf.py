@@ -18,9 +18,6 @@ __all__ = ['MMFilter']
 import numpy as np
 import scipy.linalg as lg
 from .base import KFBase
-from .kf import KFilter
-from .ekf import EKFilterAN, EKFilterNAN
-from .ukf import UKFilterAN, UKFilterNAN
 
 
 class MMFilter(KFBase):
@@ -135,20 +132,18 @@ class MMFilter(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
+        # update probability
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
             self._models[i].update(z, **kw)
-            r = self._models[i]._innov
-            S = self._models[i]._innov_cov
+            r = self._models[i].innov
+            S = self._models[i].innov_cov
             # If there is a singular value, exp will be very small and all values in the pdf will be 0,
             # then total defined below will be 0 and an ZeroDivisionError will occur.
             pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
-
-        # total probability
-        total = np.dot(pdf, self._probs)
-        # update all models' posterior probability
-        for i in range(self._models_n):
-            self._probs[i] = pdf[i] * self._probs[i] / total
+            self._probs[i] *= pdf[i]
+        # normalize
+        self._probs[:] = self._probs / np.sum(self._probs)
 
         self._len += 1
         self._stage = 0
@@ -164,13 +159,13 @@ class MMFilter(KFBase):
         # weighted state estimate
         state = 0
         for i in range(self._models_n):
-            state += self._probs[i] * self._models[i]._post_state
+            state += self._probs[i] * self._models[i].post_state
         return state
 
     @property
     def maxprob_state(self):
         # state estimate of models with maximum probability
-        return self._models[np.argmax(self._probs)]._post_state
+        return self._models[np.argmax(self._probs)].post_state
 
     @property
     def models(self):
@@ -179,3 +174,26 @@ class MMFilter(KFBase):
     @property
     def probs(self):
         return self._probs
+
+    @property
+    def post_state(self):
+        return self.weighted_state
+    
+    @post_state.setter
+    def post_state(self, state):
+        for i in range(self._models_n):
+            self._models[i].post_state = state
+    
+    @property
+    def post_cov(self):
+        post_state = self.post_state
+        post_cov = 0
+        for i in range(self._models_n):
+            err = self._models[i].post_state - post_state
+            post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+        return (post_cov + post_cov.T) / 2
+
+    @post_cov.setter
+    def post_cov(self, cov):
+        for i in range(self._models_n):
+            self._models_n[i].post_cov = cov

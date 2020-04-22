@@ -45,6 +45,10 @@ class KFBase(abc.ABC):
             raise AttributeError("'%s' object has no attribute 'prior_state'" %
                                  self.__class__.__name__)
         return self._prior_state
+    
+    @prior_state.setter
+    def prior_state(self, state):
+        self._prior_state = state
 
     @property
     def post_state(self):
@@ -52,6 +56,10 @@ class KFBase(abc.ABC):
             raise AttributeError("'%s' object has no attribute 'post_state'" %
                                  self.__class__.__name__)
         return self._post_state
+    
+    @post_state.setter
+    def post_state(self, state):
+        self._post_state = state
 
     @property
     def prior_cov(self):
@@ -60,12 +68,20 @@ class KFBase(abc.ABC):
                                  self.__class__.__name__)
         return self._prior_cov
 
+    @prior_cov.setter
+    def prior_cov(self, cov):
+        self._prior_cov = cov
+
     @property
     def post_cov(self):
         if self._post_cov is None:
             raise AttributeError("'%s' object has no attribute 'post_cov'" %
                                  self.__class__.__name__)
         return self._post_cov
+
+    @post_cov.setter
+    def post_cov(self, cov):
+        self._post_cov = cov
 
     @property
     def innov(self):

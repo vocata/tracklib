@@ -57,7 +57,6 @@ def GSEKFilter_test():
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
     weight_state_arr = np.empty((x_dim, N))
-    maxprob_state_arr = np.empty((x_dim, N))
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
@@ -71,7 +70,6 @@ def GSEKFilter_test():
         gsf.step(z)
         
         weight_state_arr[:, n] = gsf.weighted_state
-        maxprob_state_arr[:, n] = gsf.maxprob_state
         prob_arr[:, n] = gsf.probs
     print(len(gsf))
     print(gsf)
@@ -82,14 +80,12 @@ def GSEKFilter_test():
     ax[0].plot(n, state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, measure_arr[0, :], '.')
     ax[0].plot(n, weight_state_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, maxprob_state_arr[0, :], linewidth=0.8)
-    ax[0].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
+    ax[0].legend(['real', 'measurement', 'weighted esti'])
     ax[0].set_title('x state')
     ax[1].plot(n, state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
     ax[1].plot(n, weight_state_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, maxprob_state_arr[1, :], linewidth=0.8)
-    ax[1].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
+    ax[1].legend(['real', 'measurement', 'weighted esti'])
     ax[1].set_title('y state weighted estimation')
     plt.show()
 
@@ -107,10 +103,9 @@ def GSEKFilter_test():
     ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
     ax.plot(weight_state_arr[0, :], weight_state_arr[1, :], linewidth=0.8)
-    ax.plot(maxprob_state_arr[0, :], maxprob_state_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
+    ax.legend(['real', 'measurement', 'weighted esti'])
     ax.set_title('trajectory')
     plt.show()
 
