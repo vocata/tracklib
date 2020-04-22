@@ -19,6 +19,8 @@ def MMFilter_test():
 
     x_dim, z_dim = 4, 2
     mmf = ft.MMFilter()
+    models = []
+    probs = []
     for i in range(model_n):
         qx, qy = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)
         rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
@@ -31,7 +33,9 @@ def MMFilter_test():
         R = model.R_only_pos_meas_noise(1, [rx, ry])
 
         sub_filter = ft.KFilter(F, L, H, M, Q, R)
-        mmf.add_model(sub_filter, 1 / model_n)
+        models.append(sub_filter)
+        probs.append(1 / model_n)
+    mmf.add_models(models, probs)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
@@ -57,7 +61,7 @@ def MMFilter_test():
         
         weight_state_arr[:, n] = mmf.weighted_state
         maxprob_state_arr[:, n] = mmf.maxprob_state
-        prob_arr[:, n] = mmf.prob
+        prob_arr[:, n] = mmf.probs
     print(len(mmf))
     print(mmf)
 

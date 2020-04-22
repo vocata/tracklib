@@ -23,6 +23,8 @@ def GSEKFilter_test():
 
     x_dim, z_dim = 4, 2
     gsf = ft.MMFilter()
+    models = []
+    probs = []
     for i in range(model_n):
         # qx, qy = np.sqrt((i + 1) / 100), np.sqrt((i + 1) / 100)
         # rr, ra = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 100)
@@ -40,7 +42,9 @@ def GSEKFilter_test():
 
         # sub_filter = ft.KFilter(F, L, H, M, Q, R)
         sub_filter = ft.EKFilterAN(f, L, h, M, Q, R, order=1, it=0)
-        gsf.add_model(sub_filter, 1 / model_n)
+        models.append(sub_filter)
+        probs.append(1 / model_n)
+    gsf.add_models(models, probs)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
@@ -68,7 +72,7 @@ def GSEKFilter_test():
         
         weight_state_arr[:, n] = gsf.weighted_state
         maxprob_state_arr[:, n] = gsf.maxprob_state
-        prob_arr[:, n] = gsf.prob
+        prob_arr[:, n] = gsf.probs
     print(len(gsf))
     print(gsf)
 

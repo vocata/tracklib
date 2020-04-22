@@ -170,11 +170,10 @@ def H_only_pos_meas(order, axis):
     H : ndarray
         the measurement or obervation matrix
     '''
-    assert (0 <= order)
-    assert (0 <= axis)
+    assert (order >= 0)
+    assert (axis >= 0)
 
-    H = np.zeros((axis + 1, (order + 1) * (axis + 1)))
-    H[:axis + 1, :axis + 1] = np.eye(axis + 1)
+    H = np.eye(axis + 1, (order + 1) * (axis + 1))
 
     return H
 
