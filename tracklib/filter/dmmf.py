@@ -135,7 +135,7 @@ class GPB1Filter(KFBase):
             pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
             self._probs[i] = pdf[i] * prior_porb[i]
         # normalize
-        self._probs[:] = self._probs / np.sum(self._probs)
+        self._probs[:] /= np.sum(self._probs)
 
         # weighted posterior state and covariance
         self._post_state = 0
@@ -298,7 +298,7 @@ class GPB2Filter(KFBase):
         # normalize
         self._probs[:] = np.sum(merge_prob, axis=1)
         merge_prob /= np.reshape(self._probs, (-1, 1))
-        self._probs[:] = self._probs / np.sum(self._probs)
+        self._probs /= np.sum(self._probs)
 
         # merge post state and covariance
         x_dim = len(self._post_state)

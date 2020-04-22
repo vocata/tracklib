@@ -143,7 +143,7 @@ class MMFilter(KFBase):
             pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
             self._probs[i] *= pdf[i]
         # normalize
-        self._probs[:] = self._probs / np.sum(self._probs)
+        self._probs[:] /= np.sum(self._probs)
 
         self._len += 1
         self._stage = 0
