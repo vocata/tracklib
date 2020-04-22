@@ -46,10 +46,6 @@ class KFBase(abc.ABC):
                                  self.__class__.__name__)
         return self._prior_state
     
-    @prior_state.setter
-    def prior_state(self, state):
-        self._prior_state = state
-
     @property
     def post_state(self):
         if self._post_state is None:
@@ -67,10 +63,6 @@ class KFBase(abc.ABC):
             raise AttributeError("'%s' object has no attribute 'prior_cov'" %
                                  self.__class__.__name__)
         return self._prior_cov
-
-    @prior_cov.setter
-    def prior_cov(self, cov):
-        self._prior_cov = cov
 
     @property
     def post_cov(self):

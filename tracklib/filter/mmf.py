@@ -69,7 +69,7 @@ class MMFilter(KFBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('submodel must be added before calling init')
+            raise RuntimeError('models must be added before calling init')
         if isinstance(state, list):
             pass
         elif isinstance(state, np.ndarray):

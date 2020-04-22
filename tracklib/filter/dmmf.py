@@ -65,7 +65,7 @@ class GPB1Filter(KFBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('submodel must be added before calling init')
+            raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
             self._models[i].init(state, cov)
@@ -75,7 +75,7 @@ class GPB1Filter(KFBase):
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs, transition_matrix):
+    def add_models(self, models, probs, trans_mat):
         '''
         Add new model
 
@@ -85,7 +85,7 @@ class GPB1Filter(KFBase):
             the list of Kalman filter
         probs : list
             model prior probability
-        transition_matrix : 2-D array_like, of shape (N, N)
+        trans_mat : 2-D array_like, of shape (N, N)
             model transition matrix
 
         Returns
@@ -98,16 +98,16 @@ class GPB1Filter(KFBase):
         if not isinstance(probs, list):
             raise TypeError('probs must be a list, not %s' %
                             probs.__class__.__name__)
-        if not isinstance(transition_matrix, np.ndarray):
-            raise TypeError('transition_matrix must be a ndarray, not %s' %
-                            transition_matrix.__class__.__name__)
+        if not isinstance(trans_mat, np.ndarray):
+            raise TypeError('trans_mat must be a ndarray, not %s' %
+                            trans_mat.__class__.__name__)
         if len(models) != len(probs):
             raise ValueError('the length of models must be the same as probs')
 
         self._models_n = len(models)
         self._models.extend(models)
         self._probs.extend(probs)
-        self._trans_mat = transition_matrix
+        self._trans_mat = trans_mat
 
     # single model is time-invariant, so kw is not required
     def predict(self, u=None):
@@ -154,6 +154,9 @@ class GPB1Filter(KFBase):
             self._models[i].post_state = self._post_state
             self._models[i].post_cov = self._post_cov
 
+        self._len += 1
+        self._stage = 0
+
     def step(self, z, u=None):
         assert (self._stage == 0)
 
@@ -162,14 +165,23 @@ class GPB1Filter(KFBase):
 
     @property
     def models(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'models'" %
+                                 self.__class__.__name__)
         return self._models
 
     @property
     def probs(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'probs'" %
+                                 self.__class__.__name__)
         return self._probs
-    
+
     @property
-    def transition_matrix(self):
+    def trans_mat(self):
+        if self._trans_mat is None:
+            raise AttributeError("'%s' object has no attribute 'trans_mat'" %
+                                 self.__class__.__name__)
         return self._trans_mat
 
 
@@ -223,7 +235,7 @@ class GPB2Filter(KFBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('submodel must be added before calling init')
+            raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
             for j in range(self._models_n):
@@ -234,7 +246,7 @@ class GPB2Filter(KFBase):
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs, transition_matrix):
+    def add_models(self, models, probs, trans_mat):
         '''
         Add new model
 
@@ -244,7 +256,7 @@ class GPB2Filter(KFBase):
             the list of Kalman filter
         probs : list
             model prior probability
-        transition_matrix : 2-D array_like, of shape (N, N)
+        trans_mat : 2-D array_like, of shape (N, N)
             model transition matrix
 
         Returns
@@ -257,9 +269,9 @@ class GPB2Filter(KFBase):
         if not isinstance(probs, list):
             raise TypeError('probs must be a list, not %s' %
                             probs.__class__.__name__)
-        if not isinstance(transition_matrix, np.ndarray):
-            raise TypeError('transition_matrix must be a ndarray, not %s' %
-                            transition_matrix.__class__.__name__)
+        if not isinstance(trans_mat, np.ndarray):
+            raise TypeError('trans_mat must be a ndarray, not %s' %
+                            trans_mat.__class__.__name__)
         if len(models) != len(probs):
             raise ValueError('the length of models must be the same as probs')
 
@@ -267,7 +279,7 @@ class GPB2Filter(KFBase):
         for i in range(self._models_n):
             self._models.append([copy.deepcopy(models[i]) for _ in range(self._models_n)])
         self._probs.extend(probs)
-        self._trans_mat = transition_matrix
+        self._trans_mat = trans_mat
 
     def predict(self, u=None):
         assert (self._stage == 0)
@@ -325,6 +337,9 @@ class GPB2Filter(KFBase):
                 self._models[i][j].post_state = merge_state[:, j]
                 self._models[i][j].post_cov = merge_cov[:, :, j]
 
+        self._len += 1
+        self._stage = 0
+
     def step(self, z, u=None):
         assert(self._stage == 0)
 
@@ -333,14 +348,23 @@ class GPB2Filter(KFBase):
 
     @property
     def models(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'models'" %
+                                 self.__class__.__name__)
         return self._models
 
     @property
     def probs(self):
+        if self._models_n == 0:
+            raise AttributeError("'%s' object has no attribute 'probs'" %
+                                 self.__class__.__name__)
         return self._probs
 
     @property
-    def transition_matrix(self):
+    def trans_mat(self):
+        if self._trans_mat is None:
+            raise AttributeError("'%s' object has no attribute 'trans_mat'" %
+                                 self.__class__.__name__)
         return self._trans_mat
 
 

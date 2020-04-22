@@ -73,6 +73,9 @@ def KFilter_test():
     print(len(kf))
     print(kf)
 
+    state_err = state_arr - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
+
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)

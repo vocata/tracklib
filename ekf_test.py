@@ -83,7 +83,7 @@ def EKFilter_test():
     print(ekf)
 
     state_err = state_arr - post_state_arr
-    print(np.var(state_err, axis=1))
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # plot
     n = np.arange(N)

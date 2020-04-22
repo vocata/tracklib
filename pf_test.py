@@ -72,7 +72,8 @@ def PFilter_test():
     print(pf)
 
     state_err = state_arr - MMSE_arr
-    print(np.var(state_err, axis=1))
+    print('RMS: %s' % np.std(state_err, axis=1))
+
     # plot
     n = np.arange(N)
     _, ax = plt.subplots(2, 1)
