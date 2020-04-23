@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Dynamic multiple model filter including GPB1, GPB2 and IMM
 

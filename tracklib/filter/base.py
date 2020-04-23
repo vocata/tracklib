@@ -56,6 +56,7 @@ class KFBase(abc.ABC):
     
     @post_state.setter
     def post_state(self, state):
+        # deep copy in place
         self._post_state[:] = state
 
     @property
@@ -74,6 +75,7 @@ class KFBase(abc.ABC):
 
     @post_cov.setter
     def post_cov(self, cov):
+        # deep copy in place
         self._post_cov[:] = cov
 
     @property
