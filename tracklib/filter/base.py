@@ -56,7 +56,7 @@ class KFBase(abc.ABC):
     
     @post_state.setter
     def post_state(self, state):
-        self._post_state = state
+        self._post_state[:] = state
 
     @property
     def prior_cov(self):
@@ -74,7 +74,7 @@ class KFBase(abc.ABC):
 
     @post_cov.setter
     def post_cov(self, cov):
-        self._post_cov = cov
+        self._post_cov[:] = cov
 
     @property
     def innov(self):

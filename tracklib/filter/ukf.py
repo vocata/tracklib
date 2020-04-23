@@ -55,8 +55,6 @@ class UKFilterAN(KFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
         self._post_state = state
         self._post_cov = cov
         self._factory.init(len(state))
@@ -175,8 +173,6 @@ class UKFilterNAN(KFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
         self._post_state = state
         self._post_cov = cov
         self._factory.init(len(state) + self._Q.shape[0] + self._R.shape[0])
@@ -189,7 +185,7 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
         w_dim = self._Q.shape[0]
         v_dim = self._R.shape[0]
 
@@ -225,7 +221,7 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
         w_dim = self._Q.shape[0]
         v_dim = self._R.shape[0]
 

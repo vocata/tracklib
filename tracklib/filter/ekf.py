@@ -51,8 +51,6 @@ class EKFilterAN(KFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
         self._post_state = state
         self._post_cov = cov
         self._len = 0
@@ -64,7 +62,7 @@ class EKFilterAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
@@ -103,7 +101,7 @@ class EKFilterAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
         z_dim = len(z)
 
         if len(kw) > 0:
@@ -210,8 +208,6 @@ class EKFilterNAN(KFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
         self._post_state = state
         self._post_cov = cov
         self._len = 0
@@ -223,7 +219,7 @@ class EKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
         w_dim = self._Q.shape[0]
 
         if len(kw) > 0:
@@ -269,7 +265,7 @@ class EKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
+        x_dim = len(self._post_state)
         z_dim = len(z)
         v_dim = self._R.shape[0]
 

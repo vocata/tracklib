@@ -57,7 +57,6 @@ class AlphaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._prior_state = state
         self._post_state = state
         self._len = 0
         self._stage = 0
@@ -162,7 +161,6 @@ class AlphaBetaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._prior_state = state
         self._post_state = state
         self._len = 0
         self._stage = 0
@@ -271,7 +269,6 @@ class AlphaBetaGammaFilter():
         return self.__str__()
 
     def init(self, state):
-        self._prior_state = state
         self._post_state = state
         self._len = 0
         self._stage = 0
@@ -379,9 +376,7 @@ class SSFilter(KFBase):
         return self.__str__()
 
     def init(self, state, cov, it=5):
-        self._state = state
         self._cov = cov
-        self._prior_state = state
         self._post_state = state
         self._gain, self._prior_cov, self._post_cov = SSFilter.issv(cov,
                                                                     self._F,

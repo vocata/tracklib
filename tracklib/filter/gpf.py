@@ -52,8 +52,6 @@ class GPFilter(KFBase):
         return self.__str__()
 
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
         self._post_state = state
         self._post_cov = cov
         self._samples = np.empty((self._Ns, len(state)))

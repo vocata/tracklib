@@ -98,7 +98,7 @@ class MMFilter(KFBase):
         models : list
             the list of Kalman filter
         probs : list
-            model prior probability
+            model probability
 
         Returns
         -------
@@ -133,15 +133,14 @@ class MMFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         # update probability
-        pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
             self._models[i].update(z, **kw)
             r = self._models[i].innov
             S = self._models[i].innov_cov
             # If there is a singular value, exp will be very small and all values in the pdf will be 0,
             # then total defined below will be 0 and an ZeroDivisionError will occur.
-            pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
-            self._probs[i] *= pdf[i]
+            pdf = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
+            self._probs[i] *= pdf
         # normalize
         self._probs[:] /= np.sum(self._probs)
 
