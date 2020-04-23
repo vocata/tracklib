@@ -138,16 +138,16 @@ class GPB1Filter(KFBase):
         self._probs[:] /= np.sum(self._probs)
 
         # merge post state and covariance
-        self._post_state[:] = 0
+        self._post_state = 0
         for i in range(self._models_n):
             self._post_state += self._probs[i] * self._models[i].post_state
 
         # unlike before, posterior covariance is not equivalent to error covariance
-        self._post_cov[:] = 0
+        self._post_cov = 0
         for i in range(self._models_n):
             err = self._models[i].post_state - self._post_state
             self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
-        self._post_cov[:] = (self._post_cov + self._post_cov.T) / 2
+        self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
         # reset all models' posterior state and covariance
         for i in range(self._models_n):
@@ -313,14 +313,14 @@ class GPB2Filter(KFBase):
 
         # merge post state and covariance
         x_dim = len(self._post_state)
-        self._post_state[:] = 0
+        self._post_state = 0
         merge_state = np.zeros((x_dim, self._models_n))
         for i in range(self._models_n):
             for j in range(self._models_n):
                 merge_state[:, i] += merge_prob[i, j] * self._models[i][j].post_state
-            self._post_state[:] += self._probs[i] * merge_state[:, i]
+            self._post_state += self._probs[i] * merge_state[:, i]
 
-        self._post_cov[:] = 0
+        self._post_cov = 0
         merge_cov = np.zeros((x_dim, x_dim, self._models_n))
         for i in range(self._models_n):
             for j in range(self._models_n):
@@ -329,7 +329,7 @@ class GPB2Filter(KFBase):
             merge_cov[:, :, i] = (merge_cov[:, :, i] + merge_cov[:, :, i].T) / 2
             erri = merge_state[:, i] - self._post_state
             self._post_cov += self._probs[i] * (merge_cov[:, :, i] + np.outer(erri, erri))
-        self._post_cov[:] = (self._post_cov + self._post_cov.T) / 2
+        self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
         # reset all models' posterior state and covariance
         for i in range(self._models_n):
@@ -513,24 +513,24 @@ class IMMFilter(KFBase):
 
         # merge post state and covariance
         state_set = []
-        self._post_state[:] = 0
+        self._post_state = 0
         for i in range(self._models_n):
             state_set.append(self._models[i].post_state)
             self._post_state += self._probs[i] * state_set[-1]
 
         cov_set = []
-        self._post_cov[:] = 0
+        self._post_cov = 0
         for i in range(self._models_n):
             cov_set.append(self._models[i].post_cov)
             err = state_set[i] - self._post_state
             self._post_cov += self._probs[i] * (cov_set[-1] + np.outer(err, err))
+        self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
         # mixing and reset all models' posterior state and covariance
-        state_mixed, cov_mixed, norm_prob = self.__mixing(state_set, cov_set)
+        state_mixed, cov_mixed, self.__norm_prob = self.__mixing(state_set, cov_set)
         for i in range(self._model_n):
             self._models[i].post_state = state_mixed[i]
             self._models[i].post_cov = cov_mixed[i]
-        self.__norm_prob[:] = norm_prob     # reduce repetitive computation
 
         self._len += 1
         self._stage = 0
