@@ -91,7 +91,7 @@ class KFilter(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ self._H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # The Joseph-form covariance update is used for improved numerical
+        # the Joseph-form covariance update is used for improving numerical
         temp = np.eye(x_dim) - self._gain @ self._H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
@@ -199,7 +199,7 @@ class SeqKFilter(KFBase):
             innov_cov = H_n @ post_cov @ H_n + r_n
             gain = (post_cov @ H_n) / innov_cov
             prior_state = prior_state + gain * innov
-            # The Joseph-form covariance update is used for improved numerical
+            # the Joseph-form covariance update is used for improving numerical
             temp = np.eye(x_dim) - np.outer(gain, H_n)
             post_cov = temp @ post_cov @ temp.T + r_n * np.outer(gain, gain)
             post_cov = (post_cov + post_cov.T) / 2

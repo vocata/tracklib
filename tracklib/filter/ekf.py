@@ -138,7 +138,7 @@ class EKFilterAN(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # the Joseph-form covariance update is used for improved numerical
+        # the Joseph-form covariance update is used for improving numerical
         temp = np.eye(x_dim) - self._gain @ H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
@@ -310,7 +310,7 @@ class EKFilterNAN(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # the Joseph-form covariance update is used for improved numerical
+        # the Joseph-form covariance update is used for improving numerical
         temp = np.eye(x_dim) - self._gain @ H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
