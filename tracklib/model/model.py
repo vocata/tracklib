@@ -187,8 +187,8 @@ def Q_ct2D_proc_noise(T, std):
     return Q_dd_poly_proc_noise(1, 1, T, std, 1)
 
 
-Q = Q_ct2D_proc_noise(0.38, [1, 2])
-print(Q)
+# Q = Q_ct2D_proc_noise(0.38, [1, 2])
+# print(Q)
 
 
 def H_only_pos_meas(order, axis):

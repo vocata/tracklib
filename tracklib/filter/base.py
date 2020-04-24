@@ -90,7 +90,7 @@ class KFBase(abc.ABC):
     def post_cov(self, cov):
         if not hasattr(self, '_set_post_cov'):
             raise AttributeError("AttributeError: can't set attribute")
-        self._set_post_state(cov)
+        self._set_post_cov(cov)
 
     @property
     def innov(self):

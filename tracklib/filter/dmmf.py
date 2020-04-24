@@ -84,7 +84,7 @@ class GPB1Filter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
-        probs : list
+        probs : list, of length N
             model probability
         trans_mat : 2-D array_like, of shape (N, N)
             model transition matrix
@@ -254,7 +254,7 @@ class GPB2Filter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
-        probs : list
+        probs : list, of length N
             model probability
         trans_mat : 2-D array_like, of shape (N, N)
             model transition matrix
@@ -414,7 +414,7 @@ class IMMFilter(KFBase):
         mixed_cov = []
         for i in range(self._models_n):
             tmp = 0
-            for j in range(self._models):
+            for j in range(self._models_n):
                 err = state[j] - mixed_state[i]
                 tmp += mixing_prob[i][j] * (cov[j] + np.outer(err, err))
             mixed_cov.append((tmp + tmp.T) / 2)
@@ -444,7 +444,7 @@ class IMMFilter(KFBase):
         cov_set = [cov] * self._models_n
         state_mixed, cov_mixed, norm_prob = self.__mixing(state_set, cov_set)
         for i in range(self._models_n):
-            self._models[i].init(state_mixed[i], cov[i])
+            self._models[i].init(state_mixed[i], cov_mixed[i])
         self.__norm_prob = norm_prob     # reduce repetitive computation
         self._post_state = state
         self._post_cov = cov
@@ -460,7 +460,7 @@ class IMMFilter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
-        probs : list
+        probs : list, of length N
             model probability
         trans_mat : 2-D array_like, of shape (N, N)
             model transition matrix
@@ -528,7 +528,7 @@ class IMMFilter(KFBase):
 
         # mixing and reset all models' posterior state and covariance
         state_mixed, cov_mixed, self.__norm_prob = self.__mixing(state_set, cov_set)
-        for i in range(self._model_n):
+        for i in range(self._models_n):
             self._models[i].post_state = state_mixed[i]
             self._models[i].post_cov = cov_mixed[i]
 

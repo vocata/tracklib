@@ -83,7 +83,7 @@ class MMFilter(KFBase):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
-            self._models_n[i].post_cov = cov
+            self._models[i].post_cov = cov
 
     def init(self, state, cov):
         '''
@@ -128,9 +128,9 @@ class MMFilter(KFBase):
 
         Parameters
         ----------
-        models : list
+        models : list, of length N
             the list of Kalman filter
-        probs : list
+        probs : list, of length N
             model probability
 
         Returns
@@ -209,3 +209,11 @@ class MMFilter(KFBase):
             raise AttributeError("'%s' object has no attribute 'probs'" %
                                  self.__class__.__name__)
         return self._probs
+
+    @property
+    def innov(self):
+        return self._models[np.argmax(self._probs)].innov
+
+    @property
+    def innov_cov(self):
+        return self._models[np.argmax(self._probs)].innov_cov
