@@ -54,6 +54,12 @@ class UKFilterAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
+
     def init(self, state, cov):
         self._post_state = state
         self._post_cov = cov
@@ -171,6 +177,12 @@ class UKFilterNAN(KFBase):
 
     def __repr__(self):
         return self.__str__()
+
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
 
     def init(self, state, cov):
         self._post_state = state

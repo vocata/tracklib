@@ -53,6 +53,38 @@ class MMFilter(KFBase):
     def __getitem__(self, n):
         return self._models[n], self._probs[n]
 
+    def _set_post_state(self, state):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            self._models[i].post_state = state
+    
+    def _set_post_cov(self, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            self._models_n[i].post_cov = cov
+
+    def __prior_update(self):
+        self._prior_state = 0
+        for i in range(self._models_n):
+            self._prior_state += self._probs[i] * self._models[i].prior_state
+        self._prior_cov = 0
+        for i in range(self._models_n):
+            err = self._models[i].prior_state - self._prior_state
+            self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
+        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+
+    def __post_update(self):
+        self._post_state = 0
+        for i in range(self._models_n):
+            self._post_state += self._probs[i] * self._models[i].post_state
+        self._post_cov = 0
+        for i in range(self._models_n):
+            err = self._models[i].post_state - self._post_state
+            self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+
     def init(self, state, cov):
         '''
         Initial filter
@@ -85,6 +117,7 @@ class MMFilter(KFBase):
 
         for i in range(self._models_n):
             self._models[i].init(state[i], cov[i])
+        self.__post_update()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -124,6 +157,7 @@ class MMFilter(KFBase):
 
         for i in range(self._models_n):
             self._models[i].predict(u, **kw)
+        self.__prior_update()
 
         self._stage = 1
 
@@ -143,6 +177,7 @@ class MMFilter(KFBase):
             self._probs[i] *= pdf
         # normalize
         self._probs[:] /= np.sum(self._probs)
+        self.__post_update()
 
         self._len += 1
         self._stage = 0
@@ -152,17 +187,6 @@ class MMFilter(KFBase):
 
         self.predict(u, **kw)
         self.update(z, **kw)
-
-    @property
-    def weighted_state(self):
-        # weighted state estimate
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'weighted_state'" %
-                                 self.__class__.__name__)
-        state = 0
-        for i in range(self._models_n):
-            state += self._probs[i] * self._models[i].post_state
-        return state
 
     @property
     def maxprob_state(self):
@@ -185,38 +209,3 @@ class MMFilter(KFBase):
             raise AttributeError("'%s' object has no attribute 'probs'" %
                                  self.__class__.__name__)
         return self._probs
-
-    @property
-    def post_state(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'post_state'" %
-                                 self.__class__.__name__)
-        return self.weighted_state
-    
-    @post_state.setter
-    def post_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'post_state'" %
-                                 self.__class__.__name__)
-        for i in range(self._models_n):
-            self._models[i].post_state = state
-    
-    @property
-    def post_cov(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'post_cov'" %
-                                 self.__class__.__name__)
-        post_state = self.post_state
-        post_cov = 0
-        for i in range(self._models_n):
-            err = self._models[i].post_state - post_state
-            post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
-        return (post_cov + post_cov.T) / 2
-
-    @post_cov.setter
-    def post_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'post_cov'" %
-                                 self.__class__.__name__)
-        for i in range(self._models_n):
-            self._models_n[i].post_cov = cov

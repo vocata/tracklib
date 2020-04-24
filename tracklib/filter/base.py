@@ -47,6 +47,12 @@ class KFBase(abc.ABC):
                                  self.__class__.__name__)
         return self._prior_state
     
+    @prior_state.setter
+    def prior_state(self, state):
+        if not hasattr(self, '_set_prior_state'):
+            raise AttributeError("AttributeError: can't set attribute")
+        self._set_prior_state(state)
+    
     @property
     def post_state(self):
         if self._post_state is None:
@@ -56,8 +62,9 @@ class KFBase(abc.ABC):
     
     @post_state.setter
     def post_state(self, state):
-        # deep copy in place
-        self._post_state[:] = state
+        if not hasattr(self, '_set_post_state'):
+            raise AttributeError("AttributeError: can't set attribute")
+        self._set_post_state(state)
 
     @property
     def prior_cov(self):
@@ -65,6 +72,12 @@ class KFBase(abc.ABC):
             raise AttributeError("'%s' object has no attribute 'prior_cov'" %
                                  self.__class__.__name__)
         return self._prior_cov
+    
+    @prior_cov.setter
+    def prior_cov(self, cov):
+        if not hasattr(self, '_set_prior_cov'):
+            raise AttributeError("AttributeError: can't set attribute")
+        self._set_post_state(cov)
 
     @property
     def post_cov(self):
@@ -75,8 +88,9 @@ class KFBase(abc.ABC):
 
     @post_cov.setter
     def post_cov(self, cov):
-        # deep copy in place
-        self._post_cov[:] = cov
+        if not hasattr(self, '_set_post_cov'):
+            raise AttributeError("AttributeError: can't set attribute")
+        self._set_post_state(cov)
 
     @property
     def innov(self):

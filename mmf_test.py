@@ -59,7 +59,7 @@ def MMFilter_test():
         measure_arr[:, n] = z
         mmf.step(z)
         
-        weight_state_arr[:, n] = mmf.weighted_state
+        weight_state_arr[:, n] = mmf.post_state
         maxprob_state_arr[:, n] = mmf.maxprob_state
         prob_arr[:, n] = mmf.probs
     print(len(mmf))
