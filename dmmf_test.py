@@ -138,7 +138,6 @@ def DMMF_test():
             x_init, P_init = init.single_point_init(traj_meas[:, n + 1], R, 20)
             dmmf.init(x_init, P_init)
             continue
-        print(n)
         dmmf.step(traj_meas[:, n + 1])
 
         post_state_arr[:, n] = dmmf.post_state
