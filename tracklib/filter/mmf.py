@@ -53,18 +53,6 @@ class MMFilter(KFBase):
     def __getitem__(self, n):
         return self._models[n], self._probs[n]
 
-    def _set_post_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            self._models[i].post_state = state
-    
-    def _set_post_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            self._models_n[i].post_cov = cov
-
     def __prior_update(self):
         self._prior_state = 0
         for i in range(self._models_n):
@@ -84,6 +72,18 @@ class MMFilter(KFBase):
             err = self._models[i].post_state - self._post_state
             self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
+
+    def _set_post_state(self, state):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            self._models[i].post_state = state
+    
+    def _set_post_cov(self, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            self._models_n[i].post_cov = cov
 
     def init(self, state, cov):
         '''
