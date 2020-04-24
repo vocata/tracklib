@@ -7,8 +7,9 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly_trans', 'Q_dc_ploy_proc_noise', 'Q_dd_poly_proc_noise',
-    'H_only_pos_meas', 'R_only_pos_meas_noise'
+    'F_poly_trans', 'F_ct2D_trans', 'Q_dc_ploy_proc_noise',
+    'Q_dd_poly_proc_noise', 'Q_ct2D_proc_noise', 'H_only_pos_meas',
+    'R_only_pos_meas_noise'
 ]
 
 import numpy as np
@@ -52,6 +53,21 @@ def F_poly_trans(order, axis, T):
 
 
 # F = F_poly_trans(2, 3, 2)
+# print(F)
+
+
+def F_ct2D_trans(turn_rate, T):
+    w = turn_rate
+    sin_val = np.sin(w * T)
+    cos_val = np.cos(w * T)
+    sin_rat = sin_val / w
+    cos_rat = (1 - cos_val) / w
+    F = np.array([[1, 0, sin_rat, -cos_rat], [0, 1, cos_rat, sin_rat],
+                  [0, 0, cos_val, -sin_val], [0, 0, sin_val, cos_val]])
+    return F
+
+
+# F = F_ct2D_trans(np.pi / 8, 1)
 # print(F)
 
 
@@ -147,8 +163,32 @@ def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
     return Q
 
 
-# Q = Q_dd_proc_noise(2, 2, 1, [1, 2, 3], 1)
+# Q = Q_dd_poly_proc_noise(1, 1, 1, [1, 2], 1)
 # print(Q)
+
+
+def Q_ct2D_proc_noise(T, std):
+    '''
+    Process noise covariance matrix used with coordinated turn model.
+    see [1] section 11.7.
+
+    Parameters
+    ----------
+    T : float
+        The time-duration of the propagation interval.
+    std : number, list or ndarray
+        The standard deviation of discrete-time porcess noise
+
+    Returns
+    -------
+    Q : ndarray
+        Process noise convariance
+    '''
+    return Q_dd_poly_proc_noise(1, 1, T, std, 1)
+
+
+Q = Q_ct2D_proc_noise(0.38, [1, 2])
+print(Q)
 
 
 def H_only_pos_meas(order, axis):
