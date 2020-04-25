@@ -70,7 +70,7 @@ def GSEKFilter_test():
         gsf.step(z)
         
         post_state_arr[:, n] = gsf.post_state
-        prob_arr[:, n] = gsf.probs
+        prob_arr[:, n] = gsf.probs()
     print(len(gsf))
     print(gsf)
 

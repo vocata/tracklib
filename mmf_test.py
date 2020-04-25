@@ -45,7 +45,7 @@ def MMFilter_test():
 
     state_arr = np.empty((x_dim, N))
     measure_arr = np.empty((z_dim, N))
-    weight_state_arr = np.empty((x_dim, N))
+    weighted_state_arr = np.empty((x_dim, N))
     maxprob_state_arr = np.empty((x_dim, N))
     prob_arr = np.empty((model_n, N))
 
@@ -59,13 +59,13 @@ def MMFilter_test():
         measure_arr[:, n] = z
         mmf.step(z)
         
-        weight_state_arr[:, n] = mmf.post_state
-        maxprob_state_arr[:, n] = mmf.maxprob_state
-        prob_arr[:, n] = mmf.probs
+        weighted_state_arr[:, n] = mmf.weighted_state()
+        maxprob_state_arr[:, n] = mmf.maxprob_state()
+        prob_arr[:, n] = mmf.probs()
     print(len(mmf))
     print(mmf)
 
-    state_err = state_arr - weight_state_arr
+    state_err = state_arr - weighted_state_arr
     print('RMS: %s' % np.std(state_err, axis=1))
 
     # plot
@@ -73,13 +73,13 @@ def MMFilter_test():
     _, ax = plt.subplots(2, 1)
     ax[0].plot(n, state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, measure_arr[0, :], '.')
-    ax[0].plot(n, weight_state_arr[0, :], linewidth=0.8)
+    ax[0].plot(n, weighted_state_arr[0, :], linewidth=0.8)
     ax[0].plot(n, maxprob_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
     ax[0].set_title('x state')
     ax[1].plot(n, state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, weight_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, weighted_state_arr[1, :], linewidth=0.8)
     ax[1].plot(n, maxprob_state_arr[1, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
     ax[1].set_title('y state weighted estimation')
@@ -98,7 +98,7 @@ def MMFilter_test():
     ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
     ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(weight_state_arr[0, :], weight_state_arr[1, :], linewidth=0.8)
+    ax.plot(weighted_state_arr[0, :], weighted_state_arr[1, :], linewidth=0.8)
     ax.plot(maxprob_state_arr[0, :], maxprob_state_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')

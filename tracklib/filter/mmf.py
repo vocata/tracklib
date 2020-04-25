@@ -79,11 +79,26 @@ class MMFilter(KFBase):
         for i in range(self._models_n):
             self._models[i].post_state = state
     
+    def _get_post_cov(self):
+        post_cov = 0
+        post_state = self.post_state
+        for i in range(self._models_n):
+            err = self._models[i].post_state - post_state
+            post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+        post_cov = (post_cov + post_cov.T) / 2
+        return post_cov
+
     def _set_post_cov(self, cov):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
             self._models[i].post_cov = cov
+    
+    def _get_innov(self):
+        return self._models[np.argmax(self._probs)].innov
+
+    def _get_innov_cov(self):
+        return self._models[np.argmax(self._probs)].innov_cov
 
     def init(self, state, cov):
         '''
@@ -188,32 +203,15 @@ class MMFilter(KFBase):
         self.predict(u, **kw)
         self.update(z, **kw)
 
-    @property
     def maxprob_state(self):
         # state estimate of models with maximum probability
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'maxprob_state'" %
-                                 self.__class__.__name__)
         return self._models[np.argmax(self._probs)].post_state
+    
+    def weighted_state(self):
+        return self._post_state
 
-    @property
     def models(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'models'" %
-                                 self.__class__.__name__)
         return self._models
 
-    @property
     def probs(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'probs'" %
-                                 self.__class__.__name__)
         return self._probs
-
-    @property
-    def innov(self):
-        return self._models[np.argmax(self._probs)].innov
-
-    @property
-    def innov_cov(self):
-        return self._models[np.argmax(self._probs)].innov_cov

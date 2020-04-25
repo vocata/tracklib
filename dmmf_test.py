@@ -101,7 +101,7 @@ def gen_traj(plot=True):
 def DMMF_test():
     traj_real, traj_meas, N, T, x_dim, z_dim = gen_traj(False)
 
-    trans_mat = np.array([[0.9, 0.1], [0.1, 0.9]])
+    trans_mat = np.array([[0.95, 0.05], [0.05, 0.95]])
 
     qx, qy = np.sqrt(0.005), np.sqrt(0.005)
     rx, ry = np.sqrt(5), np.sqrt(5)
@@ -141,8 +141,10 @@ def DMMF_test():
         dmmf.step(traj_meas[:, n + 1])
 
         post_state_arr[:, n] = dmmf.post_state
-        prob_arr[:, n] = dmmf.probs
-        subprob_arr[:, n] = dmmf.models[1].probs
+        prob_arr[:, n] = dmmf.probs()
+        subprob_arr[:, n] = dmmf.models()[1].probs()
+    print(len(dmmf))
+    print(dmmf)
 
     # trajectory
     _, ax = plt.subplots()

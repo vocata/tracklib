@@ -163,25 +163,13 @@ class GPB1Filter(KFBase):
         self.predict(u)
         self.update(z)
 
-    @property
     def models(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'models'" %
-                                 self.__class__.__name__)
         return self._models
 
-    @property
     def probs(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'probs'" %
-                                 self.__class__.__name__)
         return self._probs
 
-    @property
     def trans_mat(self):
-        if self._trans_mat is None:
-            raise AttributeError("'%s' object has no attribute 'trans_mat'" %
-                                 self.__class__.__name__)
         return self._trans_mat
 
 
@@ -346,25 +334,13 @@ class GPB2Filter(KFBase):
         self.predict(u)
         self.update(z)
 
-    @property
     def models(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'models'" %
-                                 self.__class__.__name__)
         return self._models
 
-    @property
     def probs(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'probs'" %
-                                 self.__class__.__name__)
         return self._probs
 
-    @property
     def trans_mat(self):
-        if self._trans_mat is None:
-            raise AttributeError("'%s' object has no attribute 'trans_mat'" %
-                                 self.__class__.__name__)
         return self._trans_mat
 
 
@@ -541,23 +517,11 @@ class IMMFilter(KFBase):
         self.predict(u)
         self.update(z)
 
-    @property
     def models(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'models'" %
-                                 self.__class__.__name__)
         return self._models
 
-    @property
     def probs(self):
-        if self._models_n == 0:
-            raise AttributeError("'%s' object has no attribute 'probs'" %
-                                 self.__class__.__name__)
         return self._probs
 
-    @property
     def trans_mat(self):
-        if self._trans_mat is None:
-            raise AttributeError("'%s' object has no attribute 'trans_mat'" %
-                                 self.__class__.__name__)
         return self._trans_mat
