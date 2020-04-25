@@ -73,32 +73,34 @@ class MMFilter(KFBase):
             self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
+    def __innov_update(self):
+        self._innov = 0
+        for i in range(self._models_n):
+            self._innov += self._probs[i] * self._models[i].innov
+        self._innov_cov = 0
+        for i in range(self._models_n):
+            err = self._models[i].innov - self._innov
+            self._innov_cov += self._probs[i] * (self._models[i].innov_cov + np.outer(err, err))
+        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
+
     def _set_post_state(self, state):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
             self._models[i].post_state = state
     
-    def _get_post_cov(self):
-        post_cov = 0
-        post_state = self.post_state
-        for i in range(self._models_n):
-            err = self._models[i].post_state - post_state
-            post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
-        post_cov = (post_cov + post_cov.T) / 2
-        return post_cov
-
     def _set_post_cov(self, cov):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
             self._models[i].post_cov = cov
     
-    def _get_innov(self):
-        return self._models[np.argmax(self._probs)].innov
+    # the innovation and its covariance of model with maximum model probability
+    # def _get_innov(self):
+    #     return self._models[np.argmax(self._probs)].innov
 
-    def _get_innov_cov(self):
-        return self._models[np.argmax(self._probs)].innov_cov
+    # def _get_innov_cov(self):
+    #     return self._models[np.argmax(self._probs)].innov_cov
 
     def init(self, state, cov):
         '''
@@ -182,15 +184,18 @@ class MMFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         # update probability
+        pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
             self._models[i].update(z, **kw)
             r = self._models[i].innov
             S = self._models[i].innov_cov
             # If there is a singular value, exp will be very small and all values in the pdf will be 0,
             # then total defined below will be 0 and an ZeroDivisionError will occur.
-            pdf = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
-            self._probs[i] *= pdf
+            pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        # update innovation and associated covariance before updating the model probability
+        self.__innov_update()
         # normalize
+        self._probs[:] *= pdf
         self._probs[:] /= np.sum(self._probs)
         self.__post_update()
 

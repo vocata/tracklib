@@ -104,7 +104,7 @@ def DMMF_test():
     trans_mat = np.array([[0.95, 0.05], [0.05, 0.95]])
 
     qx, qy = np.sqrt(0.005), np.sqrt(0.005)
-    rx, ry = np.sqrt(5), np.sqrt(5)
+    rx, ry = np.sqrt(10), np.sqrt(10)
     F = model.F_poly_trans(1, 1, T)
     H = model.H_only_pos_meas(1, 1)
     L = np.eye(x_dim)
@@ -114,7 +114,7 @@ def DMMF_test():
     kf = ft.KFilter(F, L, H, M, Q, R)
 
     qx, qy = np.sqrt(0.001), np.sqrt(0.001)
-    rx, ry = np.sqrt(5), np.sqrt(5)
+    rx, ry = np.sqrt(10), np.sqrt(10)
     turn_rate = np.pi / 2 / (50 * T)
     F = model.F_ct2D_trans(turn_rate, T)
     Q = model.Q_ct2D_proc_noise(T, [qx, qy])
@@ -142,19 +142,22 @@ def DMMF_test():
 
         post_state_arr[:, n] = dmmf.post_state
         prob_arr[:, n] = dmmf.probs()
-        subprob_arr[:, n] = dmmf.models()[1].probs()
+        if isinstance(dmmf, ft.GPB2Filter):
+            subprob_arr[:, n] = dmmf.models()[1][0].probs()
+        else:
+            subprob_arr[:, n] = dmmf.models()[1].probs()
     print(len(dmmf))
     print(dmmf)
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
-    ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
-    ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='measurement')
-    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8, label='estimate')
+    ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x')
+    ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8)
+    ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange')
+    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.legend()
+    ax.legend(['real', 'meas', 'esti'])
     ax.set_title('trajectory')
     plt.show()
 
