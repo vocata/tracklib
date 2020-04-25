@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.linalg as lg
 import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
@@ -37,7 +36,7 @@ def gen_traj(plot=True):
     R = model.R_only_pos_meas_noise(1, [rx, ry])
 
     # start point
-    x = np.array([10, 10, 10, 0])
+    x = np.array([10.0, 10.0, 10.0, 0.0])
     for n in range(N):
         if n < stage1:
             F = model.F_poly_trans(1, 1, T)
@@ -88,7 +87,7 @@ def gen_traj(plot=True):
         _, ax = plt.subplots()
         ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
         ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
-        ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='measurement')
+        ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='meas')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.legend()
