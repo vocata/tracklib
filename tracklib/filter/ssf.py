@@ -57,7 +57,7 @@ class AlphaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -161,7 +161,7 @@ class AlphaBetaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -259,7 +259,7 @@ class AlphaBetaGammaFilter():
         self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
         self._F = F_poly_trans(2, axis, T)
-        self_H = H_only_pos_meas(2, axis)
+        self._H = H_only_pos_meas(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'
@@ -269,7 +269,7 @@ class AlphaBetaGammaFilter():
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -360,13 +360,16 @@ class SSFilter(KFBase):
     def __init__(self, F, L, H, M, Q, R, G=None):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
 
     def __str__(self):
         msg = 'Steady-state linear Kalman filter'
@@ -376,8 +379,8 @@ class SSFilter(KFBase):
         return self.__str__()
 
     def init(self, state, cov, it=5):
-        self._cov = cov
-        self._post_state = state
+        self._cov = cov.copy()
+        self._post_state = state.copy()
         self._gain, self._prior_cov, self._post_cov = SSFilter.issv(cov,
                                                                     self._F,
                                                                     self._L,

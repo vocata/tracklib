@@ -37,11 +37,11 @@ class GPFilter(KFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._Ns = Ns
 
     def __str__(self):
@@ -58,8 +58,8 @@ class GPFilter(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._samples = np.empty((self._Ns, len(state)))
         self._weights = np.empty(self._Ns)
         self._len = 0
@@ -73,8 +73,8 @@ class GPFilter(KFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         # draw samples from the posterior density
@@ -103,8 +103,8 @@ class GPFilter(KFBase):
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
         # update weights to approximate the posterior density
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):

@@ -40,11 +40,11 @@ class UKFilterAN(KFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._factory = factory
 
     def __str__(self):
@@ -61,8 +61,8 @@ class UKFilterAN(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._factory.init(len(state))
         self._len = 0
         self._stage = 0
@@ -75,8 +75,8 @@ class UKFilterAN(KFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
@@ -105,8 +105,8 @@ class UKFilterAN(KFBase):
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         z_dim = len(z)
         pts_num = self._factory.points_num()
@@ -185,8 +185,8 @@ class UKFilterNAN(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._factory.init(len(state) + self._Q.shape[0] + self._R.shape[0])
         self._len = 0
         self._stage = 0
@@ -203,7 +203,7 @@ class UKFilterNAN(KFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
@@ -239,7 +239,7 @@ class UKFilterNAN(KFBase):
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
-            if 'R' in kw: self._R = kw['R']
+            if 'R' in kw: self._R[:] = kw['R']
 
         z_dim = len(z)
         pts_num = self._factory.points_num()

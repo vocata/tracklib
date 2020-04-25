@@ -32,11 +32,11 @@ class EKFilterAN(KFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         if order == 1 or order == 2:
             self._order = order
         else:
@@ -57,8 +57,8 @@ class EKFilterAN(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -72,8 +72,8 @@ class EKFilterAN(KFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
             if 'F' in kw:
                 F = kw['F']
@@ -112,8 +112,8 @@ class EKFilterAN(KFBase):
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
             if 'H' in kw:
                 H = kw['H']
@@ -198,8 +198,8 @@ class EKFilterNAN(KFBase):
 
         self._f = f
         self._h = h
-        self._Q = Q
-        self._R = R
+        self._Q = Q.copy()
+        self._R = R.copy()
         if order == 1 or order == 2:
             self._order = order
         else:
@@ -220,8 +220,8 @@ class EKFilterNAN(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -236,7 +236,7 @@ class EKFilterNAN(KFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
             if 'F' in kw:
                 F = kw['F']
@@ -283,7 +283,7 @@ class EKFilterNAN(KFBase):
 
         if len(kw) > 0:
             if 'h' in kw: self._h = kw['h']
-            if 'R' in kw: self._R = kw['R']
+            if 'R' in kw: self._R[:] = kw['R']
 
             if 'H' in kw:
                 H = kw['H']

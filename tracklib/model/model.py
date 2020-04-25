@@ -9,7 +9,7 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'F_poly_trans', 'F_ct2D_trans', 'Q_dc_ploy_proc_noise',
     'Q_dd_poly_proc_noise', 'Q_ct2D_proc_noise', 'H_only_pos_meas',
-    'R_only_pos_meas_noise'
+    'R_only_pos_meas_noise', 'Trajectory2D'
 ]
 
 import numpy as np
@@ -233,11 +233,10 @@ def R_only_pos_meas_noise(axis, std):
 class Trajectory2D():
     def __init__(self, T, start=np.zeros(6)):
         self._T = T
-        self._head = start
+        self._head = start.copy()
         self._state = []
         self._len = 0
-        self._xdim = 6
-        self._zdim = 2
+        self._x_dim = 6
 
     def __len__(self):
         return self._len
@@ -263,7 +262,7 @@ class Trajectory2D():
             mdl = stages[i]['model']
             traj_len = stages[i]['len']
             self._len += traj_len
-            state = np.zeros((self._xdim, traj_len))
+            state = np.zeros((self._x_dim, traj_len))
 
             if mdl.lower() == 'cv':
                 F = F_poly_trans(1, 1, self._T)

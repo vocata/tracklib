@@ -35,11 +35,11 @@ class SIRPFilter(PFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
-        self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._L = L.copy()
+        self._h = h.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._Ns = Ns
         self._Neff = Neff
         self._resample_alg = resample_alg
@@ -63,11 +63,11 @@ class SIRPFilter(PFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
             if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         # resample, put this operation here for getting MAP estimate consistent with other particle filters
         Neff = 1 / np.sum(self._weights**2)
@@ -110,11 +110,11 @@ class RPFilter(PFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._Ns = Ns
         self._Neff = Neff
         self._kernal = kernal
@@ -140,11 +140,11 @@ class RPFilter(PFBase):
 
         if len(kw) > 0:
             if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
             if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T

@@ -14,127 +14,84 @@ the program may yield uncertain result.
 '''
 
 
-def gen_traj(plot=True):
-    # generate trajectory
-    stage1 = 100    # straight right
-    stage2 = stage1 + 50     # turn counterclockwise
-    stage3 = stage2 + 200    # straight up
-    stage4 = stage3 + 50     # turn clockwise
-    stage5 = stage4 + 100
-    N, T = stage5, 0.1
-
-    x_dim, z_dim = 4, 2
-    qx, qy = np.sqrt(0), np.sqrt(0)
-    rx, ry = np.sqrt(10), np.sqrt(10)
-
-    traj_real = np.zeros((x_dim, N))
-    traj_meas = np.zeros((z_dim, N))
-    H = model.H_only_pos_meas(1, 1)
-    L = np.eye(x_dim)
-    M = np.eye(z_dim)
-    Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
-    R = model.R_only_pos_meas_noise(1, [rx, ry])
-
-    # start point
-    x = np.array([10.0, 10.0, 10.0, 0.0])
-    for n in range(N):
-        if n < stage1:
-            F = model.F_poly_trans(1, 1, T)
-            w = tlb.multi_normal(0, Q)
-            v = tlb.multi_normal(0, R)
-            x = F @ x + L @ w
-            z = H @ x + M @ v
-            traj_real[:, n] = x
-            traj_meas[:, n] = z
-        elif n < stage2:
-            turn_rate = np.pi / 2 / ((stage2 - stage1) * T)
-            F = model.F_ct2D_trans(turn_rate, T)
-            w = tlb.multi_normal(0, Q)
-            v = tlb.multi_normal(0, R)
-            x = F @ x + L @ w
-            z = H @ x + M @ v
-            traj_real[:, n] = x
-            traj_meas[:, n] = z
-        elif n < stage3:
-            F = model.F_poly_trans(1, 1, T)
-            w = tlb.multi_normal(0, Q)
-            v = tlb.multi_normal(0, R)
-            x = F @ x + L @ w
-            z = H @ x + M @ v
-            traj_real[:, n] = x
-            traj_meas[:, n] = z
-        elif n < stage4:
-            turn_rate = -np.pi / 2 / ((stage4 - stage3) * T)
-            F = model.F_ct2D_trans(turn_rate, T)
-            w = tlb.multi_normal(0, Q)
-            v = tlb.multi_normal(0, R)
-            x = F @ x + L @ w
-            z = H @ x + M @ v
-            traj_real[:, n] = x
-            traj_meas[:, n] = z
-        else:
-            F = model.F_poly_trans(1, 1, T)
-            w = tlb.multi_normal(0, Q)
-            v = tlb.multi_normal(0, R)
-            x = F @ x + L @ w
-            z = H @ x + M @ v
-            traj_real[:, n] = x
-            traj_meas[:, n] = z
-
-
-    if plot:
-        # trajectory
-        _, ax = plt.subplots()
-        ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
-        ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
-        ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='meas')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.legend()
-        ax.set_title('trajectory')
-        plt.show()
-
-    return traj_real, traj_meas, N, T, x_dim, z_dim
-
-
 def DMMF_test():
-    traj_real, traj_meas, N, T, x_dim, z_dim = gen_traj(False)
+    x_dim, z_dim = 6, 2
 
-    trans_mat = np.array([[0.95, 0.05], [0.05, 0.95]])
+    # generate trajectory
+    start = np.array([100.0, 100.0, 0.0, 0.0, 0.0, 0.0])
+    T = 0.1
+    traj = model.Trajectory2D(T, start)
+    stages = []
+    stages.append({'model': 'cv', 'len': 100, 'velocity': [30, 0]})
+    stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(300) / (100 * T)})
+    stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
+    stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(420) / (100 * T)})
+    stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
+    stages.append({'model': 'ca', 'len': 300, 'acceleration': [1, 0]})
+    traj.add_stage(stages)
+    R = 10 * np.eye(2)
+    traj_real, traj_meas = traj(R)
+    N = len(traj)
 
-    qx, qy = np.sqrt(0.005), np.sqrt(0.005)
+    # add model
+    trans_mat = np.array([[0.7, 0.25, 0.05], [0.1, 0.9, 0.0], [0.05, 0.05, 0.8]])
+
+    # CV
+    qx, qy = np.sqrt(0.0), np.sqrt(0.0)
     rx, ry = np.sqrt(10), np.sqrt(10)
-    F = model.F_poly_trans(1, 1, T)
-    H = model.H_only_pos_meas(1, 1)
+    F = np.zeros((x_dim, x_dim))
+    F[:4, :4] = model.F_poly_trans(1, 1, T)
+    H = model.H_only_pos_meas(2, 1)
     L = np.eye(x_dim)
     M = np.eye(z_dim)
-    Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
+    Q = np.zeros((x_dim, x_dim))
+    Q[:4, :4] = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy], 1)
     R = model.R_only_pos_meas_noise(1, [rx, ry])
-    kf = ft.KFilter(F, L, H, M, Q, R)
+    cv_kf = ft.KFilter(F, L, H, M, Q, R)
 
-    qx, qy = np.sqrt(0.001), np.sqrt(0.001)
+    # CA
+    qx, qy = np.sqrt(10), np.sqrt(10)
     rx, ry = np.sqrt(10), np.sqrt(10)
-    turn_rate = np.pi / 2 / (50 * T)
-    F = model.F_ct2D_trans(turn_rate, T)
-    Q = model.Q_ct2D_proc_noise(T, [qx, qy])
-    subkf1 = ft.KFilter(F, L, H, M, Q, R)
-    F = model.F_ct2D_trans(-turn_rate, T)
-    subkf2 = ft.KFilter(F, L, H, M, Q, R)
+    F = model.F_poly_trans(2, 1, T)
+    H = model.H_only_pos_meas(2, 1)
+    L = np.eye(x_dim)
+    M = np.eye(z_dim)
+    Q = model.Q_dd_poly_proc_noise(2, 1, T, [qx, qy])
+    R = model.R_only_pos_meas_noise(1, [rx, ry])
+    ca_kf = ft.KFilter(F, L, H, M, Q, R)
+
+    # CT
+    qx, qy = np.sqrt(1), np.sqrt(1)
+    rx, ry = np.sqrt(10), np.sqrt(10)
+    turn_rate = tlb.deg2rad(300) / (100 * T)
+    F = np.zeros((x_dim, x_dim))
+    F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
+    H = model.H_only_pos_meas(2, 1)
+    Q = np.zeros((x_dim, x_dim))
+    Q[:4, :4] = model.Q_ct2D_proc_noise(T, [qx, qy])
+    ct_kf1 = ft.KFilter(F, L, H, M, Q, R)
+
+    turn_rate = tlb.deg2rad(420) / (100 * T)
+    F = np.zeros((x_dim, x_dim))
+    F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
+    ct_kf2 = ft.KFilter(F, L, H, M, Q, R)
+
     mmf = ft.MMFilter()
-    mmf.add_models([subkf1, subkf2], [1/2, 1/2])
+    mmf.add_models([ct_kf1, ct_kf2], [1/2, 1/2])
 
     # dmmf = ft.GPB1Filter()
     # dmmf = ft.GPB2Filter()
     dmmf = ft.IMMFilter()
-    dmmf.add_models([kf, mmf], [1/2, 1/2], trans_mat)
+    dmmf.add_models([cv_kf, ca_kf, mmf], [1/3, 1/3, 1/3], trans_mat)
 
     post_state_arr = np.empty((x_dim, N - 1))
-    prob_arr = np.empty((2, N - 1))     # 2 models
+    prob_arr = np.empty((3, N - 1))     # 2 models
     subprob_arr = np.empty((2, N - 1))  # 2 submodels
 
     for n in range(-1, N - 1):
         if n == -1:
-            x_init, P_init = init.single_point_init(traj_meas[:, n + 1], R, 20)
+            # x_init, P_init = init.single_point_init(traj_meas[:, n + 1], R, 20)
+            x_init, P_init = start, 10*np.eye(x_dim)
             dmmf.init(x_init, P_init)
             continue
         dmmf.step(traj_meas[:, n + 1])
@@ -142,9 +99,9 @@ def DMMF_test():
         post_state_arr[:, n] = dmmf.post_state
         prob_arr[:, n] = dmmf.probs()
         if isinstance(dmmf, ft.GPB2Filter):
-            subprob_arr[:, n] = dmmf.models()[1][0].probs()
+            subprob_arr[:, n] = dmmf.models()[2][0].probs()
         else:
-            subprob_arr[:, n] = dmmf.models()[1].probs()
+            subprob_arr[:, n] = dmmf.models()[2].probs()
     print(len(dmmf))
     print(dmmf)
 
@@ -160,22 +117,24 @@ def DMMF_test():
     ax.set_title('trajectory')
     plt.show()
 
+    r = 3
     _, ax = plt.subplots()
     n = np.arange(N - 1)
-    for i in range(2):
+    for i in range(r):
         ax.plot(n, prob_arr[i, :])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
-    ax.legend([str(n) for n in range(2)])
+    ax.legend([str(n) for n in range(r)])
     plt.show()
 
+    sr = 2
     _, ax = plt.subplots()
     n = np.arange(N - 1)
-    for i in range(2):
+    for i in range(sr):
         ax.plot(n, subprob_arr[i, :])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
-    ax.legend([str(n) for n in range(2)])
+    ax.legend([str(n) for n in range(sr)])
     plt.show()
 
 

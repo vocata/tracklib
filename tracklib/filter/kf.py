@@ -30,13 +30,16 @@ class KFilter(KFBase):
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
         self._at = at
 
     def __str__(self):
@@ -53,8 +56,8 @@ class KFilter(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -65,10 +68,10 @@ class KFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'F' in kw: self._F = kw['F']
-            if 'G' in kw: self._G = kw['G']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'F' in kw: self._F[:] = kw['F']
+            if 'G' in kw: self._G[:] = kw['G']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         ctl = 0 if u is None else self._G @ u
@@ -86,9 +89,9 @@ class KFilter(KFBase):
         x_dim = len(self._post_state)
 
         if len(kw) > 0:
-            if 'H' in kw: self._H = kw['H']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'H' in kw: self._H[:] = kw['H']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         R_tilde = self._M @ self._R @ self._M.T
         z_prior = self._H @ self._prior_state
@@ -129,13 +132,16 @@ class SeqKFilter(KFBase):
     def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
         self._at = at
         R_tilde = self._M @ self._R @ self._M.T
         d, self._S = lg.eigh(R_tilde)
@@ -155,8 +161,8 @@ class SeqKFilter(KFBase):
         self._post_cov[:] = cov
 
     def init(self, state, cov):
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -167,10 +173,10 @@ class SeqKFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'F' in kw: self._F = kw['F']
-            if 'G' in kw: self._G = kw['G']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'F' in kw: self._F[:] = kw['F']
+            if 'G' in kw: self._G[:] = kw['G']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         ctl = 0 if u is None else self._G @ u
@@ -189,9 +195,9 @@ class SeqKFilter(KFBase):
         z_dim = len(z)
 
         if len(kw) > 0:
-            if 'H' in kw: self._H = kw['H']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'H' in kw: self._H[:] = kw['H']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
             if 'M' in kw or 'R' in kw:
                 R_tilde = self._M @ self._R @ self._M.T
                 d, self._S = lg.eigh(R_tilde)
