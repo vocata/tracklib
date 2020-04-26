@@ -22,23 +22,23 @@ def DMMF_test():
     T = 0.1
     traj = model.Trajectory2D(T, start)
     stages = []
-    stages.append({'model': 'cv', 'len': 100, 'velocity': [30, 0]})
-    stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(300) / (100 * T)})
-    stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
-    stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(420) / (100 * T)})
-    stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
-    stages.append({'model': 'ca', 'len': 300, 'acceleration': [1, 0]})
+    stages.append({'model': 'cv', 'len': 200, 'velocity': [10, 0]})
+    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(300) / (200 * T)})
+    stages.append({'model': 'cv', 'len': 200, 'velocity': [None, None]})
+    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(60) / (200 * T)})
+    stages.append({'model': 'cv', 'len': 200, 'velocity': [None, None]})
+    stages.append({'model': 'ca', 'len': 200, 'acceleration': [10, 0]})
     traj.add_stage(stages)
-    R = 10 * np.eye(2)
+    R = np.eye(2)
     traj_real, traj_meas = traj(R)
     N = len(traj)
 
     # add model
-    trans_mat = np.array([[0.7, 0.25, 0.05], [0.1, 0.9, 0.0], [0.05, 0.05, 0.8]])
+    trans_mat = np.array([[0.99, 0.005, 0.005], [0.005, 0.99, 0.005], [0.005, 0.005, 0.99]])
 
     # CV
-    qx, qy = np.sqrt(0.0), np.sqrt(0.0)
-    rx, ry = np.sqrt(10), np.sqrt(10)
+    qx, qy = np.sqrt(1), np.sqrt(1)
+    rx, ry = np.sqrt(1), np.sqrt(1)
     F = np.zeros((x_dim, x_dim))
     F[:4, :4] = model.F_poly_trans(1, 1, T)
     H = model.H_only_pos_meas(2, 1)
@@ -50,8 +50,8 @@ def DMMF_test():
     cv_kf = ft.KFilter(F, L, H, M, Q, R)
 
     # CA
-    qx, qy = np.sqrt(10), np.sqrt(10)
-    rx, ry = np.sqrt(10), np.sqrt(10)
+    qx, qy = np.sqrt(1), np.sqrt(1)
+    rx, ry = np.sqrt(1), np.sqrt(1)
     F = model.F_poly_trans(2, 1, T)
     H = model.H_only_pos_meas(2, 1)
     L = np.eye(x_dim)
@@ -62,8 +62,8 @@ def DMMF_test():
 
     # CT
     qx, qy = np.sqrt(1), np.sqrt(1)
-    rx, ry = np.sqrt(10), np.sqrt(10)
-    turn_rate = tlb.deg2rad(300) / (100 * T)
+    rx, ry = np.sqrt(1), np.sqrt(1)
+    turn_rate = tlb.deg2rad(300) / (200 * T)
     F = np.zeros((x_dim, x_dim))
     F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
     H = model.H_only_pos_meas(2, 1)
@@ -71,7 +71,7 @@ def DMMF_test():
     Q[:4, :4] = model.Q_ct2D_proc_noise(T, [qx, qy])
     ct_kf1 = ft.KFilter(F, L, H, M, Q, R)
 
-    turn_rate = tlb.deg2rad(420) / (100 * T)
+    turn_rate = tlb.deg2rad(60) / (200 * T)
     F = np.zeros((x_dim, x_dim))
     F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
     ct_kf2 = ft.KFilter(F, L, H, M, Q, R)
@@ -91,7 +91,7 @@ def DMMF_test():
     for n in range(-1, N - 1):
         if n == -1:
             # x_init, P_init = init.single_point_init(traj_meas[:, n + 1], R, 20)
-            x_init, P_init = start, 10*np.eye(x_dim)
+            x_init, P_init = start, np.eye(x_dim)
             dmmf.init(x_init, P_init)
             continue
         dmmf.step(traj_meas[:, n + 1])
@@ -104,16 +104,18 @@ def DMMF_test():
             subprob_arr[:, n] = dmmf.models()[2].probs()
     print(len(dmmf))
     print(dmmf)
+    print(post_state_arr[:, -1])
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x')
-    ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8)
-    ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange')
-    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
+    ax.axis('equal')
+    ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
+    ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
+    ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='meas')
+    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8, label='esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.legend(['real', 'meas', 'esti'])
+    ax.legend()
     ax.set_title('trajectory')
     plt.show()
 
