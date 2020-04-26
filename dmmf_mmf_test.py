@@ -80,8 +80,8 @@ def DMMF_test():
     mmf.add_models([ct_kf1, ct_kf2], [1/2, 1/2])
 
     # dmmf = ft.GPB1Filter()
-    # dmmf = ft.GPB2Filter()
-    dmmf = ft.IMMFilter()
+    dmmf = ft.GPB2Filter()
+    # dmmf = ft.IMMFilter()
     dmmf.add_models([cv_kf, ca_kf, mmf], [1/3, 1/3, 1/3], trans_mat)
 
     post_state_arr = np.empty((x_dim, N - 1))

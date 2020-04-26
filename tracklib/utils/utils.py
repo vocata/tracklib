@@ -130,7 +130,7 @@ def multi_normal(mean, cov, Ns=1, axis=0):
 
     Parameters
     ----------
-    mean : 1-D array_like, of length N
+    mean : 1-D array_like, of length N or int
         Mean of the N-dimensional distribution.
     cov : 2-D array_like, of shape (N, N)
         Covariance matrix of the distribution. It must be symmetric and

@@ -27,7 +27,7 @@ class MMFilter(KFBase):
     def __init__(self):
         super().__init__()
         self._models = []
-        self._probs = []
+        self._probs = None
         self._models_n = 0
 
     def __str__(self):
@@ -119,18 +119,10 @@ class MMFilter(KFBase):
         '''
         if self._models_n == 0:
             raise RuntimeError('models must be added before calling init')
-        if isinstance(state, list):
-            pass
-        elif isinstance(state, np.ndarray):
+        if isinstance(state, np.ndarray):
             state = [state] * self._models_n
-        else:
-            raise TypeError('state must be a ndarray, list, not %s' % state.__class__.__name__)
-        if isinstance(cov, list):
-            pass
-        elif isinstance(cov, np.ndarray):
+        if isinstance(cov, np.ndarray):
             cov = [cov] * self._models_n
-        else:
-            raise TypeError('cov must be a ndarray, list, not %s' % cov.__class__.__name__)
 
         for i in range(self._models_n):
             self._models[i].init(state[i], cov[i])
@@ -139,7 +131,7 @@ class MMFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs):
+    def add_models(self, models, probs=None):
         '''
         Add new model
 
@@ -147,25 +139,22 @@ class MMFilter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
-        probs : list, of length N
+        probs : 1-D array_like, of length N
             model probability
 
         Returns
         -------
             None
         '''
-        if not isinstance(models, list):
-            raise TypeError('models must be a list, not %s' %
-                            models.__class__.__name__)
-        if not isinstance(probs, list):
-            raise TypeError('probs must be a list, not %s' %
-                            probs.__class__.__name__)
         if len(models) != len(probs):
             raise ValueError('the length of models must be the same as probs')
 
-        self._models.extend(models)
-        self._probs.extend(probs)
         self._models_n = len(models)
+        self._models.extend(models)
+        if probs is None:
+            self._probs = np.ones(self._models_n) / self._models_n
+        else:
+            self._probs = np.copy(probs)
 
     def predict(self, u=None, **kw):
         assert (self._stage == 0)
@@ -174,6 +163,7 @@ class MMFilter(KFBase):
 
         for i in range(self._models_n):
             self._models[i].predict(u, **kw)
+        # update prior state and covariance
         self.__prior_update()
 
         self._stage = 1
@@ -194,9 +184,10 @@ class MMFilter(KFBase):
             pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
         # update innovation and associated covariance before updating the model probability
         self.__innov_update()
-        # normalize
-        self._probs[:] *= pdf
-        self._probs[:] /= np.sum(self._probs)
+        # update model probability
+        self._probs *= pdf
+        self._probs /= np.sum(self._probs)
+        # update posterior state and covariance
         self.__post_update()
 
         self._len += 1

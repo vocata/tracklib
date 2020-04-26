@@ -27,6 +27,10 @@ class KFBase(abc.ABC):
     def __len__(self):
         return self._len
 
+    # @abc.abstractmethod
+    # def distance(self, z):
+    #     pass
+
     @abc.abstractmethod
     def predict(self, *args, **kw):
         pass
