@@ -385,9 +385,12 @@ def analytic_ss(F, L, H, M, Q, R):
     Q_hat = L @ Q @ L.T
     R_hat = M @ R @ M.T
     prior_cov = lg.solve_discrete_are(F.T, H.T, Q_hat, R_hat)
+    prior_cov = (prior_cov + prior_cov.T) / 2
     innov_cov = H @ prior_cov @ H.T + R_hat
+    innov_cov = (innov_cov + innov_cov.T) / 2
     gain = prior_cov @ H.T @ lg.inv(innov_cov)
     post_cov = prior_cov - gain @ innov_cov @ gain.T
+    post_cov = (post_cov + post_cov.T) / 2
 
     return prior_cov, post_cov, innov_cov, gain
 
