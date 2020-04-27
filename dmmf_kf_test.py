@@ -65,12 +65,11 @@ def DMMF_test():
     Q[:4, :4] = model.Q_ct2D_proc_noise(T, [qx, qy])
     ct_kf = ft.KFilter(F, L, H, M, Q, R)
 
-    trans_mat = np.array([[0.99, 0.005, 0.005], [0.005, 0.99, 0.005], [0.005, 0.005, 0.99]])
     r = 3
     # dmmf = ft.GPB1Filter()
-    dmmf = ft.GPB2Filter()
-    # dmmf = ft.IMMFilter()
-    dmmf.add_models([cv_kf, ca_kf, ct_kf], [1.0 / r] * r, trans_mat)
+    # dmmf = ft.GPB2Filter()
+    dmmf = ft.IMMFilter()
+    dmmf.add_models([cv_kf, ca_kf, ct_kf])
 
     post_state_arr = np.empty((x_dim, N - 1))
     prob_arr = np.empty((r, N - 1))
@@ -87,8 +86,8 @@ def DMMF_test():
         prob_arr[:, n] = dmmf.probs()
     print(len(dmmf))
     print(dmmf)
-    print(post_state_arr[:, -1])
     print(dmmf.prior_state)
+    print(dmmf.post_state)
 
     # trajectory
     _, ax = plt.subplots()

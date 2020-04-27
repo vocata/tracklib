@@ -146,9 +146,6 @@ class MMFilter(KFBase):
         -------
             None
         '''
-        if len(models) != len(probs):
-            raise ValueError('the length of models must be the same as probs')
-
         self._models_n = len(models)
         self._models.extend(models)
         if probs is None:

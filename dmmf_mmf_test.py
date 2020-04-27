@@ -33,9 +33,6 @@ def DMMF_test():
     traj_real, traj_meas = traj(R)
     N = len(traj)
 
-    # add model
-    trans_mat = np.array([[0.99, 0.005, 0.005], [0.005, 0.99, 0.005], [0.005, 0.005, 0.99]])
-
     # CV
     qx, qy = np.sqrt(1), np.sqrt(1)
     rx, ry = np.sqrt(1), np.sqrt(1)
@@ -77,12 +74,12 @@ def DMMF_test():
     ct_kf2 = ft.KFilter(F, L, H, M, Q, R)
 
     mmf = ft.MMFilter()
-    mmf.add_models([ct_kf1, ct_kf2], [1/2, 1/2])
+    mmf.add_models([ct_kf1, ct_kf2])
 
     # dmmf = ft.GPB1Filter()
     dmmf = ft.GPB2Filter()
     # dmmf = ft.IMMFilter()
-    dmmf.add_models([cv_kf, ca_kf, mmf], [1/3, 1/3, 1/3], trans_mat)
+    dmmf.add_models([cv_kf, ca_kf, mmf])
 
     post_state_arr = np.empty((x_dim, N - 1))
     prob_arr = np.empty((3, N - 1))     # 2 models
