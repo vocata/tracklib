@@ -7,6 +7,7 @@ REFERENCE:
 [2]. M. S. Arulampalam, S. Maskell, N. Gordon and T. Clapp, "A tutorial on particle filters for online nonlinear/non-Gaussian Bayesian tracking," in IEEE Transactions on Signal Processing, vol. 50, no. 2, pp. 174-188, Feb. 2002.
 [3]. A. Doucet, J. F. G. de Freitas, and N. J. Gordon, Eds. "Sequential Monte Carlo Methods in Practice," New York: Springer-Verlag, 2001.
 [4]. A. Doucet, S. Godsill and C. Andrieu, "On sequential Monte Carlo sampling methods for Bayesian filtering," Statistics and Computing 10, 197–208 (2000).
+[5]. J. Candy, "Bayesian signal processing: Classical, modern, and particle filtering methods, second edition", Wiley Online Books, 2016
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -34,11 +35,11 @@ class SIRPFilter(PFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
-        self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._L = L.copy()
+        self._h = h.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._Ns = Ns
         self._Neff = Neff
         self._resample_alg = resample_alg
@@ -61,12 +62,16 @@ class SIRPFilter(PFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
-            if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
+
+        # resample, put this operation here for getting MAP estimate consistent with other particle filters
+        Neff = 1 / np.sum(self._weights**2)
+        if Neff <= self._Neff:
+            self._samples[:], _ = disc_random(self._weights, self._Ns, self._samples, alg=self._resample_alg)
+            self._weights[:] = 1 / self._Ns
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T
@@ -82,12 +87,6 @@ class SIRPFilter(PFBase):
             pdf *= np.exp(-0.5 * (z - z_prior) @ lg.inv(R_tilde) @ (z - z_prior))
             self._weights[i] *= pdf
         self._weights[:] = self._weights / np.sum(self._weights)    # normalize
-
-        # resample
-        Neff = 1 / np.sum(self._weights**2)
-        if Neff <= self._Neff:
-            self._samples[:], _ = disc_random(self._weights, self._Ns, self._samples, alg=self._resample_alg)
-            self._weights[:] = 1 / self._Ns
 
         self._len += 1
 
@@ -109,11 +108,11 @@ class RPFilter(PFBase):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
         self._Ns = Ns
         self._Neff = Neff
         self._kernal = kernal
@@ -138,12 +137,10 @@ class RPFilter(PFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
-            if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T

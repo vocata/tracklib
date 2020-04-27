@@ -27,16 +27,23 @@ class KFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, G=None, at=1):
+    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
         self._at = at
 
     def __str__(self):
@@ -46,11 +53,15 @@ class KFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
+
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -61,16 +72,16 @@ class KFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'F' in kw: self._F = kw['F']
-            if 'G' in kw: self._G = kw['G']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'F' in kw: self._F[:] = kw['F']
+            if 'G' in kw: self._G[:] = kw['G']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        ctl = 0 if u is None else self._G @ u
+        self._prior_state = self._F @ self._post_state + ctl
 
         self._stage = 1  # predict finished
 
@@ -79,12 +90,10 @@ class KFilter(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
-
         if len(kw) > 0:
-            if 'H' in kw: self._H = kw['H']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'H' in kw: self._H[:] = kw['H']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
         R_tilde = self._M @ self._R @ self._M.T
         z_prior = self._H @ self._prior_state
@@ -93,8 +102,8 @@ class KFilter(KFBase):
         self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
         self._gain = self._prior_cov @ self._H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
-        # The Joseph-form covariance update is used for improved numerical
-        temp = np.eye(x_dim) - self._gain @ self._H
+        # the Joseph-form covariance update is used for improving numerical
+        temp = np.eye(self._xdim) - self._gain @ self._H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
@@ -122,16 +131,23 @@ class SeqKFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, G=None, at=1):
+    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
         self._at = at
         R_tilde = self._M @ self._R @ self._M.T
         d, self._S = lg.eigh(R_tilde)
@@ -144,11 +160,15 @@ class SeqKFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
+
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -159,16 +179,16 @@ class SeqKFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'F' in kw: self._F = kw['F']
-            if 'G' in kw: self._G = kw['G']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'F' in kw: self._F[:] = kw['F']
+            if 'G' in kw: self._G[:] = kw['G']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        ctl = 0 if u is None else self._G @ u
+        self._prior_state = self._F @ self._post_state + ctl
 
         self._stage = 1  # predict finished
 
@@ -177,13 +197,10 @@ class SeqKFilter(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
-        z_dim = len(z)
-
         if len(kw) > 0:
-            if 'H' in kw: self._H = kw['H']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'H' in kw: self._H[:] = kw['H']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
             if 'M' in kw or 'R' in kw:
                 R_tilde = self._M @ self._R @ self._M.T
                 d, self._S = lg.eigh(R_tilde)
@@ -193,7 +210,7 @@ class SeqKFilter(KFBase):
         post_cov = self._prior_cov
         H_tilde = self._S.T @ self._H
         z_tilde = self._S.T @ z
-        for n in range(z_dim):
+        for n in range(self._zdim):
             H_n = H_tilde[n, :]
             z_n = z_tilde[n]
             r_n = self._D[n, n]
@@ -203,8 +220,8 @@ class SeqKFilter(KFBase):
             innov_cov = H_n @ post_cov @ H_n + r_n
             gain = (post_cov @ H_n) / innov_cov
             prior_state = prior_state + gain * innov
-            # The Joseph-form covariance update is used for improved numerical
-            temp = np.eye(x_dim) - np.outer(gain, H_n)
+            # the Joseph-form covariance update is used for improving numerical
+            temp = np.eye(self._xdim) - np.outer(gain, H_n)
             post_cov = temp @ post_cov @ temp.T + r_n * np.outer(gain, gain)
             post_cov = (post_cov + post_cov.T) / 2
         self._post_state = prior_state

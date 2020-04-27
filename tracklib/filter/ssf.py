@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-Steady-state Filter
+Steady-state Kalman filter
+This file contains alpha, alpha-beta, alpha-beta-gamma filter and generic steady-state Kalman filter,
+of which only generic steady-state Kalman filter can be used for multi-model filtering.
 
 REFERENCE:
 [1]. D. Simon, "Optimal State Estimation: Kalman, H Infinity, and Nonlinear Approaches," John Wiley and Sons, Inc., 2006.
@@ -10,12 +12,34 @@ REFERENCE:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['AlphaFilter', 'AlphaBetaFilter', 'AlphaBetaGammaFilter', 'SSFilter']
+__all__ = [
+    'get_alpha', 'AlphaFilter', 'get_alpha_beta', 'AlphaBetaFilter',
+    'get_alpha_beta_gamma', 'AlphaBetaGammaFilter', 'numerical_ss',
+    'analytic_ss', 'SSFilter'
+]
 
 import numpy as np
 import scipy.linalg as lg
 from .base import KFBase
 from tracklib.model import F_poly_trans, H_only_pos_meas
+
+
+def get_alpha(sigma_w, sigma_v, T):
+    '''
+    Obtain alpha and for which alpha filter becomes a steady-state Kalman filter
+    '''
+    if isinstance(sigma_w, (int, float)):
+        sigma_w = np.array([sigma_w], dtype=float)
+    elif isinstance(sigma_w, (list, tuple)):
+        sigma_w = np.array(sigma_w, dtype=float)
+    if isinstance(sigma_v, (int, float)):
+        sigma_v = np.array([sigma_v], dtype=float)
+    elif isinstance(sigma_v, (list, tuple)):
+        sigma_v = np.array(sigma_v, dtype=float)
+
+    lamb = sigma_w * T**2 / sigma_v
+    alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
+    return alpha
 
 
 class AlphaFilter(KFBase):
@@ -34,20 +58,26 @@ class AlphaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, axis, T):
+    def __init__(self, alpha, xdim, zdim, T):
         '''
-        axis : int
-            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-            2 means x-axis and y-axis, etc.
+        alpha : 1-D array-like, of length zdim
+        xdim : int
+        zdim : int
         T : float
             The time-duration of the propagation interval.
         '''
         super().__init__()
         self._alpha = alpha
+        self._xdim = xdim
+        self._wdim = zdim
+        self._zdim = zdim
+        self._vdim = zdim
         self._gain = np.diag(self._alpha)
 
-        self._F = F_poly_trans(0, axis, T)
-        self._H = H_only_pos_meas(0, axis)
+        order = xdim / zdim - 1
+        axis = zdim - 1
+        self._F = F_poly_trans(order, axis, T)
+        self._H = H_only_pos_meas(order, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -56,9 +86,8 @@ class AlphaFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state):
-        self._prior_state = state
-        self._post_state = state
+    def init(self, state, *args, **kw):
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -78,7 +107,8 @@ class AlphaFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
-        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+        self._innov = z - z_prior
+        self._post_state = self._prior_state + self._gain @ self._innov
 
         self._len += 1
         self._stage = 0
@@ -91,35 +121,26 @@ class AlphaFilter(KFBase):
         self.predict()
         self.update(z)
 
-    @staticmethod
-    def cal_params(sigma_w, sigma_v, T):
-        '''
-        Obtain alpha and for which alpha filter becomes a steady-state Kalman filter
-        '''
-        if isinstance(sigma_w, np.ndarray):
-            pass
-        elif isinstance(sigma_w, (int, float)):
-            sigma_w = np.array([sigma_w], dtype=float)
-        elif isinstance(sigma_w, (list, tuple)):
-            sigma_w = np.array(sigma_w, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_w.__class__.__name__)
-        if isinstance(sigma_v, np.ndarray):
-            pass
-        elif isinstance(sigma_v, (int, float)):
-            sigma_v = np.array([sigma_v], dtype=float)
-        elif isinstance(sigma_v, (list, tuple)):
-            sigma_v = np.array(sigma_v, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_v.__class__.__name__)
 
-        lamb = sigma_w * T**2 / sigma_v
-        alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
-        return alpha
+def get_alpha_beta(sigma_w, sigma_v, T):
+    '''
+    Obtain alpha, beta and for which alpha-beta filter becomes a steady-state Kalman filter
+    '''
+    if isinstance(sigma_w, (int, float)):
+        sigma_w = np.array([sigma_w], dtype=float)
+    elif isinstance(sigma_w, (list, tuple)):
+        sigma_w = np.array(sigma_w, dtype=float)
+    if isinstance(sigma_v, (int, float)):
+        sigma_v = np.array([sigma_v], dtype=float)
+    elif isinstance(sigma_v, (list, tuple)):
+        sigma_v = np.array(sigma_v, dtype=float)
+
+    lamb = sigma_w * T**2 / sigma_v
+    r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
+    alpha = 1 - r**2
+    beta = 2 * (2 - alpha) - 4 * np.sqrt(1 - alpha)
+    return alpha, beta
+
 
 class AlphaBetaFilter(KFBase):
     '''
@@ -137,20 +158,28 @@ class AlphaBetaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, beta, axis, T):
+    def __init__(self, alpha, beta, xdim, zdim, T):
         '''
-        axis : int
-            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-            2 means x-axis and y-axis, etc.
+        alpha : 1-D array-like, of length zdim
+        beta : 1-D array-like, of length zdim
+        xdim : int
+        zdim : int
         T : float
             The time-duration of the propagation interval.
         '''
         super().__init__()
         self._alpha = alpha
         self._beta = beta
+        self._xdim = xdim
+        self._wdim = zdim
+        self._zdim = zdim
+        self._vdim = zdim
+
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
         self._gain = np.vstack((diag_a, diag_b / self._T))
 
+        order = xdim / zdim - 1
+        axis = zdim - 1
         self._F = F_poly_trans(1, axis, T)
         self._H = H_only_pos_meas(1, axis)
 
@@ -161,9 +190,8 @@ class AlphaBetaFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state):
-        self._prior_state = state
-        self._post_state = state
+    def init(self, state, *args, **kw):
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -183,7 +211,8 @@ class AlphaBetaFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
-        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+        self._innov = z - z_prior
+        self._post_state = self._prior_state + self._gain @ self._innov
 
         self._len += 1
         self._stage = 0
@@ -196,40 +225,38 @@ class AlphaBetaFilter(KFBase):
         self.predict()
         self.update(z)
 
-    @staticmethod
-    def cal_params(sigma_w, sigma_v, T):
-        '''
-        Obtain alpha, beta and for which alpha-beta filter becomes a steady-state Kalman filter
-        '''
-        if isinstance(sigma_w, np.ndarray):
-            pass
-        elif isinstance(sigma_w, (int, float)):
-            sigma_w = np.array([sigma_w], dtype=float)
-        elif isinstance(sigma_w, (list, tuple)):
-            sigma_w = np.array(sigma_w, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_w.__class__.__name__)
-        if isinstance(sigma_v, np.ndarray):
-            pass
-        elif isinstance(sigma_v, (int, float)):
-            sigma_v = np.array([sigma_v], dtype=float)
-        elif isinstance(sigma_v, (list, tuple)):
-            sigma_v = np.array(sigma_v, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_v.__class__.__name__)
 
-        lamb = sigma_w * T**2 / sigma_v
-        r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
-        alpha = 1 - r**2
-        beta = 2 * (2 - alpha) - 4 * np.sqrt(1 - alpha)
-        return alpha, beta
+def get_alpha_beta_gamma(sigma_w, sigma_v, T):
+    '''
+    obtain alpha, beta and gamma for which
+    alpha-beta-gamma becomes a steady-state
+    Kalman filter
+    '''
+    if isinstance(sigma_w, (int, float)):
+        sigma_w = np.array([sigma_w], dtype=float)
+    elif isinstance(sigma_w, (list, tuple)):
+        sigma_w = np.array(sigma_w, dtype=float)
+    if isinstance(sigma_v, (int, float)):
+        sigma_v = np.array([sigma_v], dtype=float)
+    elif isinstance(sigma_v, (list, tuple)):
+        sigma_v = np.array(sigma_v, dtype=float)
+
+    lamb = sigma_w * T**2 / sigma_v
+    b = lamb / 2 - 3
+    c = lamb / 2 + 3
+    d = -1
+    p = c - b**2 / 3
+    q = 2 * b**3 / 27 - b * c / 3 + d
+    v = np.sqrt(q**2 + 4 * p**3 / 27)
+    z = -np.cbrt(q + v / 2)
+    s = z - p / (3 * z) - b / 3
+    alpha = 1 - s**2
+    beta = 2 * (1 - s)**2
+    gamma = beta**2 / (2 * alpha)
+    return alpha, beta, gamma
 
 
-class AlphaBetaGammaFilter():
+class AlphaBetaGammaFilter(KFBase):
     '''
     Alpha-beta-gamma filter(three-state Newtonian system)
 
@@ -245,11 +272,13 @@ class AlphaBetaGammaFilter():
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, beta, gamma, axis, T):
+    def __init__(self, alpha, beta, gamma, xdim, zdim, T):
         '''
-        axis : int
-            Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-            2 means x-axis and y-axis, etc.
+        alpha : 1-D array-like, of length zdim
+        beta : 1-D array-like, of length zdim
+        gamma : 1-D array-like, of length zdim
+        xdim : int
+        zdim : int
         T : float
             The time-duration of the propagation interval.
         '''
@@ -257,11 +286,18 @@ class AlphaBetaGammaFilter():
         self._alpha = alpha
         self._beta = beta
         self._gamma = gamma
+        self._xdim = xdim
+        self._wdim = zdim
+        self._zdim = zdim
+        self._vdim = zdim
+
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
         self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
 
+        order = xdim / zdim - 1
+        axis = zdim - 1
         self._F = F_poly_trans(2, axis, T)
-        self_H = H_only_pos_meas(2, axis)
+        self._H = H_only_pos_meas(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter:\n\n'
@@ -270,9 +306,8 @@ class AlphaBetaGammaFilter():
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state):
-        self._prior_state = state
-        self._post_state = state
+    def init(self, state, *args, **kw):
+        self._post_state = state.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -292,7 +327,8 @@ class AlphaBetaGammaFilter():
             raise RuntimeError('the filter must be initialized with init() before use')
 
         z_prior = self._H @ self._prior_state
-        self._post_state = self._prior_state + self._gain @ (z - z_prior)
+        self._innov = z - z_prior
+        self._post_state = self._prior_state + self._gain @ self._innov
 
         self._len += 1
         self._stage = 0
@@ -305,48 +341,55 @@ class AlphaBetaGammaFilter():
         self.predict()
         self.update(z)
 
-    @staticmethod
-    def cal_params(sigma_w, sigma_v, T):
-        '''
-        obtain alpha, beta and gamma for which
-        alpha-beta-gamma becomes a steady-state
-        Kalman filter
-        '''
-        if isinstance(sigma_w, np.ndarray):
-            pass
-        elif isinstance(sigma_w, (int, float)):
-            sigma_w = np.array([sigma_w], dtype=float)
-        elif isinstance(sigma_w, (list, tuple)):
-            sigma_w = np.array(sigma_w, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_w must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_w.__class__.__name__)
-        if isinstance(sigma_v, np.ndarray):
-            pass
-        elif isinstance(sigma_v, (int, float)):
-            sigma_v = np.array([sigma_v], dtype=float)
-        elif isinstance(sigma_v, (list, tuple)):
-            sigma_v = np.array(sigma_v, dtype=float)
-        else:
-            raise TypeError(
-                'sigma_v must be a int, float, list, tuple or ndarray, not %s' %
-                sigma_v.__class__.__name__)
 
-        lamb = sigma_w * T**2 / sigma_v
-        b = lamb / 2 - 3
-        c = lamb / 2 + 3
-        d = -1
-        p = c - b**2 / 3
-        q = 2 * b**3 / 27 - b * c / 3 + d
-        v = np.sqrt(q**2 + 4 * p**3 / 27)
-        z = -np.cbrt(q + v / 2)
-        s = z - p / (3 * z) - b / 3
-        alpha = 1 - s**2
-        beta = 2 * (1 - s)**2
-        gamma = beta**2 / (2 * alpha)
-        return alpha, beta, gamma
 
+def numerical_ss(P, F, L, H, M, Q, R, it=5):
+    '''
+    obtain numerical Kalman filter steady-state quantities using iterative method
+    note: 'it' can not be too large or it will diverge
+    '''
+    P = F @ P @ F.T + L @ Q @ L.T
+    F_inv = lg.inv(F)
+    Q_hat = L @ Q @ L.T
+    R_hat = M @ R @ M.T
+    R_inv = lg.inv(R_hat)
+    lt = F + Q_hat @ F_inv.T @ H.T @ R_inv @ H
+    rt = Q_hat @ F_inv.T
+    lb = F_inv.T @ H.T @ R_inv @ H
+    rb = F_inv.T
+    top = np.hstack((lt, rt))
+    bottom = np.hstack((lb, rb))
+    psi = np.vstack((top, bottom))
+    for _ in range(it):
+        np.matmul(psi, psi, out=psi)
+    I = np.eye(*P.shape)
+    tmp = psi @ np.vstack((P, I))
+    A_inf = tmp[:P.shape[0], :]
+    B_inf = tmp[P.shape[0]:, :]
+
+    prior_cov = A_inf @ lg.inv(B_inf)
+    prior_cov = (prior_cov + prior_cov.T) / 2
+    innov_cov = H @ prior_cov @ H.T + R_hat
+    innov_cov = (innov_cov + innov_cov.T) / 2
+    gain = prior_cov @ H.T @ lg.inv(innov_cov)
+    post_cov = prior_cov - gain @ innov_cov @ gain.T
+    post_cov = (post_cov + post_cov.T) / 2
+
+    return prior_cov, post_cov, innov_cov, gain
+
+def analytic_ss(F, L, H, M, Q, R):
+    '''
+    obtain analytic Kalman filter steady-state quantities by solving discrete-time algebraic Riccati equation 
+    '''
+    # lg.solve_discrete_are()
+    Q_hat = L @ Q @ L.T
+    R_hat = M @ R @ M.T
+    prior_cov = lg.solve_discrete_are(F.T, H.T, Q_hat, R_hat)
+    innov_cov = H @ prior_cov @ H.T + R_hat
+    gain = prior_cov @ H.T @ lg.inv(innov_cov)
+    post_cov = prior_cov - gain @ innov_cov @ gain.T
+
+    return prior_cov, post_cov, innov_cov, gain
 
 class SSFilter(KFBase):
     '''
@@ -360,16 +403,27 @@ class SSFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, G=None):
+    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, alg='riccati'):
         super().__init__()
 
-        self._F = F
-        self._L = L
-        self._H = H
-        self._M = M
-        self._Q = Q
-        self._R = R
-        self._G = G
+        self._F = F.copy()
+        self._L = L.copy()
+        self._H = H.copy()
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
+        if G is None:
+            self._G = G
+        else:
+            self._G = G.copy()
+        if alg == 'riccati' or alg == 'iterative':
+            self._alg = alg
+        else:
+            raise ValueError('unknown algorithem: %s' % alg)
 
     def __str__(self):
         msg = 'Steady-state linear Kalman filter'
@@ -378,22 +432,16 @@ class SSFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, cov, it=5):
-        self._state = state
-        self._cov = cov
-        self._prior_state = state
-        self._post_state = state
-        self._gain, self._prior_cov, self._post_cov = SSFilter.issv(cov,
-                                                                    self._F,
-                                                                    self._L,
-                                                                    self._H,
-                                                                    self._M,
-                                                                    self._Q,
-                                                                    self._R,
-                                                                    it=it)
-        R_tilde = self._M @ self._R @ self._M.T
-        self._innov_cov = self._H @ self._prior_cov @ self._H.T + R_tilde
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
+    def init(self, state, cov):
+        self._cov = cov.copy()
+        self._post_state = state.copy()
+        if self._alg == 'riccati':
+            self._prior_cov, self._post_cov, self._innov_cov, self._gain = analytic_ss(
+                self._F, self._L, self._H, self._M, self._Q, self._R)
+        else:
+            self._prior_cov, self._post_cov, self._innov_cov, self._gain = numerical_ss(
+                cov, self._F, self._L, self._H, self._M, self._Q, self._R)
+
         self._len = 0
         self._stage = 0
         self._init = True
@@ -427,32 +475,3 @@ class SSFilter(KFBase):
 
         self.predict(u)
         self.update(z)
-
-    @staticmethod
-    def issv(P, F, L, H, M, Q, R, it):
-        '''
-        obtain Kalman filter steady-state value using iterative method
-        note: "it" value can not be too large or it will diverge
-        '''
-        F_inv = lg.inv(F)
-        Q_hat = L @ Q @ L.T
-        R_hat = M @ R @ M.T
-        R_inv = lg.inv(R_hat)
-        lt = F + Q_hat @ F_inv.T @ H.T @ R_inv @ H
-        rt = Q_hat @ F_inv.T
-        lb = F_inv.T @ H.T @ R_inv @ H
-        rb = F_inv.T
-        top = np.hstack((lt, rt))
-        bottom = np.hstack((lb, rb))
-        psi = np.vstack((top, bottom))
-        for _ in range(it):
-            np.matmul(psi, psi, out=psi)
-        I = np.eye(*P.shape)
-        tmp = psi @ np.vstack((P, I))
-        A_inf = tmp[:P.shape[0], :]
-        B_inf = tmp[P.shape[0]:, :]
-        prior_cov = A_inf @ lg.inv(B_inf)
-        K = prior_cov @ H.T @ lg.inv(H @ prior_cov @ H.T + R_hat)
-        post_cov = (I - K @ H) @ prior_cov @ (I - K @ H).T + K @ R_hat @ K.T
-
-        return K, prior_cov, post_cov

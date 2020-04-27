@@ -18,40 +18,40 @@ the program may yield uncertain result.
 def UKFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = model.F_poly_trans(1, 1, T)
-    L = np.eye(x_dim)
+    L = np.eye(xdim)
     f = lambda x, u, w: F @ x + L @ w
     Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
 
-    M = np.eye(z_dim)
+    M = np.eye(zdim)
     h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
     R = model.R_only_pos_meas_noise(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
-    # P = 1 * np.eye(x_dim)
+    # P = 1 * np.eye(xdim)
 
     # factory = ft.SimplexSigmaPoints()
     # factory = ft.SphericalSimplexSigmaPoints()
     # factory = ft.SymmetricSigmaPoints()       # turn to CKF
     factory = ft.ScaledSigmaPoints()
 
-    ukf = ft.UKFilterNAN(f, h, Q, R, factory=factory)
+    ukf = ft.UKFilterNAN(f, h, Q, R, xdim, zdim, factory=factory)
     # ukf.init(x, P)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    prior_state_arr = np.empty((x_dim, N))
-    post_state_arr = np.empty((x_dim, N))
-    prior_cov_arr = np.empty((x_dim, x_dim, N))
-    post_cov_arr = np.empty((x_dim, x_dim, N))
-    innov_arr = np.empty((z_dim, N))
-    innov_cov_arr = np.empty((z_dim, z_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    prior_state_arr = np.empty((xdim, N))
+    post_state_arr = np.empty((xdim, N))
+    prior_cov_arr = np.empty((xdim, xdim, N))
+    post_cov_arr = np.empty((xdim, xdim, N))
+    innov_arr = np.empty((zdim, N))
+    innov_cov_arr = np.empty((zdim, zdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -61,7 +61,7 @@ def UKFilter_test():
         z = h(x, v)
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
-            # P_init = 10 * np.eye(x_dim)
+            # P_init = 10 * np.eye(xdim)
             ukf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
@@ -81,6 +81,9 @@ def UKFilter_test():
         innov_cov_arr[:, :, n] = innov_cov
     print(len(ukf))
     print(ukf)
+
+    state_err = state_arr - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # plot
     n = np.arange(N)

@@ -16,32 +16,32 @@ the program may yield uncertain result.
 def SSFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rx, ry = np.sqrt(1), np.sqrt(1)
 
     F = model.F_poly_trans(1, 1, T)
     H = model.H_only_pos_meas(1, 1)
-    L = np.eye(x_dim)
-    M = np.eye(z_dim)
+    L = np.eye(xdim)
+    M = np.eye(zdim)
     Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
     R = model.R_only_pos_meas_noise(1, [rx, ry])
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x_dim)
+    P = 100 * np.eye(xdim)
 
-    ssf = ft.SSFilter(F, L, H, M, Q, R)
+    ssf = ft.SSFilter(F, L, H, M, Q, R, xdim, zdim, alg='iterative')
     ssf.init(x, P)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    prior_state_arr = np.empty((x_dim, N))
-    post_state_arr = np.empty((x_dim, N))
-    prior_cov_arr = np.empty((x_dim, x_dim, N))
-    post_cov_arr = np.empty((x_dim, x_dim, N))
-    innov_arr = np.empty((z_dim, N))
-    innov_cov_arr = np.empty((z_dim, z_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    prior_state_arr = np.empty((xdim, N))
+    post_state_arr = np.empty((xdim, N))
+    prior_cov_arr = np.empty((xdim, xdim, N))
+    post_cov_arr = np.empty((xdim, xdim, N))
+    innov_arr = np.empty((zdim, N))
+    innov_cov_arr = np.empty((zdim, zdim, N))
 
     for n in range(N):
         w = tlb.multi_normal(0, Q)
@@ -66,6 +66,9 @@ def SSFilter_test():
         innov_cov_arr[:, :, n] = innov_cov
     print(len(ssf))
     print(ssf)
+
+    state_err = state_arr - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # plot
     n = np.arange(N)

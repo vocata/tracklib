@@ -16,30 +16,30 @@ the program may yield uncertain result.
 def SeqKFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rx, ry = np.sqrt(1), np.sqrt(1)
 
     F = model.F_poly_trans(1, 1, T)
     H = model.H_only_pos_meas(1, 1)
-    L = np.eye(x_dim)
-    M = np.eye(z_dim)
+    L = np.eye(xdim)
+    M = np.eye(zdim)
     Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
     R = model.R_only_pos_meas_noise(1, [rx, ry])
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
-    P = 100 * np.eye(x_dim)
+    P = 100 * np.eye(xdim)
 
-    seqkf = ft.SeqKFilter(F, L, H, M, Q, R)
+    seqkf = ft.SeqKFilter(F, L, H, M, Q, R, xdim, zdim)
     seqkf.init(x, P) 
 
-    state_arr = np.zeros((x_dim, N))
-    measure_arr = np.zeros((z_dim, N))
-    prior_state_arr = np.zeros((x_dim, N))
-    post_state_arr = np.zeros((x_dim, N))
-    prior_cov_arr = np.zeros((x_dim, x_dim, N))
-    post_cov_arr = np.zeros((x_dim, x_dim, N))
+    state_arr = np.zeros((xdim, N))
+    measure_arr = np.zeros((zdim, N))
+    prior_state_arr = np.zeros((xdim, N))
+    post_state_arr = np.zeros((xdim, N))
+    prior_cov_arr = np.zeros((xdim, xdim, N))
+    post_cov_arr = np.zeros((xdim, xdim, N))
 
     for n in range(N):
         w = tlb.multi_normal(0, Q)
@@ -60,6 +60,9 @@ def SeqKFilter_test():
         post_cov_arr[:, :, n] = post_cov
     print(len(seqkf))
     print(seqkf)
+
+    state_err = state_arr - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # plot
     n = np.arange(N)

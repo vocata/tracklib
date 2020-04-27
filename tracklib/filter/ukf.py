@@ -36,15 +36,19 @@ class UKFilterAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, factory):
+    def __init__(self, f, L, h, M, Q, R, xdim, zdim, factory):
         super().__init__()
 
         self._f = f
-        self._L = L
+        self._L = L.copy()
         self._h = h
-        self._M = M
-        self._Q = Q
-        self._R = R
+        self._M = M.copy()
+        self._Q = Q.copy()
+        self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         self._factory = factory
 
     def __str__(self):
@@ -54,11 +58,15 @@ class UKFilterAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
+
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._factory.init(len(state))
         self._len = 0
         self._stage = 0
@@ -70,9 +78,8 @@ class UKFilterAN(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
-            if 'L' in kw: self._L = kw['L']
-            if 'Q' in kw: self._Q = kw['Q']
+            if 'L' in kw: self._L[:] = kw['L']
+            if 'Q' in kw: self._Q[:] = kw['Q']
 
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
@@ -100,16 +107,14 @@ class UKFilterAN(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'h' in kw: self._h = kw['h']
-            if 'M' in kw: self._M = kw['M']
-            if 'R' in kw: self._R = kw['R']
+            if 'M' in kw: self._M[:] = kw['M']
+            if 'R' in kw: self._R[:] = kw['R']
 
-        z_dim = len(z)
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
         points = self._factory.sigma_points(self._prior_state, self._prior_cov)
 
-        self.__h_map = np.zeros((z_dim, pts_num))
+        self.__h_map = np.zeros((self._zdim, pts_num))
         z_prior = 0
         for i in range(pts_num):
             h_map = self._h(points[:, i])
@@ -156,7 +161,7 @@ class UKFilterNAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, factory, epsilon=0.01):
+    def __init__(self, f, h, Q, R, xdim, zdim, factory, epsilon=0.01):
         super().__init__()
 
         self._f = f
@@ -165,6 +170,10 @@ class UKFilterNAN(KFBase):
         # on the diagonal can make it positive definite.
         self._Q = Q + epsilon * np.diag(Q.diagonal())
         self._R = R + epsilon * np.diag(R.diagonal())
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         self._factory = factory
 
     def __str__(self):
@@ -174,11 +183,15 @@ class UKFilterNAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
+    def _set_post_state(self, state):
+        self._post_state[:] = state
+    
+    def _set_post_cov(self, cov):
+        self._post_cov[:] = cov
+
     def init(self, state, cov):
-        self._prior_state = state
-        self._prior_cov = cov
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._factory.init(len(state) + self._Q.shape[0] + self._R.shape[0])
         self._len = 0
         self._stage = 0
@@ -189,21 +202,16 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
-        w_dim = self._Q.shape[0]
-        v_dim = self._R.shape[0]
-
-        if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
-            if 'Q' in kw: self._Q = kw['Q']
+        if 'Q' in kw: self._Q[:] = kw['Q']
 
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
+
         post_cov_asm = lg.block_diag(self._post_cov, self._Q, self._R)
-        post_state_asm = np.concatenate((self._post_state, np.zeros(w_dim), np.zeros(v_dim)))
+        post_state_asm = np.concatenate((self._post_state, np.zeros(self._wdim), np.zeros(self._vdim)))
         pts_asm = self._factory.sigma_points(post_state_asm, post_cov_asm)
-        pts = pts_asm[:x_dim, :]
-        w_pts = pts_asm[x_dim:x_dim + w_dim, :]
+        pts = pts_asm[:self._xdim, :]
+        w_pts = pts_asm[self._xdim:self._xdim + self._wdim, :]
 
         self.__f_map = np.zeros_like(pts)
         self._prior_state = 0
@@ -225,25 +233,18 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._prior_state)
-        w_dim = self._Q.shape[0]
-        v_dim = self._R.shape[0]
+        if 'R' in kw: self._R[:] = kw['R']
 
-        if len(kw) > 0:
-            if 'h' in kw: self._h = kw['h']
-            if 'R' in kw: self._R = kw['R']
-
-        z_dim = len(z)
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
 
         prior_cov_asm = lg.block_diag(self._prior_cov, self._Q, self._R)
-        prior_state_asm = np.concatenate((self._prior_state, np.zeros(w_dim), np.zeros(v_dim)))
+        prior_state_asm = np.concatenate((self._prior_state, np.zeros(self._wdim), np.zeros(self._vdim)))
         pts_asm = self._factory.sigma_points(prior_state_asm, prior_cov_asm)
-        pts = pts_asm[:x_dim, :]
-        v_pts = pts_asm[x_dim + w_dim:, :]
+        pts = pts_asm[:self._xdim, :]
+        v_pts = pts_asm[self._xdim + self._wdim:, :]
 
-        self.__h_map = np.zeros((z_dim, pts_num))
+        self.__h_map = np.zeros((self._zdim, pts_num))
         z_prior = 0
         for i in range(pts_num):
             h_map = self._h(pts[:, i], v_pts[:, i])
@@ -281,7 +282,10 @@ class SimplexSigmaPoints():
     def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -306,13 +310,11 @@ class SimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0])
@@ -337,7 +339,10 @@ class SphericalSimplexSigmaPoints():
     def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -361,13 +366,11 @@ class SphericalSimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0])
@@ -390,10 +393,16 @@ class SphericalSimplexSigmaPoints():
 
 class SymmetricSigmaPoints():
     '''
-    Note that if select symmetric sigma points then UKF will become CKF
+    Note that if symmetrical sigma points are selected, UKF is CKF.
+    This symmetric sample point set often results in better statistical
+    stability and avoids divergence which might occur in UKF, especially
+    when running in a single-precision platform. 
     '''
     def __init__(self, decompose='cholesky'):
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -415,13 +424,11 @@ class SymmetricSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         pts = np.zeros((self._dim, 2 * self._dim))
         for i in range(self._dim):
@@ -446,11 +453,16 @@ class ScaledSigmaPoints():
             to sigma points closer to the mean state. The spread is proportional to the
             square-root of kappa. if kappa = 3 - n, n is the dimension of state, it is
             possible to match some of the fourth order terms when state is Gaussian.
+        Note that a CKF is essentially equivalent to a UKF when the parameters are set 
+        to alpha = 1, beta = 0, and kappa = 0
         '''
         self._alpha = alpha
         self._beta = beta
         self._kappa = kappa
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -481,11 +493,9 @@ class ScaledSigmaPoints():
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         pts = np.zeros((self._dim, 2 * self._dim + 1))
         pts[:, -1] = mean

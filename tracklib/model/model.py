@@ -7,12 +7,14 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly_trans', 'Q_dc_ploy_proc_noise', 'Q_dd_poly_proc_noise',
-    'H_only_pos_meas', 'R_only_pos_meas_noise'
+    'F_poly_trans', 'F_ct2D_trans', 'Q_dc_ploy_proc_noise',
+    'Q_dd_poly_proc_noise', 'Q_ct2D_proc_noise', 'H_only_pos_meas',
+    'R_only_pos_meas_noise', 'Trajectory2D'
 ]
 
 import numpy as np
 import scipy.linalg as lg
+from tracklib.utils import multi_normal
 from scipy.special import factorial
 
 
@@ -52,6 +54,21 @@ def F_poly_trans(order, axis, T):
 
 
 # F = F_poly_trans(2, 3, 2)
+# print(F)
+
+
+def F_ct2D_trans(turn_rate, T):
+    w = turn_rate
+    sin_val = np.sin(w * T)
+    cos_val = np.cos(w * T)
+    sin_rat = sin_val / w
+    cos_rat = (1 - cos_val) / w
+    F = np.array([[1, 0, sin_rat, -cos_rat], [0, 1, cos_rat, sin_rat],
+                  [0, 0, cos_val, -sin_val], [0, 0, sin_val, cos_val]])
+    return F
+
+
+# F = F_ct2D_trans(np.pi / 8, 1)
 # print(F)
 
 
@@ -147,7 +164,31 @@ def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
     return Q
 
 
-# Q = Q_dd_proc_noise(2, 2, 1, [1, 2, 3], 1)
+# Q = Q_dd_poly_proc_noise(1, 1, 1, [1, 2], 1)
+# print(Q)
+
+
+def Q_ct2D_proc_noise(T, std):
+    '''
+    Process noise covariance matrix used with coordinated turn model.
+    see [1] section 11.7.
+
+    Parameters
+    ----------
+    T : float
+        The time-duration of the propagation interval.
+    std : number, list or ndarray
+        The standard deviation of discrete-time porcess noise
+
+    Returns
+    -------
+    Q : ndarray
+        Process noise convariance
+    '''
+    return Q_dd_poly_proc_noise(1, 1, T, std, 1)
+
+
+# Q = Q_ct2D_proc_noise(0.38, [1, 2])
 # print(Q)
 
 
@@ -170,11 +211,10 @@ def H_only_pos_meas(order, axis):
     H : ndarray
         the measurement or obervation matrix
     '''
-    assert (0 <= order)
-    assert (0 <= axis)
+    assert (order >= 0)
+    assert (axis >= 0)
 
-    H = np.zeros((axis + 1, (order + 1) * (axis + 1)))
-    H[:axis + 1, :axis + 1] = np.eye(axis + 1)
+    H = np.eye(axis + 1, (order + 1) * (axis + 1))
 
     return H
 
@@ -189,3 +229,97 @@ def R_only_pos_meas_noise(axis, std):
     R = np.diag(std)**2
 
     return R
+
+class Trajectory2D():
+    def __init__(self, T, start=np.zeros(6)):
+        self._T = T
+        self._head = start.copy()
+        self._state = []
+        self._len = 0
+        self._x_dim = 6
+
+    def __len__(self):
+        return self._len
+
+    def __call__(self, R):
+        H = H_only_pos_meas(2, 1)
+        state = np.concatenate(self._state, axis=1)
+        traj_real = np.dot(H, state)
+        v = multi_normal(0, R, self._len, axis=1)
+        traj_meas = traj_real + v
+        return traj_real, traj_meas
+
+    def add_stage(self, stages):
+        '''
+        stage are list of dicts, for example:
+        stage = [
+            {'model': 'cv', 'len': 100, 'velocity': [30, 20]},
+            {'model': 'ca', 'len': 100, 'acceleration': [10, 30]},
+            {'model': 'ct', 'len': 100, 'omega': pi}
+        ]
+        '''
+        for i in range(len(stages)):
+            mdl = stages[i]['model']
+            traj_len = stages[i]['len']
+            self._len += traj_len
+            state = np.zeros((self._x_dim, traj_len))
+
+            if mdl.lower() == 'cv':
+                F = F_poly_trans(1, 1, self._T)
+                v = stages[i]['velocity']
+                if v[0] is not None:
+                    self._head[2] = v[0]
+                if v[1] is not None:
+                    self._head[3] = v[1]
+
+                for i in range(traj_len):
+                    self._head[0: 4] = np.dot(F, self._head[0: 4])
+                    state[:, i] = self._head
+            elif mdl.lower() == 'ca':
+                F = F_poly_trans(2, 1, self._T)
+                a = stages[i]['acceleration']
+                if a[0] is not None:
+                    self._head[4] = a[0]
+                if a[1] is not None:
+                    self._head[5] = a[1]
+
+                for i in range(traj_len):
+                    self._head[:] = np.dot(F, self._head)
+                    state[:, i] = self._head
+            elif mdl.lower() == 'ct':
+                F = F_ct2D_trans(stages[i]['omega'], self._T)
+
+                for i in range(traj_len):
+                    self._head[0: 4] = np.dot(F, self._head[0: 4])
+                    state[:, i] = self._head
+            else:
+                raise ValueError('invalid model')
+
+            self._state.append(state)
+
+# start = np.array([100.0, 100.0, 0.0, 0.0, 0.0, 0.0])
+# T = 0.1
+# traj = Trajectory2D(T, start)
+# stages = []
+# stages.append({'model': 'cv', 'len': 100, 'velocity': [30, 0]})
+# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(300) / (100 * T)})
+# stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
+# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(60) / (100 * T)})
+# stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
+# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(90) / (100 * T)})
+# stages.append({'model': 'ca', 'len': 100, 'acceleration': [0, 10]})
+# traj.add_stage(stages)
+
+# R = 10 * np.eye(2)
+# traj_real, traj_meas = traj(R)
+
+# # trajectory
+# _, ax = plt.subplots()
+# ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
+# ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
+# ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='meas')
+# ax.set_xlabel('x')
+# ax.set_ylabel('y')
+# ax.legend()
+# ax.set_title('trajectory')
+# plt.show()
