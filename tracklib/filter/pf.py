@@ -62,10 +62,8 @@ class SIRPFilter(PFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
             if 'L' in kw: self._L[:] = kw['L']
             if 'Q' in kw: self._Q[:] = kw['Q']
-            if 'h' in kw: self._h = kw['h']
             if 'M' in kw: self._M[:] = kw['M']
             if 'R' in kw: self._R[:] = kw['R']
 
@@ -139,10 +137,8 @@ class RPFilter(PFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
             if 'L' in kw: self._L[:] = kw['L']
             if 'Q' in kw: self._Q[:] = kw['Q']
-            if 'h' in kw: self._h = kw['h']
             if 'M' in kw: self._M[:] = kw['M']
             if 'R' in kw: self._R[:] = kw['R']
 
