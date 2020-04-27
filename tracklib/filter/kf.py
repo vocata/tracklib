@@ -27,7 +27,7 @@ class KFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, G=None, at=1):
+    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
         super().__init__()
 
         self._F = F.copy()
@@ -36,6 +36,10 @@ class KFilter(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         if G is None:
             self._G = G
         else:
@@ -74,10 +78,10 @@ class KFilter(KFBase):
             if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        ctl = 0 if u is None else self._G @ u
+        self._prior_state = self._F @ self._post_state + ctl
 
         self._stage = 1  # predict finished
 
@@ -85,8 +89,6 @@ class KFilter(KFBase):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
-
-        x_dim = len(self._post_state)
 
         if len(kw) > 0:
             if 'H' in kw: self._H[:] = kw['H']
@@ -101,7 +103,7 @@ class KFilter(KFBase):
         self._gain = self._prior_cov @ self._H.T @ lg.inv(self._innov_cov)
         self._post_state = self._prior_state + self._gain @ self._innov
         # the Joseph-form covariance update is used for improving numerical
-        temp = np.eye(x_dim) - self._gain @ self._H
+        temp = np.eye(self._xdim) - self._gain @ self._H
         self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
@@ -129,7 +131,7 @@ class SeqKFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, G=None, at=1):
+    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
         super().__init__()
 
         self._F = F.copy()
@@ -138,6 +140,10 @@ class SeqKFilter(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         if G is None:
             self._G = G
         else:
@@ -179,10 +185,10 @@ class SeqKFilter(KFBase):
             if 'Q' in kw: self._Q[:] = kw['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        ctl = 0 if u is None else self._G @ u
+        self._prior_state = self._F @ self._post_state + ctl
 
         self._stage = 1  # predict finished
 
@@ -190,9 +196,6 @@ class SeqKFilter(KFBase):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
-
-        x_dim = len(self._post_state)
-        z_dim = len(z)
 
         if len(kw) > 0:
             if 'H' in kw: self._H[:] = kw['H']
@@ -207,7 +210,7 @@ class SeqKFilter(KFBase):
         post_cov = self._prior_cov
         H_tilde = self._S.T @ self._H
         z_tilde = self._S.T @ z
-        for n in range(z_dim):
+        for n in range(self._zdim):
             H_n = H_tilde[n, :]
             z_n = z_tilde[n]
             r_n = self._D[n, n]
@@ -218,7 +221,7 @@ class SeqKFilter(KFBase):
             gain = (post_cov @ H_n) / innov_cov
             prior_state = prior_state + gain * innov
             # the Joseph-form covariance update is used for improving numerical
-            temp = np.eye(x_dim) - np.outer(gain, H_n)
+            temp = np.eye(self._xdim) - np.outer(gain, H_n)
             post_cov = temp @ post_cov @ temp.T + r_n * np.outer(gain, gain)
             post_cov = (post_cov + post_cov.T) / 2
         self._post_state = prior_state
