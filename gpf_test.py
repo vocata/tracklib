@@ -19,32 +19,32 @@ def GPFilter_test():
     N, T = 200, 1
     Ns = 200
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = model.F_poly_trans(1, 1, T)
-    L = np.eye(x_dim)
+    L = np.eye(xdim)
     f = lambda x, u: F @ x
     Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
 
-    M = np.eye(z_dim)
+    M = np.eye(zdim)
     h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
     R = model.R_only_pos_meas_noise(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
-    # P = 10 * np.eye(x_dim)
+    # P = 10 * np.eye(xdim)
 
-    gpf = ft.GPFilter(f, L, h, M, Q, R, Ns=Ns)
+    gpf = ft.GPFilter(f, L, h, M, Q, R, xdim, zdim, Ns=Ns)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    prior_state_arr = np.empty((x_dim, N))
-    post_state_arr = np.empty((x_dim, N))
-    prior_cov_arr = np.empty((x_dim, x_dim, N))
-    post_cov_arr = np.empty((x_dim, x_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    prior_state_arr = np.empty((xdim, N))
+    post_state_arr = np.empty((xdim, N))
+    prior_cov_arr = np.empty((xdim, xdim, N))
+    post_cov_arr = np.empty((xdim, xdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -54,7 +54,7 @@ def GPFilter_test():
         z = h(x) + M @ v
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
-            # P_init = 10 * np.eye(x_dim)
+            # P_init = 10 * np.eye(xdim)
             gpf.init(x_init, P_init)
             continue
         state_arr[:, n] = x

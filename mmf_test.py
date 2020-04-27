@@ -17,7 +17,7 @@ def MMFilter_test():
     N, T = 200, 1
     model_n = 3
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     mmf = ft.MMFilter()
     models = []
     probs = []
@@ -27,26 +27,26 @@ def MMFilter_test():
 
         F = model.F_poly_trans(1, 1, T)
         H = model.H_only_pos_meas(1, 1)
-        L = np.eye(x_dim)
-        M = np.eye(z_dim)
+        L = np.eye(xdim)
+        M = np.eye(zdim)
         Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
         R = model.R_only_pos_meas_noise(1, [rx, ry])
 
-        sub_filter = ft.KFilter(F, L, H, M, Q, R)
+        sub_filter = ft.KFilter(F, L, H, M, Q, R, xdim, zdim)
         models.append(sub_filter)
         probs.append(1 / model_n)
     mmf.add_models(models, probs)
 
     # initial state and error convariance
     x = np.array([1, 2, 0.2, 0.3])
-    P = 10 * np.eye(x_dim)
+    P = 10 * np.eye(xdim)
 
     mmf.init(x, P)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    weighted_state_arr = np.empty((x_dim, N))
-    maxprob_state_arr = np.empty((x_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    weighted_state_arr = np.empty((xdim, N))
+    maxprob_state_arr = np.empty((xdim, N))
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):

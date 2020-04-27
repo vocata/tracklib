@@ -21,7 +21,7 @@ def GSEKFilter_test():
     N, T = 200, 1
     model_n = 3
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     gsf = ft.MMFilter()
     models = []
     probs = []
@@ -33,15 +33,15 @@ def GSEKFilter_test():
 
         F = model.F_poly_trans(1, 1, T)
         f = lambda x, u: F @ x
-        L = np.eye(x_dim)
+        L = np.eye(xdim)
         Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
 
         h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
-        M = np.eye(z_dim)
+        M = np.eye(zdim)
         R = model.R_only_pos_meas_noise(1, [rr, ra])
 
         # sub_filter = ft.KFilter(F, L, H, M, Q, R)
-        sub_filter = ft.EKFilterAN(f, L, h, M, Q, R, order=1, it=0)
+        sub_filter = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim, order=1, it=0)
         models.append(sub_filter)
         probs.append(1 / model_n)
     gsf.add_models(models, probs)
@@ -50,13 +50,13 @@ def GSEKFilter_test():
     x = np.array([1, 2, 0.2, 0.3])
     P = []
     for i in range(model_n):
-        P.append((10 + i * 5) * np.eye(x_dim))
+        P.append((10 + i * 5) * np.eye(xdim))
 
     gsf.init(x, P)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    post_state_arr = np.empty((x_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    post_state_arr = np.empty((xdim, N))
     prob_arr = np.empty((model_n, N))
 
     for n in range(N):
