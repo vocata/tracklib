@@ -18,50 +18,50 @@ the program may yield uncertain result.
 def EKFilter_test():
     N, T = 200, 1
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
     # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
     qx, qy = np.sqrt(0.01), np.sqrt(0.01)
     rr, ra = np.sqrt(0.1), np.sqrt(0.01)
 
     F = model.F_poly_trans(1, 1, T)
-    L = np.eye(x_dim)
-    f = lambda x, u: F @ x
-    # f = lambda x, u, w: F @ x + L @ w
+    L = np.eye(xdim)
+    # f = lambda x, u: F @ x
+    f = lambda x, u, w: F @ x + L @ w
     Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
 
-    M = np.eye(z_dim)
-    h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
-    # h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
+    M = np.eye(zdim)
+    # h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
+    h = lambda x, v: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])]) + M @ v
     R = model.R_only_pos_meas_noise(1, [rr, ra])
 
     x = np.array([1, 2, 0.2, 0.3])
-    # P = 10 * np.eye(x_dim)
+    # P = 10 * np.eye(xdim)
 
-    ekf = ft.EKFilterAN(f, L, h, M, Q, R, order=1, it=1)
-    # ekf = ft.EKFilterNAN(f, h, Q, R, order=1, it=1)
+    # ekf = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim, order=2, it=1)
+    ekf = ft.EKFilterNAN(f, h, Q, R, xdim, zdim, order=2, it=1)
     # ekf.init(x, P)
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    prior_state_arr = np.empty((x_dim, N))
-    post_state_arr = np.empty((x_dim, N))
-    prior_cov_arr = np.empty((x_dim, x_dim, N))
-    post_cov_arr = np.empty((x_dim, x_dim, N))
-    innov_arr = np.empty((z_dim, N))
-    innov_cov_arr = np.empty((z_dim, z_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    prior_state_arr = np.empty((xdim, N))
+    post_state_arr = np.empty((xdim, N))
+    prior_cov_arr = np.empty((xdim, xdim, N))
+    post_cov_arr = np.empty((xdim, xdim, N))
+    innov_arr = np.empty((zdim, N))
+    innov_cov_arr = np.empty((zdim, zdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
         v = tlb.multi_normal(0, R)
 
-        x = f(x, 0) + L @ w
-        z = h(x) + M @ v
-        # x = f(x, 0, w)
-        # z = h(x, v)
+        # x = f(x, 0) + L @ w
+        # z = h(x) + M @ v
+        x = f(x, 0, w)
+        z = h(x, v)
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
-            # P_init = 10 * np.eye(x_dim)
+            # P_init = 10 * np.eye(xdim)
             ekf.init(x_init, P_init)
             continue
         state_arr[:, n] = x

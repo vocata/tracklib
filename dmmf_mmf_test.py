@@ -23,9 +23,9 @@ def DMMF_test():
     traj = model.Trajectory2D(T, start)
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'velocity': [10, 0]})
-    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(300) / (200 * T)})
+    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(270) / (200 * T)})
     stages.append({'model': 'cv', 'len': 200, 'velocity': [None, None]})
-    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(60) / (200 * T)})
+    stages.append({'model': 'ct', 'len': 200, 'omega': tlb.deg2rad(90) / (200 * T)})
     stages.append({'model': 'cv', 'len': 200, 'velocity': [None, None]})
     stages.append({'model': 'ca', 'len': 200, 'acceleration': [10, 0]})
     traj.add_stage(stages)
@@ -60,7 +60,7 @@ def DMMF_test():
     # CT
     qx, qy = np.sqrt(1), np.sqrt(1)
     rx, ry = np.sqrt(1), np.sqrt(1)
-    turn_rate = tlb.deg2rad(300) / (200 * T)
+    turn_rate = tlb.deg2rad(270) / (200 * T)
     F = np.zeros((x_dim, x_dim))
     F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
     H = model.H_only_pos_meas(2, 1)
@@ -68,7 +68,7 @@ def DMMF_test():
     Q[:4, :4] = model.Q_ct2D_proc_noise(T, [qx, qy])
     ct_kf1 = ft.KFilter(F, L, H, M, Q, R)
 
-    turn_rate = tlb.deg2rad(60) / (200 * T)
+    turn_rate = tlb.deg2rad(90) / (200 * T)
     F = np.zeros((x_dim, x_dim))
     F[:4, :4] = model.F_ct2D_trans(turn_rate, T)
     ct_kf2 = ft.KFilter(F, L, H, M, Q, R)
@@ -77,8 +77,8 @@ def DMMF_test():
     mmf.add_models([ct_kf1, ct_kf2])
 
     # dmmf = ft.GPB1Filter()
-    dmmf = ft.GPB2Filter()
-    # dmmf = ft.IMMFilter()
+    # dmmf = ft.GPB2Filter()
+    dmmf = ft.IMMFilter()
     dmmf.add_models([cv_kf, ca_kf, mmf])
 
     post_state_arr = np.empty((x_dim, N - 1))
@@ -101,7 +101,8 @@ def DMMF_test():
             subprob_arr[:, n] = dmmf.models()[2].probs()
     print(len(dmmf))
     print(dmmf)
-    print(post_state_arr[:, -1])
+    print(dmmf.prior_state)
+    print(dmmf.post_state)
 
     # trajectory
     _, ax = plt.subplots()
