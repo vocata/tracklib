@@ -240,7 +240,7 @@ class EKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        wdim = self._Q.shape[0]
+        if 'Q' in kw: self._Q[:] = kw['Q']
 
         F, L = self._fjac(self._post_state, u, np.zeros(self._wdim))
         Q_tilde = L @ self._Q @ L.T
@@ -258,6 +258,8 @@ class EKFilterNAN(KFBase):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
+
+        if 'R' in kw: self._R[:] = kw['R']
 
         H, M = self._hjac(self._prior_state, np.zeros(self._vdim))
         R_tilde = M @ self._R @ M.T

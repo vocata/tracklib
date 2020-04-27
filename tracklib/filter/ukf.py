@@ -36,7 +36,7 @@ class UKFilterAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, factory):
+    def __init__(self, f, L, h, M, Q, R, xdim, zdim, factory):
         super().__init__()
 
         self._f = f
@@ -45,6 +45,10 @@ class UKFilterAN(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         self._factory = factory
 
     def __str__(self):
@@ -74,7 +78,6 @@ class UKFilterAN(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
             if 'L' in kw: self._L[:] = kw['L']
             if 'Q' in kw: self._Q[:] = kw['Q']
 
@@ -104,16 +107,14 @@ class UKFilterAN(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kw) > 0:
-            if 'h' in kw: self._h = kw['h']
             if 'M' in kw: self._M[:] = kw['M']
             if 'R' in kw: self._R[:] = kw['R']
 
-        z_dim = len(z)
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
         points = self._factory.sigma_points(self._prior_state, self._prior_cov)
 
-        self.__h_map = np.zeros((z_dim, pts_num))
+        self.__h_map = np.zeros((self._zdim, pts_num))
         z_prior = 0
         for i in range(pts_num):
             h_map = self._h(points[:, i])
@@ -160,7 +161,7 @@ class UKFilterNAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, factory, epsilon=0.01):
+    def __init__(self, f, h, Q, R, xdim, zdim, factory, epsilon=0.01):
         super().__init__()
 
         self._f = f
@@ -169,6 +170,10 @@ class UKFilterNAN(KFBase):
         # on the diagonal can make it positive definite.
         self._Q = Q + epsilon * np.diag(Q.diagonal())
         self._R = R + epsilon * np.diag(R.diagonal())
+        self._xdim = xdim
+        self._wdim = self._Q.shape[0]
+        self._zdim = zdim
+        self._vdim = self._R.shape[0]
         self._factory = factory
 
     def __str__(self):
@@ -197,21 +202,16 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._post_state)
-        w_dim = self._Q.shape[0]
-        v_dim = self._R.shape[0]
-
-        if len(kw) > 0:
-            if 'f' in kw: self._f = kw['f']
-            if 'Q' in kw: self._Q[:] = kw['Q']
+        if 'Q' in kw: self._Q[:] = kw['Q']
 
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
+
         post_cov_asm = lg.block_diag(self._post_cov, self._Q, self._R)
-        post_state_asm = np.concatenate((self._post_state, np.zeros(w_dim), np.zeros(v_dim)))
+        post_state_asm = np.concatenate((self._post_state, np.zeros(self._wdim), np.zeros(self._vdim)))
         pts_asm = self._factory.sigma_points(post_state_asm, post_cov_asm)
-        pts = pts_asm[:x_dim, :]
-        w_pts = pts_asm[x_dim:x_dim + w_dim, :]
+        pts = pts_asm[:self._xdim, :]
+        w_pts = pts_asm[self._xdim:self._xdim + self._wdim, :]
 
         self.__f_map = np.zeros_like(pts)
         self._prior_state = 0
@@ -233,25 +233,18 @@ class UKFilterNAN(KFBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        x_dim = len(self._post_state)
-        w_dim = self._Q.shape[0]
-        v_dim = self._R.shape[0]
+        if 'R' in kw: self._R[:] = kw['R']
 
-        if len(kw) > 0:
-            if 'h' in kw: self._h = kw['h']
-            if 'R' in kw: self._R[:] = kw['R']
-
-        z_dim = len(z)
         pts_num = self._factory.points_num()
         w_mean, w_cov = self._factory.weights()
 
         prior_cov_asm = lg.block_diag(self._prior_cov, self._Q, self._R)
-        prior_state_asm = np.concatenate((self._prior_state, np.zeros(w_dim), np.zeros(v_dim)))
+        prior_state_asm = np.concatenate((self._prior_state, np.zeros(self._wdim), np.zeros(self._vdim)))
         pts_asm = self._factory.sigma_points(prior_state_asm, prior_cov_asm)
-        pts = pts_asm[:x_dim, :]
-        v_pts = pts_asm[x_dim + w_dim:, :]
+        pts = pts_asm[:self._xdim, :]
+        v_pts = pts_asm[self._xdim + self._wdim:, :]
 
-        self.__h_map = np.zeros((z_dim, pts_num))
+        self.__h_map = np.zeros((self._zdim, pts_num))
         z_prior = 0
         for i in range(pts_num):
             h_map = self._h(pts[:, i], v_pts[:, i])
