@@ -289,7 +289,10 @@ class SimplexSigmaPoints():
     def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -314,13 +317,11 @@ class SimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0])
@@ -345,7 +346,10 @@ class SphericalSimplexSigmaPoints():
     def __init__(self, w0=0, decompose='cholesky'):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -369,13 +373,11 @@ class SphericalSimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0])
@@ -404,7 +406,10 @@ class SymmetricSigmaPoints():
     when running in a single-precision platform. 
     '''
     def __init__(self, decompose='cholesky'):
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -426,13 +431,11 @@ class SymmetricSigmaPoints():
         if self._init == False:
             raise RuntimeError('the factory must be initialized with init() before use')
         # P = C * C'
-        if self._decompose.lower() == 'cholesky':
+        if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose.lower() == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         pts = np.zeros((self._dim, 2 * self._dim))
         for i in range(self._dim):
@@ -463,7 +466,10 @@ class ScaledSigmaPoints():
         self._alpha = alpha
         self._beta = beta
         self._kappa = kappa
-        self._decompose = decompose
+        if decompose == 'cholesky' or decompose == 'svd':
+            self._decompose = decompose
+        else:
+            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -494,11 +500,9 @@ class ScaledSigmaPoints():
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
-        elif self._decompose == 'svd':
+        else:
             U, s, V = lg.svd(cov)
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
-        else:
-            raise ValueError('unknown decomposition: %s' % self._decompose)
 
         pts = np.zeros((self._dim, 2 * self._dim + 1))
         pts[:, -1] = mean

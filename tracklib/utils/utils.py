@@ -220,6 +220,6 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
             rv.append(scope[idx])
             index.append(idx)
     else:
-        raise ValueError("alg must be 'roulette' or 'low_var'")
+        raise ValueError('unknown algorithem: %s' % alg)
 
     return rv, index

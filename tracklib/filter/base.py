@@ -12,6 +12,10 @@ import abc
 
 class KFBase(abc.ABC):
     def __init__(self):
+        self._xdim = None
+        self._wdim = None
+        self._zdim = None
+        self._vdim = None
         self._prior_state = None
         self._post_state = None
         self._prior_cov = None
@@ -42,6 +46,34 @@ class KFBase(abc.ABC):
     @abc.abstractmethod
     def step(self, *args, **kw):
         pass
+
+    @property
+    def xdim(self):
+        if self._xdim is None:
+            raise AttributeError("'%s' object has no attribute 'xdim'" %
+                                 self.__class__.__name__)
+        return self._xdim
+    
+    @property
+    def wdim(self):
+        if self._wdim is None:
+            raise AttributeError("'%s' object has no attribute 'wdim'" %
+                                 self.__class__.__name__)
+        return self._wdim
+
+    @property
+    def zdim(self):
+        if self._zdim is None:
+            raise AttributeError("'%s' object has no attribute 'zdim'" %
+                                 self.__class__.__name__)
+        return self._zdim
+    
+    @property
+    def vdim(self):
+        if self._vdim is None:
+            raise AttributeError("'%s' object has no attribute 'vdim'" %
+                                 self.__class__.__name__)
+        return self._vdim
 
     @property
     def prior_state(self):
