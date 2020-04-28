@@ -20,6 +20,7 @@ __all__ = [
 
 import numpy as np
 import scipy.linalg as lg
+from functools import reduce
 from .base import KFBase
 from tracklib.model import F_poly_trans, H_only_pos_meas
 
@@ -175,8 +176,7 @@ class AlphaBetaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._gain = np.vstack((diag_a, diag_b / T))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta)).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -292,8 +292,7 @@ class AlphaBetaGammaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._gain = np.vstack((diag_a, diag_b / T, diag_g / (2 * T**2)))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta, gamma)).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1

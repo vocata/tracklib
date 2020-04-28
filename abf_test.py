@@ -18,10 +18,8 @@ def ABFilter_test():
     N, T = 200, 1
 
     xdim, zdim = 4, 2
-    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
-    rx, ry = np.sqrt(1), np.sqrt(1)
-    sigma_w = [qx, qy]
-    sigma_v = [rx, ry]
+    sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
+    sigma_v = [np.sqrt(1), np.sqrt(1)]
 
     F = model.F_poly_trans(1, 1, T)
     H = model.H_only_pos_meas(1, 1)
@@ -31,7 +29,7 @@ def ABFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 2, 0.2, 0.3])
+    x = np.array([1, 0.2, 2, 0.3])
 
     alpha, beta = ft.get_alpha_beta(sigma_w, sigma_v, T)
     abf = ft.AlphaBetaFilter(alpha, beta, xdim, zdim, T)
@@ -79,10 +77,10 @@ def ABFilter_test():
     ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[2, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, prior_state_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, prior_state_arr[2, :], linewidth=0.8)
+    ax[1].plot(n, post_state_arr[2, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[1].set_title('y state')
     plt.show()
@@ -100,10 +98,10 @@ def ABFilter_test():
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[2, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
+    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
@@ -115,10 +113,8 @@ def ABGFilter_test():
     N, T = 200, 1
 
     xdim, zdim = 6, 2
-    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
-    rx, ry = np.sqrt(1), np.sqrt(1)
-    sigma_w = [qx, qy]
-    sigma_v = [rx, ry]
+    sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
+    sigma_v = [np.sqrt(1), np.sqrt(1)]
 
     F = model.F_poly_trans(2, 1, T)
     H = model.H_only_pos_meas(2, 1)
@@ -128,7 +124,7 @@ def ABGFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 2, 0.2, 0.3, 0.1, 0.1])
+    x = np.array([1, 0.2, 0.1, 2, 0.3, 0.1])
     x_init = x
 
     alpha, beta, gamma = ft.get_alpha_beta_gamma(sigma_w, sigma_v, T)
@@ -176,10 +172,10 @@ def ABGFilter_test():
     ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[3, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, prior_state_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, post_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, prior_state_arr[3, :], linewidth=0.8)
+    ax[1].plot(n, post_state_arr[3, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
     ax[1].set_title('y state')
     plt.show()
@@ -197,10 +193,10 @@ def ABGFilter_test():
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[3, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[3, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(post_state_arr[0, :], post_state_arr[1, :], linewidth=0.8)
+    ax.plot(post_state_arr[0, :], post_state_arr[3, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
@@ -208,5 +204,5 @@ def ABGFilter_test():
     plt.show()
 
 if __name__ == '__main__':
-    # ABFilter_test()
-    ABGFilter_test()
+    ABFilter_test()
+    # ABGFilter_test()
