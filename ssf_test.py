@@ -27,7 +27,6 @@ def SSFilter_test():
     M = np.eye(zdim)
     Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
     R = model.R_only_pos_meas_noise(1, sigma_v)
-    print(ft.analytic_ss(F, L, H, M, Q, R))
 
     # initial state and error convariance
     x = np.array([1, 0.2, 2, 0.3])

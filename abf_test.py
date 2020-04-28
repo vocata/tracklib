@@ -205,4 +205,4 @@ def ABGFilter_test():
 
 if __name__ == '__main__':
     ABFilter_test()
-    # ABGFilter_test()
+    ABGFilter_test()
