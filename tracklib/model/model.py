@@ -244,6 +244,7 @@ def R_only_pos_meas_noise(axis, std):
 class Trajectory2D():
     def __init__(self, T, start=np.zeros(6)):
         self._T = T
+        self._start = start.copy()
         self._head = start.copy()
         self._state = []
         self._len = 0
@@ -259,6 +260,9 @@ class Trajectory2D():
         v = multi_normal(0, R, self._len, axis=1)
         traj_meas = traj_real + v
         return traj_real, traj_meas
+
+    def start(self):
+        return self._start
 
     def add_stage(self, stages):
         '''
