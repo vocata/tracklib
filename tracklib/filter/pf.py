@@ -36,7 +36,7 @@ class SIRPFilter(PFBase):
 
         self._f = f
         self._L = L.copy()
-        self._h = h.copy()
+        self._h = h
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
