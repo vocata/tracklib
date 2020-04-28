@@ -145,8 +145,6 @@ def multi_normal(mean, cov, Ns=1, axis=0):
     out : ndarray
         The drawn samples of shape (Ns, N) if axis is 0 or (N, Ns) axis is 1
     '''
-    if not is_posi_semidef(cov):
-        raise ValueError('convariance matrix must be posotive semi-definite')
 
     N = cov.shape[0]
     if isinstance(mean, int):

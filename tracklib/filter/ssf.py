@@ -86,7 +86,7 @@ class AlphaFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -176,7 +176,7 @@ class AlphaBetaFilter(KFBase):
         self._vdim = zdim
 
         diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._gain = np.vstack((diag_a, diag_b / self._T))
+        self._gain = np.vstack((diag_a, diag_b / T))
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -184,13 +184,13 @@ class AlphaBetaFilter(KFBase):
         self._H = H_only_pos_meas(1, axis)
 
     def __str__(self):
-        msg = 'Alpha-beta filter:\n\n'
+        msg = 'Alpha-beta filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -248,11 +248,12 @@ def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     p = c - b**2 / 3
     q = 2 * b**3 / 27 - b * c / 3 + d
     v = np.sqrt(q**2 + 4 * p**3 / 27)
-    z = -np.cbrt(q + v / 2)
+    z = -np.cbrt((q + v) / 2)
     s = z - p / (3 * z) - b / 3
     alpha = 1 - s**2
     beta = 2 * (1 - s)**2
-    gamma = beta**2 / (2 * alpha)
+    gamma = beta**2 / alpha
+
     return alpha, beta, gamma
 
 
@@ -292,7 +293,7 @@ class AlphaBetaGammaFilter(KFBase):
         self._vdim = zdim
 
         diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
+        self._gain = np.vstack((diag_a, diag_b / T, diag_g / (2 * T**2)))
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -300,13 +301,13 @@ class AlphaBetaGammaFilter(KFBase):
         self._H = H_only_pos_meas(2, axis)
 
     def __str__(self):
-        msg = 'Alpha-beta-gamma filter:\n\n'
+        msg = 'Alpha-beta-gamma filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -449,7 +450,7 @@ class SSFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None):
+    def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -459,7 +460,7 @@ class SSFilter(KFBase):
 
         self._stage = 1
 
-    def update(self, z):
+    def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -471,10 +472,10 @@ class SSFilter(KFBase):
         self._stage = 0
         self._len += 1
 
-    def step(self, z, u=None):
+    def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u)
-        self.update(z)
+        self.predict(u, **kw)
+        self.update(z, **kw)
