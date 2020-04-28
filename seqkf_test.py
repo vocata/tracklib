@@ -29,7 +29,7 @@ def SeqKFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 0.2, 2, 0.3])
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     seqkf = ft.SeqKFilter(F, L, H, M, Q, R, xdim, zdim)
 

@@ -29,7 +29,7 @@ def ABFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 0.2, 2, 0.3])
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     alpha, beta = ft.get_alpha_beta(sigma_w, sigma_v, T)
     abf = ft.AlphaBetaFilter(alpha, beta, xdim, zdim, T)
@@ -124,7 +124,7 @@ def ABGFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 0.2, 0.1, 2, 0.3, 0.1])
+    x = np.array([1, 0.2, 0.1, 2, 0.3, 0.1], dtype=float)
     x_init = x
 
     alpha, beta, gamma = ft.get_alpha_beta_gamma(sigma_w, sigma_v, T)

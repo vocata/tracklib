@@ -29,11 +29,11 @@ def EKFilter_test():
     Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
 
     M = np.eye(zdim)
-    # h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
-    h = lambda x, v: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])]) + M @ v
+    # h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])], dtype=float)
+    h = lambda x, v: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float) + M @ v
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
-    x = np.array([1, 0.2, 2, 0.3])
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     # ekf = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim, order=2, it=1)
     ekf = ft.EKFilterNAN(f, h, Q, R, xdim, zdim, order=2, it=1)

@@ -104,7 +104,7 @@ class EKFilterAN(KFBase):
         self._prior_state = self._f(self._post_state, u)
         if self._order == 2:
             FH = self._fhes(self._post_state, u)
-            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)])
+            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)], dtype=float)
             self._prior_state += quad / 2
 
         self._stage = 1
@@ -123,7 +123,7 @@ class EKFilterAN(KFBase):
         z_prior = self._h(self._prior_state)
         if self._order == 2:
             HH = self._hhes(self._prior_state)
-            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)])
+            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)], dtype=float)
             z_prior += quad / 2
         self._innov = z - z_prior
         self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
@@ -141,7 +141,7 @@ class EKFilterAN(KFBase):
             z_prior = self._h(self._post_state) + H @ (self._prior_state - self._post_state)
             if self._order == 2:
                 HH = self._hhes(self._post_state)
-                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)])
+                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)], dtype=float)
                 z_prior += quad / 2
             self._innov = z - z_prior
             self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
@@ -249,7 +249,7 @@ class EKFilterNAN(KFBase):
         self._prior_state = self._f(self._post_state, u, np.zeros(self._wdim))
         if self._order == 2:
             FH = self._fhes(self._post_state, u, np.zeros(self._wdim))
-            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)])
+            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)], dtype=float)
             self._prior_state += quad / 2
 
         self._stage = 1
@@ -266,7 +266,7 @@ class EKFilterNAN(KFBase):
         z_prior = self._h(self._prior_state, np.zeros(self._vdim))
         if self._order == 2:
             HH = self._hhes(self._prior_state, np.zeros(self._vdim))
-            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)])
+            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)], dtype=float)
             z_prior += quad / 2
         self._innov = z - z_prior
         self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
@@ -284,7 +284,7 @@ class EKFilterNAN(KFBase):
             z_prior = self._h(self._post_state, np.zeros(self._vdim)) + H @ (self._prior_state - self._post_state)
             if self._order == 2:
                 HH = self._hhes(self._post_state, np.zeros(self._vdim))
-                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)])
+                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)], dtype=float)
                 z_prior += quad / 2
             self._innov = z - z_prior
             self._innov_cov = H @ self._prior_cov @ H.T + R_tilde

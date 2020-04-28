@@ -141,13 +141,13 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
     cov[:z_dim, 2 * z_dim:] = cov[2 * z_dim:, :z_dim] = R3 / T**2
     cov[z_dim: 2 * z_dim, z_dim: 2 * z_dim] = (9 * R3 + 16 * R2 + R1) / (4 * T**2) + 9 * T**3 * np.diag(q) / 80
     cov[z_dim: 2 * z_dim, 2 * z_dim:] = cov[2 * z_dim:, z_dim: 2 * z_dim] = (3 * R3 + 8 * R2 + R1) / (2 * T**3) + T**2 * np.diag(q) / 3
-    cov[2 * z_dim:, 2 * z_dim:] = (R3 + 4 * R2 + R1) / T**4 + 13 * T * np.array(q) / 12
+    cov[2 * z_dim:, 2 * z_dim:] = (R3 + 4 * R2 + R1) / T**4 + 13 * T * np.array(q, dtype=float) / 12
 
     return __swap(state, cov, 2)
 
-# z1 = np.array([1, 2, 3])
-# z2 = np.array([2, 4, 12])
-# z3 = np.array([3, 6, 36])
+# z1 = np.array([1, 2, 3], dtype=float)
+# z2 = np.array([2, 4, 12], dtype=float)
+# z3 = np.array([3, 6, 36], dtype=float)
 # R1 = R2 = R3 = np.diag([1.2, 1.2, 1.2])
 # T = 2
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)

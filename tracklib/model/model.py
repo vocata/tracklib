@@ -64,7 +64,8 @@ def F_ct2D_trans(turn_rate, T):
     sin_rat = sin_val / w
     cos_rat = (cos_val - 1) / w
     F = np.array([[1, sin_rat, 0, cos_rat], [0, cos_val, 0, -sin_val],
-                  [0, -cos_rat, 1, sin_rat], [0, sin_val, 0, cos_val]])
+                  [0, -cos_rat, 1, sin_rat], [0, sin_val, 0, cos_val]],
+                 dtype=float)
     return F
 
 
@@ -310,7 +311,7 @@ class Trajectory2D():
             self._state.append(state)
 
 # import matplotlib.pyplot as plt
-# start = np.array([100.0, 0.0, 0.0, 100.0, 0.0, 0.0])
+# start = np.array([100.0, 0.0, 0.0, 100.0, 0.0, 0.0], dtype=float)
 # T = 0.1
 # traj = Trajectory2D(T, start)
 # stages = []

@@ -29,7 +29,7 @@ def SSFilter_test():
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
     # initial state and error convariance
-    x = np.array([1, 0.2, 2, 0.3])
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     ssf = ft.SSFilter(F, L, H, M, Q, R, xdim, zdim, alg='riccati')
     state_arr = np.empty((xdim, N))
