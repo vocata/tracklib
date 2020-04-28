@@ -14,7 +14,7 @@ import numpy as np
 def __swap(state, cov, order):
     assert (order >= 0)
 
-    order += 1
+    order = order + 1
     stmp = np.zeros_like(state)
     for i in range(order):
         st = i * order

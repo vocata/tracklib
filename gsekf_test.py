@@ -62,10 +62,6 @@ def GSEKFilter_test():
 
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
-        if n == -1:
-            x_init, P_init = init.single_point_init(z, R, 1)
-            gsf.init(x_init, P_init)
-            continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
         gsf.step(z)

@@ -281,7 +281,7 @@ class Trajectory2D():
                 if v[0] is not None:
                     self._head[1] = v[0]
                 if v[1] is not None:
-                    self._head[3] = v[1]
+                    self._head[4] = v[1]
 
                 sel = [0, 1, 3, 4]
                 for i in range(traj_len):
