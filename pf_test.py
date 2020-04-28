@@ -20,16 +20,16 @@ def PFilter_test():
     Ns = 200
     Neff = 100
 
-    x_dim, z_dim = 4, 2
+    xdim, zdim = 4, 2
     sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
     sigma_v = [np.sqrt(0.1), np.sqrt(0.01)]
 
     F = model.F_poly_trans(1, 1, T)
-    L = np.eye(x_dim)
+    L = np.eye(xdim)
     f = lambda x, u: F @ x
     Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
 
-    M = np.eye(z_dim)
+    M = np.eye(zdim)
     h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
     R = model.R_only_pos_meas_noise(1, sigma_v)
 
@@ -37,13 +37,13 @@ def PFilter_test():
 
     # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, resample_alg='roulette')
 
-    kernal = ft.EpanechnikovKernal(x_dim, Ns)
-    # kernal = ft.GuassianKernal(x_dim, Ns)
+    kernal = ft.EpanechnikovKernal(xdim, Ns)
+    # kernal = ft.GuassianKernal(xdim, Ns)
     pf = ft.RPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, kernal=kernal, resample_alg='roulette')
 
-    state_arr = np.empty((x_dim, N))
-    measure_arr = np.empty((z_dim, N))
-    MMSE_arr = np.empty((x_dim, N))
+    state_arr = np.empty((xdim, N))
+    measure_arr = np.empty((zdim, N))
+    MMSE_arr = np.empty((xdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
