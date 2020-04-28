@@ -21,22 +21,19 @@ def PFilter_test():
     Neff = 100
 
     x_dim, z_dim = 4, 2
-    # qx, qy = np.sqrt(0.01), np.sqrt(0.02)
-    # rr, ra = np.sqrt(5), np.sqrt(tlb.deg2rad(0.1))
-    qx, qy = np.sqrt(0.01), np.sqrt(0.01)
-    rr, ra = np.sqrt(0.1), np.sqrt(0.01)
+    sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
+    sigma_v = [np.sqrt(0.1), np.sqrt(0.01)]
 
     F = model.F_poly_trans(1, 1, T)
     L = np.eye(x_dim)
     f = lambda x, u: F @ x
-    Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
+    Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
 
     M = np.eye(z_dim)
-    h = lambda x: np.array([lg.norm(x[0: 2]), np.arctan2(x[1], x[0])])
-    R = model.R_only_pos_meas_noise(1, [rr, ra])
+    h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
+    R = model.R_only_pos_meas_noise(1, sigma_v)
 
-    x = np.array([1, 2, 0.2, 0.3])
-    # P = 10 * np.eye(x_dim)
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, resample_alg='roulette')
 
@@ -56,7 +53,6 @@ def PFilter_test():
         z = h(x) + M @ v
         if n == -1:
             x_init, P_init = init.single_point_init(z, R, 1)
-            # P_init = 10 * np.eye(x_dim)
             pf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
@@ -80,19 +76,19 @@ def PFilter_test():
     ax[0].plot(n, MMSE_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'MMSE'])
     ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[2, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, MMSE_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, MMSE_arr[2, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'MMSE'])
     ax[1].set_title('y state')
     plt.show()
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[2, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(MMSE_arr[0, :], MMSE_arr[1, :], linewidth=0.8)
+    ax.plot(MMSE_arr[0, :], MMSE_arr[2, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'estimation'])
