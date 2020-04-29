@@ -12,27 +12,10 @@ import numpy as np
 
 
 def lagrange_interp_poly(x, y=None):
-    if isinstance(x, np.ndarray):
-        pass
-    elif isinstance(x, (int, float)):
-        x = np.array([x], dtype=float)
-    elif isinstance(x, (list, tuple)):
-        x = np.array(x, dtype=float)
-    else:
-        raise TypeError(
-            'x must be a int, float, list, tuple or ndarray, not %s' %
-            x.__class__.__name__)
+    x = np.array(x, dtype=float)
     if y is not None:
-        if isinstance(y, np.ndarray):
-            pass
-        elif isinstance(y, (int, float)):
-            y = np.array([y], dtype=float)
-        elif isinstance(y, (list, tuple)):
-            y = np.array(y, dtype=float)
-        else:
-            raise TypeError(
-                'y must be a int, float, list, tuple or ndarray, not %s' %
-                y.__class__.__name__)
+        y = np.array(y, dtype=float)
+
     N = len(x)
 
     Li = np.zeros((N, N))
@@ -64,10 +47,10 @@ def lagrange_interp_poly(x, y=None):
     return Li, dLi, d2Li
 
 
-# print(lagrange_interp_poly(3))
-# print(lagrange_interp_poly(3, 2))
-# print(lagrange_interp_poly(np.array([2, 5])))
-# print(lagrange_interp_poly(np.array([2, 5]), np.array([1, 2])))
+# print(lagrange_interp_poly([3]))
+# print(lagrange_interp_poly([3], [2]))
+# print(lagrange_interp_poly(np.array([2, 5], dtype=float)))
+# print(lagrange_interp_poly(np.array([2, 5], dtype=float), np.array([1, 2], dtype=float)))
 # print(lagrange_interp_poly([40, 66, 18, 71, 4, 28, 5, 10, 83, 70], [32, 96, 4, 44, 39, 77, 80, 19, 49, 45]))
 
 
@@ -76,16 +59,7 @@ def num_diff(x, f, f_dim, order=1, epsilon=None):
     First-order numerical differentiation which can be used
     to calculate the Jacobian matrix.
     '''
-    if isinstance(x, np.ndarray):
-        pass
-    elif isinstance(x, (int, float)):
-        x = np.array([x], dtype=float)
-    elif isinstance(x, (list, tuple)):
-        x = np.array(x, dtype=float)
-    else:
-        raise TypeError(
-            'x must be a int, float, list, tuple or ndarray, not %s' %
-            x.__class__.__name__)
+    x = np.array(x, dtype=float)
     x_dim = len(x)
 
     if isinstance(epsilon, (int, float)):
@@ -93,9 +67,9 @@ def num_diff(x, f, f_dim, order=1, epsilon=None):
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
+        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon])
+        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
 
     # 2*order+1 points fomula, error term is O(eps^(2*order))
     if order == 1:
@@ -137,18 +111,18 @@ def num_diff(x, f, f_dim, order=1, epsilon=None):
     return J
 
 
-# f = lambda x: np.array([np.log(x[0]), np.sin(x[0])])
-# x = 0.25
+# f = lambda x: np.array([np.log(x[0]), np.sin(x[0])], dtype=float)
+# x = [0.25]
 # print(num_diff(x, f, 2))
 # print(num_diff(x, f, 2, order=9))
 
 # f = lambda x: np.array(
 #     [np.log(x[0]) + np.sin(x[0]),
-#      np.log(x[1]) + np.sin(x[1])])
+#      np.log(x[1]) + np.sin(x[1])], dtype=float)
 # x = [1.0, 2.0]
 # print(num_diff(x, f, 2))
 # print(num_diff(x, f, 2, order=9))
-# x = np.array([1.0, 2.0])
+# x = np.array([1.0, 2.0], dtype=float)
 # print(num_diff(x, f, 2))
 # print(num_diff(x, f, 2, order=9))
 
@@ -157,16 +131,7 @@ def num_diff2(x, f, f_dim, order=1, epsilon=None):
     '''
     Second-order numerical differentiation
     '''
-    if isinstance(x, np.ndarray):
-        pass
-    elif isinstance(x, (int, float)):
-        x = np.array([x], dtype=float)
-    elif isinstance(x, (list, tuple)):
-        x = np.array(x, dtype=float)
-    else:
-        raise TypeError(
-            'x must be a int, float, list, tuple or ndarray, not %s' %
-            x.__class__.__name__)
+    x = np.array(x, dtype=float)
     x_dim = len(x)
 
     if isinstance(epsilon, (int, float)):
@@ -174,9 +139,9 @@ def num_diff2(x, f, f_dim, order=1, epsilon=None):
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
+        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon])
+        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
 
     # 2*N+1 points fomula, error term is O(eps^(2*N))
     if order == 1:
@@ -203,16 +168,16 @@ def num_diff2(x, f, f_dim, order=1, epsilon=None):
     return J2
 
 
-# f = lambda x: np.array([np.log(x[0]), np.sin(x[1])])
+# f = lambda x: np.array([np.log(x[0]), np.sin(x[1])], dtype=float)
 # x = [0.25, 2]
 # print(num_diff2(x, f, 2))
 # print(num_diff2(x, f, 2, order=5))
-# x = np.array(x)
+# x = np.array(x, dtype=float)
 # print(num_diff2(x, f, 2))
 # print(num_diff2(x, f, 2, order=5))
 
 # f = lambda x: np.log(x)
-# x = 1.0
+# x = [1.0]
 # print(num_diff2(x, f, 1))
 
 
@@ -220,26 +185,17 @@ def num_diff_hessian(x, f, f_dim, epsilon=None):
     '''
     Second-order partial derivation used to calculate Hessian matrix
     '''
-    if isinstance(x, np.ndarray):
-        pass
-    elif isinstance(x, (int, float)):
-        x = np.array([x], dtype=float)
-    elif isinstance(x, (list, tuple)):
-        x = np.array(x, dtype=float)
-    else:
-        raise TypeError(
-            'x must be a int, float, list, tuple or ndarray, not %s' %
-            x.__class__.__name__)
-    x_dim = x.shape[0]
+    x = np.array(x, dtype=float)
+    x_dim = len(x)
 
     if isinstance(epsilon, (int, float)):
         epsilon = epsilon * np.ones_like(x)
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)])
+        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon])
+        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
 
     hess = np.zeros((x_dim, x_dim, f_dim))
     e1 = np.zeros(x_dim)
@@ -262,7 +218,7 @@ def num_diff_hessian(x, f, f_dim, epsilon=None):
     return hess
 
 
-# f = lambda x: np.array([x[1] * np.log(x[0]), x[1] * np.sin(x[0])])
+# f = lambda x: np.array([x[1] * np.log(x[0]), x[1] * np.sin(x[0])], dtype=float)
 # x = [0.25, 1]
 # print(num_diff_hessian(x, f, 2)[:, :, 0])
 # print(num_diff_hessian(x, f, 2)[:, :, 1])

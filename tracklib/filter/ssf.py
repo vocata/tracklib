@@ -20,6 +20,7 @@ __all__ = [
 
 import numpy as np
 import scipy.linalg as lg
+from functools import reduce
 from .base import KFBase
 from tracklib.model import F_poly_trans, H_only_pos_meas
 
@@ -28,14 +29,8 @@ def get_alpha(sigma_w, sigma_v, T):
     '''
     Obtain alpha and for which alpha filter becomes a steady-state Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
@@ -86,7 +81,7 @@ class AlphaFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -126,14 +121,8 @@ def get_alpha_beta(sigma_w, sigma_v, T):
     '''
     Obtain alpha, beta and for which alpha-beta filter becomes a steady-state Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
@@ -175,8 +164,9 @@ class AlphaBetaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._gain = np.vstack((diag_a, diag_b / self._T))
+        trans = lambda x: np.array(x, dtype=float)
+        alpha, beta = map(trans, (alpha, beta))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T)).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -184,13 +174,13 @@ class AlphaBetaFilter(KFBase):
         self._H = H_only_pos_meas(1, axis)
 
     def __str__(self):
-        msg = 'Alpha-beta filter:\n\n'
+        msg = 'Alpha-beta filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -232,14 +222,8 @@ def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     alpha-beta-gamma becomes a steady-state
     Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     b = lamb / 2 - 3
@@ -248,11 +232,12 @@ def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     p = c - b**2 / 3
     q = 2 * b**3 / 27 - b * c / 3 + d
     v = np.sqrt(q**2 + 4 * p**3 / 27)
-    z = -np.cbrt(q + v / 2)
+    z = -np.cbrt((q + v) / 2)
     s = z - p / (3 * z) - b / 3
     alpha = 1 - s**2
     beta = 2 * (1 - s)**2
-    gamma = beta**2 / (2 * alpha)
+    gamma = beta**2 / alpha
+
     return alpha, beta, gamma
 
 
@@ -291,8 +276,9 @@ class AlphaBetaGammaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._gain = np.vstack((diag_a, diag_b / self._T, diag_g / (2 * self._T**2)))
+        trans = lambda x: np.array(x, dtype=float)
+        alpha, beta, gamma = map(trans, (alpha, beta, gamma))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T, gamma / (2 * T**2))).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -300,13 +286,13 @@ class AlphaBetaGammaFilter(KFBase):
         self._H = H_only_pos_meas(2, axis)
 
     def __str__(self):
-        msg = 'Alpha-beta-gamma filter:\n\n'
+        msg = 'Alpha-beta-gamma filter'
         return msg
 
     def __repr__(self):
         return self.__str__()
 
-    def init(self, state, *args, **kw):
+    def init(self, state):
         self._post_state = state.copy()
         self._len = 0
         self._stage = 0
@@ -385,9 +371,12 @@ def analytic_ss(F, L, H, M, Q, R):
     Q_hat = L @ Q @ L.T
     R_hat = M @ R @ M.T
     prior_cov = lg.solve_discrete_are(F.T, H.T, Q_hat, R_hat)
+    prior_cov = (prior_cov + prior_cov.T) / 2
     innov_cov = H @ prior_cov @ H.T + R_hat
+    innov_cov = (innov_cov + innov_cov.T) / 2
     gain = prior_cov @ H.T @ lg.inv(innov_cov)
     post_cov = prior_cov - gain @ innov_cov @ gain.T
+    post_cov = (post_cov + post_cov.T) / 2
 
     return prior_cov, post_cov, innov_cov, gain
 
@@ -446,7 +435,7 @@ class SSFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None):
+    def predict(self, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -456,7 +445,7 @@ class SSFilter(KFBase):
 
         self._stage = 1
 
-    def update(self, z):
+    def update(self, z, **kw):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -468,10 +457,10 @@ class SSFilter(KFBase):
         self._stage = 0
         self._len += 1
 
-    def step(self, z, u=None):
+    def step(self, z, u=None, **kw):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u)
-        self.update(z)
+        self.predict(u, **kw)
+        self.update(z, **kw)
