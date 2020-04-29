@@ -36,7 +36,7 @@ class SIRPFilter(PFBase):
 
         self._f = f
         self._L = L.copy()
-        self._h = h.copy()
+        self._h = h
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
@@ -185,7 +185,7 @@ class EpanechnikovKernal():
         D = U @ np.diag(np.sqrt(S)) @ V.T
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
-        sample = np.array(sample)
+        sample = np.array(sample, dtype=float)
         weight = np.zeros_like(weights) + 1 / self._Ns
 
         # sample from beta distribution
@@ -237,7 +237,7 @@ class GuassianKernal():
         D = U @ np.diag(np.sqrt(S)) @ V.T
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
-        sample = np.array(sample)
+        sample = np.array(sample, dtype=float)
         weight = np.zeros_like(weights) + 1 / self._Ns
 
         eps = np.random.randn(self._dim, self._Ns)

@@ -7,13 +7,14 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly_trans', 'F_ct2D_trans', 'Q_dc_ploy_proc_noise',
+    'F_poly_trans', 'F_ct2D_trans', 'Q_dc_poly_proc_noise',
     'Q_dd_poly_proc_noise', 'Q_ct2D_proc_noise', 'H_only_pos_meas',
     'R_only_pos_meas_noise', 'Trajectory2D'
 ]
 
 import numpy as np
 import scipy.linalg as lg
+import matplotlib.pyplot as plt
 from tracklib.utils import multi_normal
 from scipy.special import factorial
 
@@ -30,7 +31,7 @@ def F_poly_trans(order, axis, T):
         2 means constant acceleration, 3 means constant jerk, etc.
     axis : int
         Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        2 means x-axis and y-axis, etc.
+        1 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
 
@@ -40,20 +41,20 @@ def F_poly_trans(order, axis, T):
         The state transition matrix under a linear dynamic model of the given order
         and axis.
     '''
-    assert (0 <= order)
-    assert (0 <= axis)
+    assert (order >= 0)
+    assert (axis >= 0)
 
-    F_1st = np.zeros((order + 1, order + 1))
+    F_base = np.zeros((order + 1, order + 1))
     tmp = np.arange(order + 1)
-    F_1st[0, :] = T**tmp / factorial(tmp)
+    F_base[0, :] = T**tmp / factorial(tmp)
     for row in range(1, order + 1):
-        F_1st[row, row:] = F_1st[0, :order - row + 1]
-    F = np.kron(F_1st, np.eye(axis + 1))
+        F_base[row, row:] = F_base[0, :order - row + 1]
+    F = np.kron(np.eye(axis + 1), F_base)
 
     return F
 
 
-# F = F_poly_trans(2, 3, 2)
+# F = F_poly_trans(2, 2, 3)
 # print(F)
 
 
@@ -62,9 +63,10 @@ def F_ct2D_trans(turn_rate, T):
     sin_val = np.sin(w * T)
     cos_val = np.cos(w * T)
     sin_rat = sin_val / w
-    cos_rat = (1 - cos_val) / w
-    F = np.array([[1, 0, sin_rat, -cos_rat], [0, 1, cos_rat, sin_rat],
-                  [0, 0, cos_val, -sin_val], [0, 0, sin_val, cos_val]])
+    cos_rat = (cos_val - 1) / w
+    F = np.array([[1, sin_rat, 0, cos_rat], [0, cos_val, 0, -sin_val],
+                  [0, -cos_rat, 1, sin_rat], [0, sin_val, 0, cos_val]],
+                 dtype=float)
     return F
 
 
@@ -72,7 +74,7 @@ def F_ct2D_trans(turn_rate, T):
 # print(F)
 
 
-def Q_dc_ploy_proc_noise(order, axis, T, std):
+def Q_dc_poly_proc_noise(order, axis, T, std):
     '''
     Process noise covariance matrix used with discretized continuous-time models.
     see [1] section 6.2.
@@ -84,31 +86,31 @@ def Q_dc_ploy_proc_noise(order, axis, T, std):
         2 means constant acceleration, 3 means constant jerk, etc.
     axis : int
         Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        2 means x-axis and y-axis, etc.
+        1 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
     std : number, list or ndarray
-        The standard deviation of continuous-time porcess noise
+        The standard deviation (square root of intensity) of continuous-time porcess noise
 
     Returns
     -------
     Q : ndarray
         Process noise convariance
     '''
-    assert (0 <= order)
-    assert (0 <= axis)
+    assert (order >= 0)
+    assert (axis >= 0)
 
     if isinstance(std, (int, float)):
         std = [std] * (axis + 1)
     sel = np.arange(order, -1, -1)
     col, row = np.meshgrid(sel, sel)
     Q_base = T**(col + row + 1) / (factorial(col) * factorial(row) * (col + row + 1))
-    Q = np.kron(Q_base, np.diag(std)**2)
+    Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q
 
 
-# Q = Q_dc_poly_proc_noise(2, 2, 1, [1, 2, 3])
+# Q = Q_dc_poly_proc_noise(2, 2, 3, [1, 2, 3])
 # print(Q)
 
 
@@ -124,7 +126,7 @@ def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
         2 means constant acceleration, 3 means constant jerk, etc.
     axis : int
         Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        2 means x-axis and y-axis, etc.
+        1 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
     std : number, list or ndarray
@@ -148,8 +150,8 @@ def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
     Likewise, for the alpha-beta filter, order=1, ht=1 and for the alpha-
     beta-gamma filter, order=2, ht=0
     '''
-    assert (0 <= order)
-    assert (0 <= axis)
+    assert (order >= 0)
+    assert (axis >= 0)
 
     if ht is None:
         ht = 0
@@ -159,7 +161,7 @@ def Q_dd_poly_proc_noise(order, axis, T, std, ht=None):
     sel = np.arange(ht + order, ht - 1, -1)
     L = T**sel / factorial(sel)
     Q_base = np.outer(L, L)
-    Q = np.kron(Q_base, np.diag(std)**2)
+    Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q
 
@@ -204,7 +206,7 @@ def H_only_pos_meas(order, axis):
         2 means constant acceleration, 3 means constant jerk, etc.
     axis : int
         Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        2 means x-axis and y-axis, etc.
+        1 means x-axis and y-axis, etc.
 
     Returns
     -------
@@ -214,9 +216,14 @@ def H_only_pos_meas(order, axis):
     assert (order >= 0)
     assert (axis >= 0)
 
-    H = np.eye(axis + 1, (order + 1) * (axis + 1))
+    H = np.eye((order + 1) * (axis + 1))
+    H = H[::order + 1]
 
     return H
+
+
+# H = H_only_pos_meas(1, 2)
+# print(H)
 
 
 def R_only_pos_meas_noise(axis, std):
@@ -230,24 +237,36 @@ def R_only_pos_meas_noise(axis, std):
 
     return R
 
+
+# R = R_only_pos_meas_noise(2, [1, 2, 3])
+# print(R)
+
+
 class Trajectory2D():
     def __init__(self, T, start=np.zeros(6)):
         self._T = T
         self._head = start.copy()
-        self._state = []
-        self._len = 0
-        self._x_dim = 6
+        self._traj = [start.copy().reshape(-1, 1)]
+        self._stage = [{'model': 'start'}]
+        self._len = 1
+        self._xdim = 6
 
     def __len__(self):
         return self._len
 
     def __call__(self, R):
         H = H_only_pos_meas(2, 1)
-        state = np.concatenate(self._state, axis=1)
-        traj_real = np.dot(H, state)
+        state = np.concatenate(self._traj, axis=1)
         v = multi_normal(0, R, self._len, axis=1)
+        traj_real = np.dot(H, state)
         traj_meas = traj_real + v
         return traj_real, traj_meas
+
+    def stage(self):
+        return self._stage
+
+    def traj(self):
+        return self._traj
 
     def add_stage(self, stages):
         '''
@@ -258,28 +277,30 @@ class Trajectory2D():
             {'model': 'ct', 'len': 100, 'omega': pi}
         ]
         '''
+        self._stage.extend(stages)
         for i in range(len(stages)):
             mdl = stages[i]['model']
             traj_len = stages[i]['len']
             self._len += traj_len
-            state = np.zeros((self._x_dim, traj_len))
 
+            state = np.zeros((self._xdim, traj_len))
             if mdl.lower() == 'cv':
                 F = F_poly_trans(1, 1, self._T)
                 v = stages[i]['velocity']
                 if v[0] is not None:
-                    self._head[2] = v[0]
+                    self._head[1] = v[0]
                 if v[1] is not None:
-                    self._head[3] = v[1]
+                    self._head[4] = v[1]
 
+                sel = [0, 1, 3, 4]
                 for i in range(traj_len):
-                    self._head[0: 4] = np.dot(F, self._head[0: 4])
-                    state[:, i] = self._head
+                    self._head[sel] = np.dot(F, self._head[sel])
+                    state[sel, i] = self._head[sel]
             elif mdl.lower() == 'ca':
                 F = F_poly_trans(2, 1, self._T)
                 a = stages[i]['acceleration']
                 if a[0] is not None:
-                    self._head[4] = a[0]
+                    self._head[2] = a[0]
                 if a[1] is not None:
                     self._head[5] = a[1]
 
@@ -289,37 +310,20 @@ class Trajectory2D():
             elif mdl.lower() == 'ct':
                 F = F_ct2D_trans(stages[i]['omega'], self._T)
 
+                sel = [0, 1, 3, 4]
                 for i in range(traj_len):
-                    self._head[0: 4] = np.dot(F, self._head[0: 4])
-                    state[:, i] = self._head
+                    self._head[sel] = np.dot(F, self._head[sel])
+                    state[sel, i] = self._head[sel]
             else:
                 raise ValueError('invalid model')
 
-            self._state.append(state)
+            self._traj.append(state)
 
-# start = np.array([100.0, 100.0, 0.0, 0.0, 0.0, 0.0])
-# T = 0.1
-# traj = Trajectory2D(T, start)
-# stages = []
-# stages.append({'model': 'cv', 'len': 100, 'velocity': [30, 0]})
-# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(300) / (100 * T)})
-# stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
-# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(60) / (100 * T)})
-# stages.append({'model': 'cv', 'len': 100, 'velocity': [None, None]})
-# stages.append({'model': 'ct', 'len': 100, 'omega': tlb.deg2rad(90) / (100 * T)})
-# stages.append({'model': 'ca', 'len': 100, 'acceleration': [0, 10]})
-# traj.add_stage(stages)
-
-# R = 10 * np.eye(2)
-# traj_real, traj_meas = traj(R)
-
-# # trajectory
-# _, ax = plt.subplots()
-# ax.scatter(traj_real[0, 0], traj_real[1, 0], s=120, c='r', marker='x', label='start')
-# ax.plot(traj_real[0, :], traj_real[1, :], linewidth=0.8, label='real')
-# ax.scatter(traj_meas[0, :], traj_meas[1, :], s=5, c='orange', label='meas')
-# ax.set_xlabel('x')
-# ax.set_ylabel('y')
-# ax.legend()
-# ax.set_title('trajectory')
-# plt.show()
+    def show_traj(self):
+        _, ax = plt.subplots()
+        ax.axis('equal')
+        ax.scatter(self._traj[0][0], self._traj[0][3], s=50, c='r', marker='x', label=self._stage[0]['model'])
+        for i in range(1, len(self._traj)):
+            ax.plot(self._traj[i][0, :], self._traj[i][3, :], '.-', linewidth=1, ms=3, label=self._stage[i]['model'])
+        ax.legend()
+        plt.show()

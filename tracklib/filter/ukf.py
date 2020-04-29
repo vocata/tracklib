@@ -317,20 +317,20 @@ class SimplexSigmaPoints():
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
 
         psi = np.zeros(self._dim + 2).tolist()
-        psi[0] = np.array([0])
-        psi[1] = np.array([-1 / np.sqrt(2 * self._w[1])])
-        psi[2] = np.array([1 / np.sqrt(2 * self._w[1])])
+        psi[0] = np.array([0], dtype=float)
+        psi[1] = np.array([-1 / np.sqrt(2 * self._w[1])], dtype=float)
+        psi[2] = np.array([1 / np.sqrt(2 * self._w[1])], dtype=float)
         for j in range(2, self._dim + 1):
             for i in range(j + 2):
                 if i == 0:
                     psi[i] = np.concatenate((psi[0], np.zeros(1)))
                 elif i == j + 1:
-                    tmp = np.array([1 / np.sqrt(2 * self._w[j + 1])])
+                    tmp = np.array([1 / np.sqrt(2 * self._w[j + 1])], dtype=float)
                     psi[i] = np.concatenate((np.zeros(j - 1), tmp))
                 else:
-                    tmp = np.array([-1 / np.sqrt(2 * self._w[j + 1])])
+                    tmp = np.array([-1 / np.sqrt(2 * self._w[j + 1])], dtype=float)
                     psi[i] = np.concatenate((psi[i], tmp))
-        psi = np.array(psi).T
+        psi = np.array(psi, dtype=float).T
         pts = mean.reshape(-1, 1) + cov_sqrt @ psi
         return pts
 
@@ -373,20 +373,20 @@ class SphericalSimplexSigmaPoints():
             cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
 
         psi = np.zeros(self._dim + 2).tolist()
-        psi[0] = np.array([0])
-        psi[1] = np.array([-1 / np.sqrt(2 * self._w[1])])
-        psi[2] = np.array([1 / np.sqrt(2 * self._w[1])])
+        psi[0] = np.array([0], dtype=float)
+        psi[1] = np.array([-1 / np.sqrt(2 * self._w[1])], dtype=float)
+        psi[2] = np.array([1 / np.sqrt(2 * self._w[1])], dtype=float)
         for j in range(2, self._dim + 1):
             for i in range(j + 2):
                 if i == 0:
                     psi[i] = np.concatenate((psi[0], np.zeros(1)))
                 elif i == j + 1:
-                    tmp = np.array([j / np.sqrt(j * (j + 1) * self._w[1])])
+                    tmp = np.array([j / np.sqrt(j * (j + 1) * self._w[1])], dtype=float)
                     psi[i] = np.concatenate((np.zeros(j - 1), tmp))
                 else:
-                    tmp = np.array([-1 / np.sqrt(j * (j + 1) * self._w[1])])
+                    tmp = np.array([-1 / np.sqrt(j * (j + 1) * self._w[1])], dtype=float)
                     psi[i] = np.concatenate((psi[i], tmp))
-        psi = np.array(psi).T
+        psi = np.array(psi, dtype=float).T
         pts = mean.reshape(-1, 1) + cov_sqrt @ psi
         return pts
 

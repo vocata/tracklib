@@ -20,6 +20,7 @@ __all__ = [
 
 import numpy as np
 import scipy.linalg as lg
+from functools import reduce
 from .base import KFBase
 from tracklib.model import F_poly_trans, H_only_pos_meas
 
@@ -28,14 +29,8 @@ def get_alpha(sigma_w, sigma_v, T):
     '''
     Obtain alpha and for which alpha filter becomes a steady-state Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     alpha = (-lamb**2 + np.sqrt(lamb**4 + 16 * lamb**2)) / 8
@@ -126,14 +121,8 @@ def get_alpha_beta(sigma_w, sigma_v, T):
     '''
     Obtain alpha, beta and for which alpha-beta filter becomes a steady-state Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     r = (4 + lamb - np.sqrt(8 * lamb + lamb**2)) / 4
@@ -175,8 +164,9 @@ class AlphaBetaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b = map(np.diag, (self._alpha, self._beta))
-        self._gain = np.vstack((diag_a, diag_b / T))
+        trans = lambda x: np.array(x, dtype=float)
+        alpha, beta = map(trans, (alpha, beta))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T)).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1
@@ -232,14 +222,8 @@ def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     alpha-beta-gamma becomes a steady-state
     Kalman filter
     '''
-    if isinstance(sigma_w, (int, float)):
-        sigma_w = np.array([sigma_w], dtype=float)
-    elif isinstance(sigma_w, (list, tuple)):
-        sigma_w = np.array(sigma_w, dtype=float)
-    if isinstance(sigma_v, (int, float)):
-        sigma_v = np.array([sigma_v], dtype=float)
-    elif isinstance(sigma_v, (list, tuple)):
-        sigma_v = np.array(sigma_v, dtype=float)
+    sigma_w = np.array(sigma_w, dtype=float)
+    sigma_v = np.array(sigma_v, dtype=float)
 
     lamb = sigma_w * T**2 / sigma_v
     b = lamb / 2 - 3
@@ -292,8 +276,9 @@ class AlphaBetaGammaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        diag_a, diag_b, diag_g = map(np.diag, (self._alpha, self._beta, self._gamma))
-        self._gain = np.vstack((diag_a, diag_b / T, diag_g / (2 * T**2)))
+        trans = lambda x: np.array(x, dtype=float)
+        alpha, beta, gamma = map(trans, (alpha, beta, gamma))
+        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T, gamma / (2 * T**2))).T).T
 
         order = xdim / zdim - 1
         axis = zdim - 1

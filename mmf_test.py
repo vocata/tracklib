@@ -4,6 +4,7 @@
 import numpy as np
 import tracklib as tlb
 import tracklib.filter as ft
+import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
 '''
@@ -22,15 +23,15 @@ def MMFilter_test():
     models = []
     probs = []
     for i in range(model_n):
-        qx, qy = np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)
-        rx, ry = np.sqrt(i + 1), np.sqrt(i + 1)
+        sigma_w = [np.sqrt((i + 1) / 10), np.sqrt((i + 1) / 10)]
+        sigma_v = [np.sqrt(i + 1), np.sqrt(i + 1)]
 
         F = model.F_poly_trans(1, 1, T)
         H = model.H_only_pos_meas(1, 1)
         L = np.eye(xdim)
         M = np.eye(zdim)
-        Q = model.Q_dd_poly_proc_noise(1, 1, T, [qx, qy])
-        R = model.R_only_pos_meas_noise(1, [rx, ry])
+        Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
+        R = model.R_only_pos_meas_noise(1, sigma_v)
 
         sub_filter = ft.KFilter(F, L, H, M, Q, R, xdim, zdim)
         models.append(sub_filter)
@@ -38,10 +39,7 @@ def MMFilter_test():
     mmf.add_models(models, probs)
 
     # initial state and error convariance
-    x = np.array([1, 2, 0.2, 0.3])
-    P = 10 * np.eye(xdim)
-
-    mmf.init(x, P)
+    x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
@@ -49,12 +47,16 @@ def MMFilter_test():
     maxprob_state_arr = np.empty((xdim, N))
     prob_arr = np.empty((model_n, N))
 
-    for n in range(N):
+    for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
         v = tlb.multi_normal(0, R)
 
         x = F @ x + L @ w
         z = H @ x + M @ v
+        if n == -1:
+            x_init, P_init = init.single_point_init(z, R, 1)
+            mmf.init(x_init, P_init)
+            continue
         state_arr[:, n] = x
         measure_arr[:, n] = z
         mmf.step(z)
@@ -77,10 +79,10 @@ def MMFilter_test():
     ax[0].plot(n, maxprob_state_arr[0, :], linewidth=0.8)
     ax[0].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
     ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, state_arr[2, :], linewidth=0.8)
     ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, weighted_state_arr[1, :], linewidth=0.8)
-    ax[1].plot(n, maxprob_state_arr[1, :], linewidth=0.8)
+    ax[1].plot(n, weighted_state_arr[2, :], linewidth=0.8)
+    ax[1].plot(n, maxprob_state_arr[2, :], linewidth=0.8)
     ax[1].legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
     ax[1].set_title('y state weighted estimation')
     plt.show()
@@ -95,11 +97,11 @@ def MMFilter_test():
 
     # trajectory
     _, ax = plt.subplots()
-    ax.scatter(state_arr[0, 0], state_arr[1, 0], s=120, c='r', marker='x')
-    ax.plot(state_arr[0, :], state_arr[1, :], linewidth=0.8)
+    ax.scatter(state_arr[0, 0], state_arr[2, 0], s=120, c='r', marker='x')
+    ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8)
     ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(weighted_state_arr[0, :], weighted_state_arr[1, :], linewidth=0.8)
-    ax.plot(maxprob_state_arr[0, :], maxprob_state_arr[1, :], linewidth=0.8)
+    ax.plot(weighted_state_arr[0, :], weighted_state_arr[2, :], linewidth=0.8)
+    ax.plot(maxprob_state_arr[0, :], maxprob_state_arr[2, :], linewidth=0.8)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(['real', 'measurement', 'weighted esti', 'max prob esti'])
