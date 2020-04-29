@@ -29,6 +29,7 @@ def DMMF_test():
     stages.append({'model': 'cv', 'len': 200, 'velocity': [None, None]})
     stages.append({'model': 'ca', 'len': 200, 'acceleration': [10, 0]})
     traj.add_stage(stages)
+    traj.show_traj()
     R = np.eye(2)
     traj_real, traj_meas = traj(R)
     N = len(traj)
