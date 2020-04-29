@@ -19,7 +19,7 @@ def DMMF_test():
     xdim, zdim = 6, 2
 
     # generate trajectory
-    start = np.array([100.0, 0.0, 0.0, 100.0, 0.0, 0.0], dtype=float)
+    start = np.array([100.0, 10.0, 0.0, 100.0, 0.0, 0.0], dtype=float)
     traj = model.Trajectory2D(T, start)
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'velocity': [10, 0]})
@@ -114,10 +114,17 @@ def DMMF_test():
     dmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((xdim, N))
-    prob_arr = np.empty((r, N))     # 2 models
+    prob_arr = np.empty((r, N))     # 3 models
     subprob_arr = np.empty((sr, N))  # 2 submodels
 
-    for n in range(N):
+    post_state_arr[:, 0] = dmmf.post_state
+    prob_arr[:, 0] = dmmf.probs()
+    if isinstance(dmmf, ft.GPB2Filter):
+        subprob_arr[:, 0] = dmmf.models()[2][0].probs()
+    else:
+        subprob_arr[:, 0] = dmmf.models()[2].probs()
+
+    for n in range(1, N):
         dmmf.step(traj_meas[:, n])
 
         post_state_arr[:, n] = dmmf.post_state
