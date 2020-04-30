@@ -13,6 +13,7 @@ __all__ = ['GPB1Filter', 'GPB2Filter', 'IMMFilter']
 import copy
 import numpy as np
 import scipy.linalg as lg
+import tracklib.model as model
 from .base import KFBase
 
 
@@ -100,8 +101,8 @@ class GPB1Filter(KFBase):
 
         for i in range(self._models_n):
             self._models[i].init(state, cov)
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -314,8 +315,8 @@ class GPB2Filter(KFBase):
         for i in range(self._models_n):
             for j in range(self._models_n):
                 self._models[i][j].init(state, cov)
-        self._post_state = state
-        self._post_cov = cov
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
@@ -419,9 +420,23 @@ class IMMFilter(KFBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self):
+    def __init__(self, xdim, zdim, switch_fcn=model.model_switch):
         super().__init__()
+        self._xdim = xdim
+        self._zdim = zdim
+        self._switch_fcn = switch_fcn
+
+        order = xdim // zdim
+        if order == 1:
+            self._state_type = 'cp'
+        elif order == 2:
+            self._state_type = 'cv'
+        elif order == 3:
+            self._state_type = 'ca'
+        else:
+            raise ValueError('xdim does not match zdim')
         self._models = []
+        self._model_types = []
         self._probs = None
         self._trans_mat = None
         self._models_n = 0
@@ -448,25 +463,37 @@ class IMMFilter(KFBase):
 
     def __getitem__(self, n):
         return self._models[n], self._probs[n]
-    
+
     def __prior_update(self):
+        prior_state_cov = []
+        for i in range(self._models_n):
+            prior_state_cov.append(
+                self._switch_fcn(self._models[i].prior_state,
+                                 self._models[i].prior_cov,
+                                 self._model_types[i], self._state_type))
         self._prior_state = 0
         for i in range(self._models_n):
-            self._prior_state += self._probs[i] * self._models[i].prior_state
+            self._prior_state += self._probs[i] * prior_state_cov[i][0]
         self._prior_cov = 0
         for i in range(self._models_n):
-            err = self._models[i].prior_state - self._prior_state
-            self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
+            err = prior_state_cov[i][0] - self._prior_state
+            self._prior_cov += self._probs[i] * (prior_state_cov[i][1] + np.outer(err, err))
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
     def __post_update(self):
+        post_state_cov = []
+        for i in range(self._models_n):
+            post_state_cov.append(
+                self._switch_fcn(self._models[i].post_state,
+                                 self._models[i].post_cov,
+                                 self._model_types[i], self._state_type))
         self._post_state = 0
         for i in range(self._models_n):
-            self._post_state += self._probs[i] * self._models[i].post_state
+            self._post_state += self._probs[i] * post_state_cov[i][0]
         self._post_cov = 0
         for i in range(self._models_n):
-            err = self._models[i].post_state - self._post_state
-            self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+            err = post_state_cov[i][0] - self._post_state
+            self._post_cov += self._probs[i] * (post_state_cov[i][1] + np.outer(err, err))
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
     def __innov_update(self):
@@ -498,14 +525,14 @@ class IMMFilter(KFBase):
             raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
-            self._models[i].init(state, cov)
-        self._post_state = state
-        self._post_cov = cov
+            self._models[i].init(*self._switch_fcn(state, cov, self._state_type, self._model_types[i]))
+        self._post_state = state.copy()
+        self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
-        
-    def add_models(self, models, probs=None, trans_mat=None):
+
+    def add_models(self, models, model_types, probs=None, trans_mat=None):
         '''
         Add new model
 
@@ -513,9 +540,11 @@ class IMMFilter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
-        probs : list, of length N
+        model_types : list, of length N
+            the type of models
+        probs : 1-D array_like, of length N, optional
             model probability
-        trans_mat : 2-D array_like, of shape (N, N)
+        trans_mat : 2-D array_like, of shape (N, N), optional
             model transition matrix
 
         Returns
@@ -524,6 +553,7 @@ class IMMFilter(KFBase):
         '''
         self._models_n = len(models)
         self._models.extend(models)
+        self._model_types.extend(model_types)
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
@@ -550,19 +580,29 @@ class IMMFilter(KFBase):
         # mixing probability P(M(k-1)|M(k),Z^(k-1))
         mixing_probs /= self._probs.reshape(-1, 1)
         # mixing
+        post_state_cov = []
+        for i in range(self._models_n):
+            post_state_cov.append(
+                self._switch_fcn(self._models[i].post_state,
+                                 self._models[i].post_cov,
+                                 self._model_types[i], self._state_type))
         mixed_state = []
         for i in range(self._models_n):
             mixed_state.append(0)
             for j in range(self._models_n):
-                mixed_state[i] += mixing_probs[i, j] * self._models[j].post_state
-            self._models[i].post_state = mixed_state[i]
-        
+                mixed_state[i] += mixing_probs[i, j] * post_state_cov[j][0]
+
+        mixed_cov = []
         for i in range(self._models_n):
-            mixed_cov = 0
+            mixed_cov.append(0)
             for j in range(self._models_n):
-                err = self._models[j].post_state - mixed_state[i]
-                mixed_cov += mixing_probs[i, j] * (self._models[j].post_cov + np.outer(err, err))
-            self._models[i].post_cov = (mixed_cov + mixed_cov.T) / 2
+                err = post_state_cov[j][0] - mixed_state[i]
+                mixed_cov[i] += mixing_probs[i, j] * (post_state_cov[j][1] + np.outer(err, err))
+            mixed_cov[i] = (mixed_cov[i] + mixed_cov[i].T) / 2
+            sub_state, sub_cov = self._switch_fcn(mixed_state[i], mixed_cov[i],
+                                                  self._state_type,
+                                                  self._model_types[i])
+            self._models[i].post_state, self._models[i].post_cov = sub_state, sub_cov
 
         for i in range(self._models_n):
             self._models[i].predict(u)

@@ -34,55 +34,43 @@ def DMMF_test():
     # CV
     sigma_w = [np.sqrt(1.0), np.sqrt(1.0)]
     sigma_v = [np.sqrt(1.0), np.sqrt(1.0)]
-    F = np.zeros((xdim, xdim))
-    F[:2, :2] = model.F_poly_trans(1, 0, T)
-    F[3:5, 3:5] = model.F_poly_trans(1, 0, T)
-    H = model.H_only_pos_meas(2, 1)
-    L = np.eye(xdim)
-    M = np.eye(zdim)
-    Q = np.zeros((xdim, xdim))
-    Q[:2, :2] = model.Q_dd_poly_proc_noise(1, 0, T, sigma_w[0], 1)
-    Q[3:5, 3:5] = model.Q_dd_poly_proc_noise(1, 0, T, sigma_w[1], 1)
-    R = model.R_only_pos_meas_noise(1, sigma_v)
-    cv_kf = ft.KFilter(F, L, H, M, Q, R, xdim, zdim)
+    F = model.F_cv(1, T)
+    H = model.H_cv(1)
+    L = np.eye(4)
+    M = np.eye(2)
+    Q = model.Q_cv_dd(1, T, sigma_w)
+    R = np.diag(sigma_v)
+    cv_kf = ft.KFilter(F, L, H, M, Q, R, 4, 2)
 
     # CA
     sigma_w = [np.sqrt(1.0), np.sqrt(1.0)]
     sigma_v = [np.sqrt(1.0), np.sqrt(1.0)]
-    F = model.F_poly_trans(2, 1, T)
-    H = model.H_only_pos_meas(2, 1)
-    L = np.eye(xdim)
-    M = np.eye(zdim)
-    Q = model.Q_dd_poly_proc_noise(2, 1, T, sigma_w)
-    R = model.R_only_pos_meas_noise(1, sigma_v)
-    ca_kf = ft.KFilter(F, L, H, M, Q, R, xdim, zdim)
+    F = model.F_ca(1, T)
+    H = model.H_ca(1)
+    L = np.eye(6)
+    M = np.eye(2)
+    Q = model.Q_ca_dd(1, T, sigma_w)
+    R = np.diag(sigma_v)
+    ca_kf = ft.KFilter(F, L, H, M, Q, R, 6, 2)
 
     # CT
     sigma_w = [np.sqrt(1.0), np.sqrt(1.0)]
     sigma_v = [np.sqrt(1.0), np.sqrt(1.0)]
     turn_rate = tlb.deg2rad(360) / (200 * T)
-    F = np.zeros((xdim, xdim))
-    Fct = model.F_ct2D_trans(turn_rate, T)
-    F[:2, :2] = Fct[:2, :2]
-    F[:2, 3:5] = Fct[:2, 2:]
-    F[3:5, :2] = Fct[2:, :2]
-    F[3:5, 3:5] = Fct[2:, 2:]
-    H = model.H_only_pos_meas(2, 1)
-    L = np.eye(xdim)
-    M = np.eye(zdim)
-    Q = np.zeros((xdim, xdim))
-    Qct = model.Q_ct2D_proc_noise(T, sigma_w)
-    Q[:2, :2] = Qct[:2, :2]
-    Q[3:5, 3:5] = Qct[2:, 2:]
-    R = model.R_only_pos_meas_noise(1, sigma_v)
-    ct_kf = ft.KFilter(F, L, H, M, Q, R, xdim, zdim)
+    F = model.F_ct2D(turn_rate, T)
+    H = model.H_ct2D(1)
+    L = np.eye(4)
+    M = np.eye(2)
+    Q = model.Q_ct2D(T, sigma_w)
+    R = np.diag(sigma_v)
+    ct_kf = ft.KFilter(F, L, H, M, Q, R, 4, 2)
 
     r = 3
     
     # dmmf = ft.GPB1Filter()
     # dmmf = ft.GPB2Filter()
-    dmmf = ft.IMMFilter()
-    dmmf.add_models([cv_kf, ca_kf, ct_kf])
+    dmmf = ft.IMMFilter(xdim, zdim)
+    dmmf.add_models([cv_kf, ca_kf, ct_kf], ['cv', 'ca', 'ct2D'])
 
     x_init, P_init = start, np.eye(xdim)
     dmmf.init(x_init, P_init)
