@@ -270,6 +270,8 @@ def cov_switch(cov, type_in, type_out):
         elif type_out == 'ca':
             slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=1)
             ctmp = slct @ cov @ slct.T
+            # diag_sel = range(2, 3 * axis, 3)
+            # ctmp[diag_sel, diag_sel] = 100
             return ctmp
         else:
             raise ValueError('unknown output type %s' % type_out)

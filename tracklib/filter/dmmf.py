@@ -126,7 +126,8 @@ class GPB1Filter(KFBase):
             raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
-            self._models[i].init(*self._switch_fcn(state, cov, self._state_type, self._model_types[i]))
+            self._models[i].init(*self._switch_fcn(
+                state, cov, self._state_type, self._model_types[i]))
         self._post_state = state.copy()
         self._post_cov = cov.copy()
         self._len = 0
@@ -231,9 +232,23 @@ class GPB2Filter(KFBase):
     '''
     Second-order generalized pseudo-Bayesian filter
     '''
-    def __init__(self):
+    def __init__(self, xdim, zdim, switch_fcn=model.model_switch):
         super().__init__()
+        self._xdim = xdim
+        self._zdim = zdim
+        self._switch_fcn = switch_fcn
+
+        order = xdim // zdim
+        if order == 1:
+            self._state_type = 'cp'
+        elif order == 2:
+            self._state_type = 'cv'
+        elif order == 3:
+            self._state_type = 'ca'
+        else:
+            raise ValueError('xdim does not match zdim')
         self._models = []
+        self._model_types = []
         self._probs = None
         self._prior_probs = None
         self._merge_probs = None
@@ -265,32 +280,50 @@ class GPB2Filter(KFBase):
         return self._models[n], self._probs[n]
 
     def __prior_update(self):
+        prior_state_cov = []
+        for i in range(self._models_n):
+            tmp = []
+            for j in range(self._models_n):
+                tmp.append(
+                    self._switch_fcn(self._models[i][j].prior_state,
+                                     self._models[i][j].prior_cov,
+                                     self._model_types[i], self._state_type))
+            prior_state_cov.append(tmp)
         self._prior_state = 0
         merge_state = []
         for i in range(self._models_n):
             merge_state.append(0)
             for j in range(self._models_n):
-                merge_state[i] += self._prior_merge_probs[i, j] * self._models[i][j].prior_state
+                merge_state[i] += self._prior_merge_probs[i, j] * prior_state_cov[i][j][0]
             self._prior_state += self._prior_probs[i] * merge_state[i]
 
         self._prior_cov = 0
         for i in range(self._models_n):
             merge_cov = 0
             for j in range(self._models_n):
-                errj = self._models[i][j].prior_state - merge_state[i]
-                merge_cov += self._prior_merge_probs[i, j] * (self._models[i][j].prior_cov + np.outer(errj, errj))
+                errj = prior_state_cov[i][j][0] - merge_state[i]
+                merge_cov += self._prior_merge_probs[i, j] * (prior_state_cov[i][j][1] + np.outer(errj, errj))
             merge_cov = (merge_cov + merge_cov.T) / 2
             erri = merge_state[i] - self._prior_state
             self._prior_cov += self._prior_probs[i] * (merge_cov + np.outer(erri, erri))
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
     def __post_update(self):
+        post_state_cov = []
+        for i in range(self._models_n):
+            tmp = []
+            for j in range(self._models_n):
+                tmp.append(
+                    self._switch_fcn(self._models[i][j].post_state,
+                                     self._models[i][j].post_cov,
+                                     self._model_types[i], self._state_type))
+            post_state_cov.append(tmp)
         self._post_state = 0
         merge_state = []
         for i in range(self._models_n):
             merge_state.append(0)
             for j in range(self._models_n):
-                merge_state[i] += self._merge_probs[i, j] * self._models[i][j].post_state
+                merge_state[i] += self._merge_probs[i, j] * post_state_cov[i][j][0]
             self._post_state += self._probs[i] * merge_state[i]
 
         self._post_cov = 0
@@ -298,8 +331,8 @@ class GPB2Filter(KFBase):
         for i in range(self._models_n):
             merge_cov.append(0)
             for j in range(self._models_n):
-                errj = self._models[i][j].post_state - merge_state[i]
-                merge_cov[i] += self._merge_probs[i, j] * (self._models[i][j].post_cov + np.outer(errj, errj))
+                errj = post_state_cov[i][j][0] - merge_state[i]
+                merge_cov[i] += self._merge_probs[i, j] * (post_state_cov[i][j][1] + np.outer(errj, errj))
             merge_cov[i] = (merge_cov[i] + merge_cov[i].T) / 2
             erri = merge_state[i] - self._post_state
             self._post_cov += self._probs[i] * (merge_cov[i] + np.outer(erri, erri))
@@ -347,14 +380,15 @@ class GPB2Filter(KFBase):
 
         for i in range(self._models_n):
             for j in range(self._models_n):
-                self._models[i][j].init(state, cov)
+                self._models[i][j].init(*self._switch_fcn(
+                    state, cov, self._state_type, self._model_types[i]))
         self._post_state = state.copy()
         self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs=None, trans_mat=None):
+    def add_models(self, models, model_types, probs=None, trans_mat=None):
         '''
         Add new model
 
@@ -362,6 +396,8 @@ class GPB2Filter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
+        model_types : list, of length N
+            the type of models
         probs : 1-D array_like, of length N, optional
             model probability
         trans_mat : 2-D array_like, of shape (N, N), optional
@@ -374,12 +410,13 @@ class GPB2Filter(KFBase):
         self._models_n = len(models)
         for i in range(self._models_n):
             self._models.append([copy.deepcopy(models[i]) for _ in range(self._models_n)])
+        self._model_types.extend(model_types)
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
             self._probs = np.copy(probs)
         if trans_mat is None:
-            trans_prob = 0.99
+            trans_prob = 0.999
             self._trans_mat = np.zeros((self._models_n, self._models_n))
             self._trans_mat += (1 - trans_prob) / 2
             idx = np.arange(self._models_n)
@@ -426,9 +463,13 @@ class GPB2Filter(KFBase):
 
         # reset all models' posterior state and covariance
         for i in range(self._models_n):
+            post_state, post_cov = self._switch_fcn(merge_state[i],
+                                                    merge_cov[i],
+                                                    self._state_type,
+                                                    self._model_types[i])
             for j in range(self._models_n):
-                self._models[i][j].post_state = merge_state[j]
-                self._models[i][j].post_cov = merge_cov[j]
+                self._models[i][j].post_state = post_state
+                self._models[i][j].post_cov = post_cov
 
         self._len += 1
         self._stage = 0
@@ -558,7 +599,8 @@ class IMMFilter(KFBase):
             raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
-            self._models[i].init(*self._switch_fcn(state, cov, self._state_type, self._model_types[i]))
+            self._models[i].init(*self._switch_fcn(
+                state, cov, self._state_type, self._model_types[i]))
         self._post_state = state.copy()
         self._post_cov = cov.copy()
         self._len = 0

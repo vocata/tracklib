@@ -71,8 +71,8 @@ def DMMF_test():
 
     r = 3
     
-    dmmf = ft.GPB1Filter(xdim, zdim)
-    # dmmf = ft.GPB2Filter()
+    # dmmf = ft.GPB1Filter(xdim, zdim)
+    dmmf = ft.GPB2Filter(xdim, zdim)
     # dmmf = ft.IMMFilter(xdim, zdim)
     dmmf.add_models([cv_kf, ca_kf, ct_kf], ['cv', 'ca', 'ct2D'])
 
@@ -91,6 +91,7 @@ def DMMF_test():
 
         post_state_arr[:, n] = dmmf.post_state
         prob_arr[:, n] = dmmf.probs()
+        print(n)
     print(len(dmmf))
     print(dmmf)
     print(dmmf.prior_state)
