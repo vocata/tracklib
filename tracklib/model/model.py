@@ -360,6 +360,10 @@ class Trajectory2D():
             if mdl.lower() == 'cv':
                 F = F_cv(1, self._T)
                 v = stages[i]['velocity']
+                if isinstance(v, (int, float)):
+                    cur_v = self._head[[1, 4]]
+                    unit_v = cur_v / lg.norm(cur_v)
+                    v *= unit_v
                 if v[0] is not None:
                     self._head[1] = v[0]
                 if v[1] is not None:
@@ -372,6 +376,10 @@ class Trajectory2D():
             elif mdl.lower() == 'ca':
                 F = F_ca(1, self._T)
                 a = stages[i]['acceleration']
+                if isinstance(a, (int, float)):
+                    cur_v = self._head[[1, 4]]
+                    unit_v = cur_v / lg.norm(cur_v)
+                    a *= unit_v
                 if a[0] is not None:
                     self._head[2] = a[0]
                 if a[1] is not None:

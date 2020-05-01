@@ -21,9 +21,23 @@ class GPB1Filter(KFBase):
     '''
     First-order generalized pseudo-Bayesian filter
     '''
-    def __init__(self):
+    def __init__(self, xdim, zdim, switch_fcn=model.model_switch):
         super().__init__()
+        self._xdim = xdim
+        self._zdim = zdim
+        self._switch_fcn = switch_fcn
+
+        order = xdim // zdim
+        if order == 1:
+            self._state_type = 'cp'
+        elif order == 2:
+            self._state_type = 'cv'
+        elif order == 3:
+            self._state_type = 'ca'
+        else:
+            raise ValueError('xdim does not match zdim')
         self._models = []
+        self._model_types = []
         self._probs = None
         self._trans_mat = None
         self._models_n = 0
@@ -52,23 +66,35 @@ class GPB1Filter(KFBase):
         return self._models[n], self._probs[n]
 
     def __prior_update(self):
+        prior_state_cov = []
+        for i in range(self._models_n):
+            prior_state_cov.append(
+                self._switch_fcn(self._models[i].prior_state,
+                                 self._models[i].prior_cov,
+                                 self._model_types[i], self._state_type))
         self._prior_state = 0
         for i in range(self._models_n):
-            self._prior_state += self._probs[i] * self._models[i].prior_state
+            self._prior_state += self._probs[i] * prior_state_cov[i][0]
         self._prior_cov = 0
         for i in range(self._models_n):
-            err = self._models[i].prior_state - self._prior_state
-            self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
+            err = prior_state_cov[i][0] - self._prior_state
+            self._prior_cov += self._probs[i] * (prior_state_cov[i][1] + np.outer(err, err))
         self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
     def __post_update(self):
+        post_state_cov = []
+        for i in range(self._models_n):
+            post_state_cov.append(
+                self._switch_fcn(self._models[i].post_state,
+                                 self._models[i].post_cov,
+                                 self._model_types[i], self._state_type))
         self._post_state = 0
         for i in range(self._models_n):
-            self._post_state += self._probs[i] * self._models[i].post_state
+            self._post_state += self._probs[i] * post_state_cov[i][0]
         self._post_cov = 0
         for i in range(self._models_n):
-            err = self._models[i].post_state - self._post_state
-            self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+            err = post_state_cov[i][0] - self._post_state
+            self._post_cov += self._probs[i] * (post_state_cov[i][1] + np.outer(err, err))
         self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
     def __innov_update(self):
@@ -100,14 +126,14 @@ class GPB1Filter(KFBase):
             raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
-            self._models[i].init(state, cov)
+            self._models[i].init(*self._switch_fcn(state, cov, self._state_type, self._model_types[i]))
         self._post_state = state.copy()
         self._post_cov = cov.copy()
         self._len = 0
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs=None, trans_mat=None):
+    def add_models(self, models, model_types, probs=None, trans_mat=None):
         '''
         Add new model
 
@@ -115,6 +141,8 @@ class GPB1Filter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
+        model_types : list, of length N
+            the type of models
         probs : 1-D array_like, of length N, optional
             model probability
         trans_mat : 2-D array_like, of shape (N, N), optional
@@ -126,12 +154,13 @@ class GPB1Filter(KFBase):
         '''
         self._models_n = len(models)
         self._models.extend(models)
+        self._model_types.extend(model_types)
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
             self._probs = np.copy(probs)
         if trans_mat is None:
-            trans_prob = 0.99
+            trans_prob = 0.999
             self._trans_mat = np.zeros((self._models_n, self._models_n))
             self._trans_mat += (1 - trans_prob) / 2
             idx = np.arange(self._models_n)
@@ -172,8 +201,12 @@ class GPB1Filter(KFBase):
 
         # reset all models' posterior state and covariance
         for i in range(self._models_n):
-            self._models[i].post_state = self._post_state
-            self._models[i].post_cov = self._post_cov
+            post_state, post_cov = self._switch_fcn(self._post_state,
+                                                    self._post_cov,
+                                                    self._state_type,
+                                                    self._model_types[i])
+            self._models[i].post_state = post_state
+            self._models[i].post_cov = post_cov
 
         self._len += 1
         self._stage = 0
@@ -559,7 +592,7 @@ class IMMFilter(KFBase):
         else:
             self._probs = np.copy(probs)
         if trans_mat is None:
-            trans_prob = 0.99
+            trans_prob = 0.999
             self._trans_mat = np.zeros((self._models_n, self._models_n))
             self._trans_mat += (1 - trans_prob) / 2
             idx = np.arange(self._models_n)
