@@ -71,9 +71,7 @@ def DMMF_test():
 
     r = 3
     
-    # dmmf = ft.GPB1Filter(xdim, zdim)
-    dmmf = ft.GPB2Filter(xdim, zdim)
-    # dmmf = ft.IMMFilter(xdim, zdim)
+    dmmf = ft.IMMFilter(xdim, zdim)
     dmmf.add_models([cv_kf, ca_kf, ct_kf], ['cv', 'ca', 'ct2D'])
 
     x_init = start

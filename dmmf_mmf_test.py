@@ -105,8 +105,6 @@ def DMMF_test():
     r = 3
     sr = 2
 
-    # dmmf = ft.GPB1Filter()
-    # dmmf = ft.GPB2Filter()
     dmmf = ft.IMMFilter()
     dmmf.add_models([cv_kf, ca_kf, mmf])
 
