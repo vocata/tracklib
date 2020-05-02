@@ -7,9 +7,9 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly', 'Q_poly_dc', 'Q_poly_dd', 'Q_ct2D', 'H_only_pos', 'F_cv',
-    'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca',
-    'F_ct2D', 'Q_ct2D', 'H_ct2D', 'state_switch', 'cov_switch', 'model_switch',
+    'F_poly', 'Q_poly_dc', 'Q_poly_dd', 'H_only_pos', 'F_cv', 'Q_cv_dc',
+    'Q_cv_dd', 'H_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'F_ct2D',
+    'f_ct2D', 'f_ct2D_jac', 'Q_ct2D', 'h_ct2D', 'h_ct2D_jac', 'model_switch',
     'Trajectory2D'
 ]
 
@@ -169,18 +169,6 @@ def H_only_pos(order, axis):
     return H
 
 
-# def R_only_pos(axis, std):
-#     '''
-#     Only-position measurement noise covariance matrix and note that the noise
-#     of each axis are independent of each other. That is, R is diagonal matrix.
-#     '''
-#     if isinstance(std, (int, float)):
-#         std = [std] * (axis + 1)
-#     R = np.diag(std)**2
-
-#     return R
-
-
 # specific model
 def F_cv(axis, T):
     return F_poly(1, axis, T)
@@ -214,47 +202,186 @@ def H_ca(axis):
     return H_only_pos(2, axis)
 
 
-def F_ct2D(turn_rate, T):
-    w = turn_rate
-    sin_val = np.sin(w * T)
-    cos_val = np.cos(w * T)
-    sin_rat = sin_val / w
-    cos_rat = (cos_val - 1) / w
-    F = np.array([[1, sin_rat, 0, cos_rat], [0, cos_val, 0, -sin_val],
-                  [0, -cos_rat, 1, sin_rat], [0, sin_val, 0, cos_val]],
+def F_ct2D(axis, turn_rate, T):
+    omega = np.deg2rad(turn_rate)
+    wt = omega * T
+    sin_wt = np.sin(wt)
+    cos_wt = np.cos(wt)
+    if np.fabs(omega) > 0:
+        sin_div = sin_wt / omega
+        cos_div = (cos_wt - 1) / omega
+    else:
+        sin_div = T
+        cos_div = 0
+    F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
+                  [0, -cos_div, 1, sin_div], [0, sin_wt, 0, cos_wt]],
                  dtype=float)
+    if axis == 2:
+        zblock = F_cv(0, T)
+        F = lg.block_diag(F, zblock)
     return F
 
 
-def Q_ct2D(T, std):
-    return Q_poly_dd(1, 1, T, std, ht=1)
+def f_ct2D(axis, T):
+    def f(x, u):
+        omega = np.deg2rad(x[4])
+        wt = omega * T
+        sin_wt = np.sin(wt)
+        cos_wt = np.cos(wt)
+        if np.fabs(omega) > 0:
+            sin_div = sin_wt / omega
+            cos_div = (cos_wt - 1) / omega
+        else:
+            sin_div = T
+            cos_div = 0
+
+        F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
+                      [0, -cos_div, 1, sin_div], [0, sin_wt, 0, cos_wt]],
+                     dtype=float)
+        F = lg.block_diag(F, 1)
+        if axis == 2:
+            zblock = F_cv(0, T)
+            F = lg.block_diag(F, zblock)
+        return np.dot(F, x)
+    return f
 
 
-def H_ct2D(axis):
-    return H_only_pos(1, axis)
+def f_ct2D_jac(axis, T):
+    def fjac(x, u):
+        omega = np.deg2rad(x[4])
+        wt = omega * T
+        sin_wt = np.sin(wt)
+        cos_wt = np.cos(wt)
+        if np.fabs(omega) > 0:
+            sin_div = sin_wt / omega
+            cos_div = (cos_wt - 1) / omega
+            f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)
+            f1 = np.deg2rad((-x[1] * sin_wt - x[3] * cos_wt) * T)
+            f2 = np.deg2rad((wt * (x[1] * sin_wt + x[3] * cos_wt) - (x[1] * (1 - cos_wt) + x[3] * sin_wt)) / omega**2)
+            f3 = np.deg2rad((x[1]*cos_wt - x[3]*sin_wt) * T)
+        else:
+            sin_div = T
+            cos_div = 0
+            f0 = np.deg2rad(-x[3] * T**2 / 2)
+            f1 = np.deg2rad(-x[3] * T)
+            f2 = np.deg2rad(x[1] * T**2 / 2)
+            f3 = np.deg2rad(x[1] * T)
 
+        F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
+                      [0, -cos_div, 1, sin_div], [0, sin_wt, 0, cos_wt]],
+                     dtype=float)
+        F = lg.block_diag(F, 1)
+        F[0, -1] = f0
+        F[1, -1] = f1
+        F[2, -1] = f2
+        F[3, -1] = f3
+        if axis == 2:
+            zblock = F_cv(0, T)
+            F = lg.block_diag(F, zblock)
+        return F
+    return fjac
+
+
+def Q_ct2D(axis, T, std):
+    assert (axis == len(std) - 2)
+    block = [T**2 / 2, T]
+    # should reverse
+    L = lg.block_diag(block, block, T)
+    Q = np.diag(std)**2
+    if axis == 2:
+        L = lg.block_diag(L, block)
+    return L.T @ Q @ L
+
+
+def h_ct2D(axis):
+    def h(x):
+        H = np.zeros((2, 5))
+        H[:, :-1] = H_only_pos(1, 1)
+        if axis == 2:
+            zblock = H_only_pos(1, 0)
+            H = lg.block_diag(H, zblock)
+        return np.dot(H, x)
+    return h
+
+
+def h_ct2D_jac(axis):
+    def hjac(x):
+        H = np.zeros((2, 5))
+        H[:, :-1] = H_only_pos(1, 1)
+        if axis == 2:
+            zblock = H_only_pos(1, 0)
+            H = lg.block_diag(H, zblock)
+        return H
+    return hjac
 
 
 def state_switch(state, type_in, type_out):
     dim = len(state)
-    if type_in == 'cv' or type_in == 'ct2D':
+    state = state.copy()
+    if type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cv' or type_out == 'ct2D':
-            return state.copy()
+        if type_out == 'cv':
+            return state
         elif type_out == 'ca':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=1)
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'ct2D':
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
             stmp = np.dot(slct, state)
             return stmp
         else:
             raise ValueError('unknown output type %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cv' or type_out == 'ct2D':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=0)
+        if type_out == 'cv':
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=0)
             stmp = np.dot(slct, state)
             return stmp
         elif type_out == 'ca':
-            return state.copy()
+            return state
+        elif type_out == 'ct2D':
+            # ca to cv
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            stmp = np.dot(slct, state)
+            # cv to ct2D
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            stmp = np.dot(slct, stmp)
+            return stmp
+        else:
+            raise ValueError('unknown output type %s' % type_out)
+    elif type_in == 'ct2D':
+        axis = dim // 2
+        if type_out == 'cv':
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'ca':
+            # ct2D to cv
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            stmp = np.dot(slct, state)
+            # cv to ca
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            stmp = np.dot(slct, stmp)
+            return stmp
+        elif type_out == 'ct2D':
+            return state
         else:
             raise ValueError('unknown output type %s' % type_out)
     else:
@@ -263,62 +390,105 @@ def state_switch(state, type_in, type_out):
 
 def cov_switch(cov, type_in, type_out):
     dim = len(cov)
-    if type_in == 'cv' or type_in == 'ct2D':
+    cov = cov.copy()
+    uncertainty = 100
+    if type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cv' or type_out == 'ct2D':
-            return cov.copy()
+        if type_out == 'cv':
+            return cov
         elif type_out == 'ca':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=1)
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=1)
             ctmp = slct @ cov @ slct.T
-            # diag_sel = range(2, 3 * axis, 3)
-            # ctmp[diag_sel, diag_sel] = 100
+            ctmp[sel, sel] = uncertainty
+            return ctmp
+        elif type_out == 'ct2D':
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ cov @ slct.T
+            ctmp[4, 4] = uncertainty
             return ctmp
         else:
             raise ValueError('unknown output type %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cv' or type_out == 'ct2D':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=0)
+        if type_out == 'cv':
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=0)
             ctmp = slct @ cov @ slct.T
             return ctmp
         elif type_out == 'ca':
-            return cov.copy()
+            return cov
+        elif type_out == 'ct2D':
+            # ca to cv
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            ctmp = slct @ cov @ slct.T
+            # cv to ct2D
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ ctmp @ slct.T
+            ctmp[4, 4] = uncertainty
+            return ctmp
+        else:
+            raise ValueError('unknown output type %s' % type_out)
+    elif type_in == 'ct2D':
+        axis = dim // 2
+        if type_out == 'cv':
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ cov @ slct.T
+            return ctmp
+        elif type_out == 'ca':
+            # ct2D to cv
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ cov @ slct.T
+            # cv to ca
+            ca_dim = 3 * axis
+            sel = range(2, ca_dim, 3)
+            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            ctmp = slct @ ctmp @ slct.T
+            ctmp[sel, sel] = uncertainty
+            return ctmp
+        elif type_out == 'ct2D':
+            return cov
         else:
             raise ValueError('unknown output type %s' % type_out)
     else:
         raise ValueError('unkonw input type %s' % type_in)
 
 
-def model_switch(state, cov, type_in, type_out):
-    dim = len(state)
-    if type_in == 'cv' or type_in == 'ct2D':
-        axis = dim // 2
-        if type_out == 'cv' or type_out == 'ct2D':
-            return state.copy(), cov.copy()
-        elif type_out == 'ca':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=1)
-            stmp = np.dot(slct, state)
-            ctmp = slct @ cov @ slct.T
-            return stmp, ctmp
+def model_switch(x, type_in, type_out):
+    dim = len(x)
+    if isinstance(x, (list, tuple)):
+        state = state_switch(x[0], type_in, type_out)
+        cov = cov_switch(x[1], type_in, type_out)
+        return state, cov
+    elif isinstance(x, np.ndarray):
+        if len(x.shape) == 1:
+            state = state_switch(x, type_in, type_out)
+            return state
+        elif len(x.shape) == 2:
+            cov = cov_switch(x, type_in, type_out)
+            return cov
         else:
-            raise ValueError('unknown output type %s' % type_out)
-    elif type_in == 'ca':
-        axis = dim // 3
-        if type_out == 'cv' or type_out == 'ct2D':
-            slct = np.delete(np.eye(3 * axis), np.s_[2::3], axis=0)
-            stmp = np.dot(slct, state)
-            ctmp = slct @ cov @ slct.T
-            return stmp, ctmp
-        elif type_out == 'ca':
-            return state.copy(), cov.copy()
-        else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('x must be a 1-D array or 2-D array')
     else:
-        raise ValueError('unkonw input type %s' % type_in)
+        raise ValueError('x must be list, tuple or ndarray')
 
 
 class Trajectory2D():
     def __init__(self, T, start=np.zeros(6)):
+        assert (len(start) == 6)
+
         self._T = T
         self._head = start.copy()
         self._traj = [start.copy().reshape(-1, 1)]
@@ -391,7 +561,7 @@ class Trajectory2D():
                     self._head[:] = np.dot(F, self._head)
                     state[:, i] = self._head
             elif mdl.lower() == 'ct':
-                F = F_ct2D(stages[i]['omega'], self._T)
+                F = F_ct2D(1, stages[i]['omega'], self._T)
 
                 sel = [0, 1, 3, 4]
                 for i in range(traj_len):
