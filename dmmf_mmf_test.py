@@ -87,7 +87,7 @@ def DMMF_MMF_test():
     dmmf_types = ['cv', 'ct2D']
     dmmf = ft.IMMFilter()
     dmmf.add_models(dmmf_models, dmmf_types)
-    print('dmmf xdim: %d' % mmf.xdim)
+    print('dmmf xdim: %d' % dmmf.xdim)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
