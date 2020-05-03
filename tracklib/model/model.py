@@ -132,7 +132,6 @@ def Q_poly_dd(order, axis, T, std, ht=0):
 
     if isinstance(std, (int, float)):
         std = [std] * (axis + 1)
-
     sel = np.arange(ht + order, ht - 1, -1)
     L = T**sel / factorial(sel)
     Q_base = np.outer(L, L)
@@ -207,7 +206,7 @@ def F_ct2D(axis, turn_rate, T):
     wt = omega * T
     sin_wt = np.sin(wt)
     cos_wt = np.cos(wt)
-    if np.fabs(omega) > 0:
+    if omega != 0:
         sin_div = sin_wt / omega
         cos_div = (cos_wt - 1) / omega
     else:
@@ -228,7 +227,7 @@ def f_ct2D(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if np.fabs(omega) > 0:
+        if omega != 0:
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
         else:
@@ -252,7 +251,7 @@ def f_ct2D_jac(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if np.fabs(omega) > 0:
+        if omega != 0:
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
             f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)
@@ -283,34 +282,34 @@ def f_ct2D_jac(axis, T):
 
 
 def Q_ct2D(axis, T, std):
-    assert (axis == len(std) - 2)
-    block = [T**2 / 2, T]
-    # should reverse
+    if isinstance(std, (int, float)):
+        std = [std] * axis
+    block = np.array([T**2 / 2, T], dtype=float).reshape(-1, 1)
     L = lg.block_diag(block, block, T)
     Q = np.diag(std)**2
     if axis == 2:
         L = lg.block_diag(L, block)
-    return L.T @ Q @ L
+    return L @ Q @ L.T
 
 
 def h_ct2D(axis):
     def h(x):
-        H = np.zeros((2, 5))
-        H[:, :-1] = H_only_pos(1, 1)
         if axis == 2:
-            zblock = H_only_pos(1, 0)
-            H = lg.block_diag(H, zblock)
+            H = H_only_pos(1, 2)
+        else:
+            H = H_only_pos(1, 1)
+        H = np.insert(H, 4, 0, axis=1)
         return np.dot(H, x)
     return h
 
 
 def h_ct2D_jac(axis):
     def hjac(x):
-        H = np.zeros((2, 5))
-        H[:, :-1] = H_only_pos(1, 1)
         if axis == 2:
-            zblock = H_only_pos(1, 0)
-            H = lg.block_diag(H, zblock)
+            H = H_only_pos(1, 2)
+        else:
+            H = H_only_pos(1, 1)
+        H = np.insert(H, 4, 0, axis=1)
         return H
     return hjac
 
