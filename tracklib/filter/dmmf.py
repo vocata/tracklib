@@ -21,10 +21,8 @@ class IMMFilter(KFBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, xdim, zdim, switch_fcn=model.model_switch):
+    def __init__(self, switch_fcn=model.model_switch):
         super().__init__()
-        self._xdim = xdim
-        self._zdim = zdim
         self._switch_fcn = switch_fcn
 
         self._models = []
@@ -147,7 +145,7 @@ class IMMFilter(KFBase):
         models : list, of length N
             the list of Kalman filter
         model_types : list, of length N
-            the type of models
+            the types corresponding to models
         probs : 1-D array_like, of length N, optional
             model probability
         trans_mat : 2-D array_like, of shape (N, N), optional
@@ -160,6 +158,7 @@ class IMMFilter(KFBase):
         self._models_n = len(models)
         self._models.extend(models)
         self._model_types.extend(model_types)
+        self._xdim = models[0].xdim
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
