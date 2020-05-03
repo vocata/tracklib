@@ -17,21 +17,22 @@ the program may yield uncertain result.
 
 def PFilter_test():
     N, T = 200, 1
-    Ns = 200
+    Ns = 300
     Neff = 100
 
+    axis = 2
     xdim, zdim = 4, 2
     sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
     sigma_v = [np.sqrt(0.1), np.sqrt(0.01)]
 
-    F = model.F_poly_trans(1, 1, T)
+    F = model.F_cv(axis, T)
     L = np.eye(xdim)
     f = lambda x, u: F @ x
-    Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
+    Q = model.Q_cv_dd(axis, T, sigma_w)
 
     M = np.eye(zdim)
     h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
-    R = model.R_only_pos_meas_noise(1, sigma_v)
+    R = model.R_cv(axis, sigma_v)
 
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
@@ -60,7 +61,6 @@ def PFilter_test():
         pf.step(z) 
 
         MMSE = pf.MMSE
-        MAP = pf.MAP
         MMSE_arr[:, n] = MMSE
     print(len(pf))
     print(pf)
@@ -70,28 +70,31 @@ def PFilter_test():
 
     # plot
     n = np.arange(N)
-    _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, state_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, measure_arr[0, :], '.')
-    ax[0].plot(n, MMSE_arr[0, :], linewidth=0.8)
-    ax[0].legend(['real', 'measurement', 'MMSE'])
-    ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[2, :], linewidth=0.8)
-    ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, MMSE_arr[2, :], linewidth=0.8)
-    ax[1].legend(['real', 'measurement', 'MMSE'])
-    ax[1].set_title('y state')
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(n, state_arr[0, :], linewidth=0.8)
+    ax.plot(n, measure_arr[0, :], '.')
+    ax.plot(n, MMSE_arr[0, :], linewidth=0.8)
+    ax.legend(['real', 'measurement', 'MMSE'])
+    ax.set_title('x state')
+    ax = fig.add_subplot(212)
+    ax.plot(n, state_arr[2, :], linewidth=0.8)
+    ax.plot(n, measure_arr[1, :], '.')
+    ax.plot(n, MMSE_arr[2, :], linewidth=0.8)
+    ax.legend(['real', 'measurement', 'MMSE'])
+    ax.set_title('y state')
     plt.show()
 
     # trajectory
-    _, ax = plt.subplots()
-    ax.scatter(state_arr[0, 0], state_arr[2, 0], s=120, c='r', marker='x')
-    ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8)
-    ax.plot(measure_arr[0, :], measure_arr[1, :], linewidth=0.8)
-    ax.plot(MMSE_arr[0, :], MMSE_arr[2, :], linewidth=0.8)
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    ax.scatter(state_arr[0, 0], state_arr[2, 0], s=50, c='r', marker='x', label='start')
+    ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8, label='real')
+    ax.scatter(measure_arr[0, :], measure_arr[1, :], s=5, c='orange', label='meas')
+    ax.plot(MMSE_arr[0, :], MMSE_arr[2, :], linewidth=0.8, label='MMSE')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.legend(['real', 'measurement', 'estimation'])
+    ax.legend()
     ax.set_title('trajectory')
     plt.show()
 

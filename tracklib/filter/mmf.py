@@ -148,6 +148,8 @@ class MMFilter(KFBase):
         '''
         self._models_n = len(models)
         self._models.extend(models)
+        self._xdim = models[0].xdim
+        self._zdim = models[0].zdim
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
@@ -196,10 +198,6 @@ class MMFilter(KFBase):
         self.predict(u, **kw)
         self.update(z, **kw)
 
-    def maxprob_state(self):
-        # state estimate of models with maximum probability
-        return self._models[np.argmax(self._probs)].post_state
-    
     def weighted_state(self):
         return self._post_state
 

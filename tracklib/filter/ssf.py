@@ -22,7 +22,7 @@ import numpy as np
 import scipy.linalg as lg
 from functools import reduce
 from .base import KFBase
-from tracklib.model import F_poly_trans, H_only_pos_meas
+from tracklib.model import F_poly, H_pos_only
 
 
 def get_alpha(sigma_w, sigma_v, T):
@@ -69,10 +69,10 @@ class AlphaFilter(KFBase):
         self._vdim = zdim
         self._gain = np.diag(self._alpha)
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
-        self._F = F_poly_trans(order, axis, T)
-        self._H = H_only_pos_meas(order, axis)
+        order = xdim // zdim
+        axis = zdim
+        self._F = F_poly(order, axis, T)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -164,14 +164,14 @@ class AlphaBetaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        trans = lambda x: np.array(x, dtype=float)
-        alpha, beta = map(trans, (alpha, beta))
-        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T)).T).T
+        trans = lambda x: np.array(x, dtype=float).reshape(-1, 1)
+        block = [trans([alpha[i], beta[i] / T]) for i in range(zdim)]
+        self._gain = lg.block_diag(*block)
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
-        self._F = F_poly_trans(1, axis, T)
-        self._H = H_only_pos_meas(1, axis)
+        order = xdim // zdim
+        axis = zdim
+        self._F = F_poly(order, axis, T)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter'
@@ -218,9 +218,7 @@ class AlphaBetaFilter(KFBase):
 
 def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     '''
-    obtain alpha, beta and gamma for which
-    alpha-beta-gamma becomes a steady-state
-    Kalman filter
+    obtain alpha, beta and gamma for which alpha-beta-gamma becomes a steady-state Kalman filter
     '''
     sigma_w = np.array(sigma_w, dtype=float)
     sigma_v = np.array(sigma_v, dtype=float)
@@ -276,14 +274,14 @@ class AlphaBetaGammaFilter(KFBase):
         self._zdim = zdim
         self._vdim = zdim
 
-        trans = lambda x: np.array(x, dtype=float)
-        alpha, beta, gamma = map(trans, (alpha, beta, gamma))
-        self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T, gamma / (2 * T**2))).T).T
+        trans = lambda x: np.array(x, dtype=float).reshape(-1, 1)
+        block = [trans([alpha[i], beta[i] / T, gamma[i] / (2 * T**2)]) for i in range(zdim)]
+        self._gain = lg.block_diag(*block)
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
-        self._F = F_poly_trans(2, axis, T)
-        self._H = H_only_pos_meas(2, axis)
+        order = xdim // zdim
+        axis = zdim
+        self._F = F_poly(order, axis, T)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter'

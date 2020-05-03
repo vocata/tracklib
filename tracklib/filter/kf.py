@@ -44,7 +44,7 @@ class KFilter(KFBase):
             self._G = G
         else:
             self._G = G.copy()
-        self._at = at
+        self._at = at   # attenuation factor
 
     def __str__(self):
         msg = 'Standard linear Kalman filter'
@@ -54,10 +54,10 @@ class KFilter(KFBase):
         return self.__str__()
 
     def _set_post_state(self, state):
-        self._post_state[:] = state
+        self._post_state = state.copy()
     
     def _set_post_cov(self, cov):
-        self._post_cov[:] = cov
+        self._post_cov = cov.copy()
 
     def init(self, state, cov):
         self._post_state = state.copy()
@@ -161,10 +161,10 @@ class SeqKFilter(KFBase):
         return self.__str__()
 
     def _set_post_state(self, state):
-        self._post_state[:] = state
+        self._post_state = state.copy()
     
     def _set_post_cov(self, cov):
-        self._post_cov[:] = cov
+        self._post_cov = cov.copy()
 
     def init(self, state, cov):
         self._post_state = state.copy()

@@ -17,16 +17,17 @@ the program may yield uncertain result.
 def SeqKFilter_test():
     N, T = 200, 1
 
+    axis = 2
     xdim, zdim = 4, 2
     sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
     sigma_v = [np.sqrt(1), np.sqrt(1)]
 
-    F = model.F_poly_trans(1, 1, T)
-    H = model.H_only_pos_meas(1, 1)
+    F = model.F_cv(axis, T)
+    H = model.H_cv(axis)
     L = np.eye(xdim)
     M = np.eye(zdim)
-    Q = model.Q_dd_poly_proc_noise(1, 1, T, sigma_w, 1)
-    R = model.R_only_pos_meas_noise(1, sigma_v)
+    Q = model.Q_cv_dd(axis, T, sigma_w)
+    R = model.R_cv(axis, sigma_v)
 
     # initial state and error convariance
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
@@ -69,34 +70,38 @@ def SeqKFilter_test():
 
     # plot
     n = np.arange(N)
-    _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, state_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, measure_arr[0, :], '.')
-    ax[0].plot(n, prior_state_arr[0, :], linewidth=0.8)
-    ax[0].plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax[0].legend(['real', 'measurement', 'prediction', 'estimation'])
-    ax[0].set_title('x state')
-    ax[1].plot(n, state_arr[2, :], linewidth=0.8)
-    ax[1].plot(n, measure_arr[1, :], '.')
-    ax[1].plot(n, prior_state_arr[2, :], linewidth=0.8)
-    ax[1].plot(n, post_state_arr[2, :], linewidth=0.8)
-    ax[1].legend(['real', 'measurement', 'prediction', 'estimation'])
-    ax[1].set_title('y state')
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(n, state_arr[0, :], linewidth=0.8)
+    ax.plot(n, measure_arr[0, :], '.')
+    ax.plot(n, prior_state_arr[0, :], linewidth=0.8)
+    ax.plot(n, post_state_arr[0, :], linewidth=0.8)
+    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.set_title('x state')
+    ax = fig.add_subplot(212)
+    ax.plot(n, state_arr[2, :], linewidth=0.8)
+    ax.plot(n, measure_arr[1, :], '.')
+    ax.plot(n, prior_state_arr[2, :], linewidth=0.8)
+    ax.plot(n, post_state_arr[2, :], linewidth=0.8)
+    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.set_title('y state')
     plt.show()
 
     print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
     print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
     print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
     print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
-    _, ax = plt.subplots(2, 1)
-    ax[0].plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax[0].plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
-    ax[0].legend(['prediction', 'estimation'])
-    ax[0].set_title('x error variance/mean square error')
-    ax[1].plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax[1].plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
-    ax[1].legend(['prediction', 'estimation'])
-    ax[1].set_title('y error variance/mean square error')
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.legend(['prediction', 'estimation'])
+    ax.set_title('x error variance/mean square error')
+    ax = fig.add_subplot(212)
+    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.legend(['prediction', 'estimation'])
+    ax.set_title('y error variance/mean square error')
     plt.show()
 
     # trajectory

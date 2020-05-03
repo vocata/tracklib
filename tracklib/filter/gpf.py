@@ -56,10 +56,10 @@ class GPFilter(KFBase):
         return self.__str__()
 
     def _set_post_state(self, state):
-        self._post_state[:] = state
+        self._post_state = state.copy()
     
     def _set_post_cov(self, cov):
-        self._post_cov[:] = cov
+        self._post_cov = cov.copy()
 
     def init(self, state, cov):
         self._post_state = state.copy()

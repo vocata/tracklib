@@ -80,7 +80,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_prior_state'):
             return self._get_prior_state()
         elif self._prior_state is not None:
-            return self._prior_state
+            return self._prior_state.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'prior_state'" %
                                  self.__class__.__name__)
@@ -97,7 +97,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_prior_cov'):
             return self._get_prior_cov()
         elif self._prior_cov is not None:
-            return self._prior_cov
+            return self._prior_cov.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'prior_cov'" %
                                  self.__class__.__name__)
@@ -114,7 +114,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_post_state'):
             return self._get_post_state()
         elif self._post_state is not None:
-            return self._post_state
+            return self._post_state.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'post_state'" %
                                  self.__class__.__name__)
@@ -131,7 +131,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_post_cov'):
             return self._get_post_cov()
         elif self._post_cov is not None:
-            return self._post_cov
+            return self._post_cov.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'post_cov'" %
                                  self.__class__.__name__)
@@ -148,7 +148,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_innov'):
             return self._get_innov()
         elif self._innov is not None:
-            return self._innov
+            return self._innov.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'innov'" %
                                  self.__class__.__name__)
@@ -165,7 +165,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_innov_cov'):
             return self._get_innov_cov()
         elif self._innov_cov is not None:
-            return self._innov_cov
+            return self._innov_cov.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'innov_cov'" %
                                  self.__class__.__name__)
@@ -182,7 +182,7 @@ class KFBase(abc.ABC):
         if hasattr(self, '_get_gain'):
             return self._get_gain()
         elif self._gain is not None:
-            return self._gain
+            return self._gain.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'gain'" %
                                  self.__class__.__name__)
