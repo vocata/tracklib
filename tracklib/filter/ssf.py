@@ -22,7 +22,7 @@ import numpy as np
 import scipy.linalg as lg
 from functools import reduce
 from .base import KFBase
-from tracklib.model import F_poly, H_only_pos
+from tracklib.model import F_poly, H_pos_only
 
 
 def get_alpha(sigma_w, sigma_v, T):
@@ -69,10 +69,10 @@ class AlphaFilter(KFBase):
         self._vdim = zdim
         self._gain = np.diag(self._alpha)
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
+        order = xdim / zdim
+        axis = zdim
         self._F = F_poly(order, axis, T)
-        self._H = H_only_pos(order, axis)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -168,10 +168,10 @@ class AlphaBetaFilter(KFBase):
         alpha, beta = map(trans, (alpha, beta))
         self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T)).T).T
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
-        self._F = F_poly(1, axis, T)
-        self._H = H_only_pos(1, axis)
+        order = xdim / zdim
+        axis = zdim
+        self._F = F_poly(order, axis, T)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter'
@@ -280,10 +280,10 @@ class AlphaBetaGammaFilter(KFBase):
         alpha, beta, gamma = map(trans, (alpha, beta, gamma))
         self._gain = reduce(lg.block_diag, np.vstack((alpha, beta / T, gamma / (2 * T**2))).T).T
 
-        order = xdim / zdim - 1
-        axis = zdim - 1
-        self._F = F_poly(2, axis, T)
-        self._H = H_only_pos(2, axis)
+        order = xdim / zdim
+        axis = zdim
+        self._F = F_poly(order, axis, T)
+        self._H = H_pos_only(order, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter'

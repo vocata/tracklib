@@ -20,7 +20,7 @@ def DMMF_test():
     axis = 3
 
     # generate trajectory
-    np.random.seed(2018)
+    np.random.seed(2020)
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
     traj = model.Trajectory2D(T, start)
     stages = []
@@ -45,32 +45,32 @@ def DMMF_test():
 
     # CV
     cv_xdim, cv_zdim = 6, 3
-    sigma_w = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
-    sigma_v = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
+    sigma_w = np.sqrt(1.0)
+    sigma_v = np.sqrt(1.0)
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
     L = np.eye(cv_xdim)
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
-    R = np.diag(sigma_v)
+    R = model.R_cv(axis, sigma_v)
     cv_kf = ft.KFilter(F, L, H, M, Q, R, cv_xdim, cv_zdim)
 
     # CA
     ca_xdim, ca_zdim = 9, 3
-    sigma_w = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
-    sigma_v = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
+    sigma_w = np.sqrt(1.0)
+    sigma_v = np.sqrt(1.0)
     F = model.F_ca(axis, T)
     H = model.H_ca(axis)
     L = np.eye(ca_xdim)
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
-    R = np.diag(sigma_v)
+    R = model.R_ca(axis, sigma_v)
     ca_kf = ft.KFilter(F, L, H, M, Q, R, ca_xdim, ca_zdim)
 
     # CT
     ct_xdim, ct_zdim = 7, 3
-    sigma_w = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
-    sigma_v = [np.sqrt(1.0), np.sqrt(1.0), np.sqrt(1.0)]
+    sigma_w = np.sqrt(1.0)
+    sigma_v = np.sqrt(1.0)
     f = model.f_ct2D(axis, T)
     fjac = model.f_ct2D_jac(axis, T)
     L = np.eye(ct_xdim)
@@ -78,7 +78,7 @@ def DMMF_test():
     hjac = model.h_ct2D_jac(axis)
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
-    R = np.diag(sigma_v)
+    R = model.R_ct2D(axis, sigma_v)
     ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
 
     r = 3

@@ -7,10 +7,10 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly', 'Q_poly_dc', 'Q_poly_dd', 'H_only_pos', 'F_cv', 'Q_cv_dc',
-    'Q_cv_dd', 'H_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'F_ct2D',
-    'f_ct2D', 'f_ct2D_jac', 'Q_ct2D', 'h_ct2D', 'h_ct2D_jac', 'model_switch',
-    'Trajectory2D'
+    'F_poly', 'Q_poly_dc', 'Q_poly_dd', 'H_pos_only', 'R_pos_only', 'F_cv',
+    'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'R_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca',
+    'R_ca', 'F_ct2D', 'f_ct2D', 'f_ct2D_jac', 'Q_ct2D', 'h_ct2D', 'h_ct2D_jac',
+    'R_ct2D', 'model_switch', 'Trajectory2D'
 ]
 
 import numpy as np
@@ -32,7 +32,7 @@ def F_poly(order, axis, T):
         The order of the filter. If order=2, then it is constant velocity,
         3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
@@ -67,7 +67,7 @@ def Q_poly_dc(order, axis, T, std):
         The order of the filter. If order=2, then it is constant velocity,
         3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
@@ -103,7 +103,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
         The order of the filter. If order=2, then it is constant velocity,
         3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
@@ -141,9 +141,9 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     return Q
 
 
-def H_only_pos(order, axis):
+def H_pos_only(order, axis):
     '''
-    Only-position measurement matrix is used with discretized continuous-time models
+    Position-only measurement matrix is used with discretized continuous-time models
     as well as direct discrete-time models. see [1] section 6.5.
 
     Parameters
@@ -152,7 +152,7 @@ def H_only_pos(order, axis):
         The order of the filter. If order=2, then it is constant velocity,
         3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
         2 means x-axis and y-axis, etc.
 
     Returns
@@ -169,6 +169,31 @@ def H_only_pos(order, axis):
     return H
 
 
+def R_pos_only(axis, std):
+    '''
+    Position-only measurement noise covariance matrix and the noise of each
+    axis is assumed to be uncorrelated.
+
+    Parameters
+    ----------
+    axis : int
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
+
+    Returns
+    -------
+    R : ndarray
+        the measurement noise covariance matrix
+    '''
+    assert (axis >= 1)
+
+    if isinstance(std, (int, float)):
+        std = [std] * axis
+    R = np.diag(std)**2
+
+    return R
+
+
 # specific model
 def F_cv(axis, T):
     return F_poly(2, axis, T)
@@ -183,7 +208,11 @@ def Q_cv_dd(axis, T, std):
 
 
 def H_cv(axis):
-    return H_only_pos(2, axis)
+    return H_pos_only(2, axis)
+
+
+def R_cv(axis, std):
+    return R_pos_only(axis, std)
 
 
 def F_ca(axis, T):
@@ -199,7 +228,11 @@ def Q_ca_dd(axis, T, std):
 
 
 def H_ca(axis):
-    return H_only_pos(3, axis)
+    return H_pos_only(3, axis)
+
+
+def R_ca(axis, std):
+    return R_pos_only(axis, std)
 
 
 def F_ct2D(axis, turn_rate, T):
@@ -284,7 +317,7 @@ def f_ct2D_jac(axis, T):
 
 def Q_ct2D(axis, T, std):
     if isinstance(std, (int, float)):
-        std = [std] * axis
+        std = [std] * (axis + 1)    # omega
     block = np.array([T**2 / 2, T], dtype=float).reshape(-1, 1)
     L = lg.block_diag(block, block, T)
     Q = np.diag(std)**2
@@ -296,9 +329,9 @@ def Q_ct2D(axis, T, std):
 def h_ct2D(axis):
     def h(x):
         if axis == 3:
-            H = H_only_pos(2, 3)
+            H = H_pos_only(2, 3)
         else:
-            H = H_only_pos(2, 2)
+            H = H_pos_only(2, 2)
         H = np.insert(H, 4, 0, axis=1)
         return np.dot(H, x)
     return h
@@ -307,12 +340,16 @@ def h_ct2D(axis):
 def h_ct2D_jac(axis):
     def hjac(x):
         if axis == 3:
-            H = H_only_pos(2, 3)
+            H = H_pos_only(2, 3)
         else:
-            H = H_only_pos(2, 2)
+            H = H_pos_only(2, 2)
         H = np.insert(H, 4, 0, axis=1)
         return H
     return hjac
+
+
+def R_ct2D(axis, std):
+    return R_pos_only(axis, std)
 
 
 def state_switch(state, type_in, type_out):
