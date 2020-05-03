@@ -44,7 +44,7 @@ class KFilter(KFBase):
             self._G = G
         else:
             self._G = G.copy()
-        self._at = at
+        self._at = at   # attenuation factor
 
     def __str__(self):
         msg = 'Standard linear Kalman filter'

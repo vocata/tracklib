@@ -81,10 +81,13 @@ def DMMF_test():
     R = model.R_ct2D(axis, sigma_v)
     ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
 
+    # number of models
     r = 3
 
+    models = [cv_kf, ca_kf, ct_ekf]
+    types = ['cv', 'ca', 'ct2D']
     dmmf = ft.IMMFilter()
-    dmmf.add_models([cv_kf, ca_kf, ct_ekf], ['cv', 'ca', 'ct2D'])
+    dmmf.add_models(models, types)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -123,12 +126,12 @@ def DMMF_test():
     ax = fig.add_subplot()
     n = np.arange(N)
     for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8)
+        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
     ax.set_ylim([0, 1])
-    ax.legend([str(n) for n in range(r)])
+    ax.legend()
     plt.show()
 
 

@@ -159,6 +159,7 @@ class IMMFilter(KFBase):
         self._models.extend(models)
         self._model_types.extend(model_types)
         self._xdim = models[0].xdim
+        self._zdim = models[0].zdim
         if probs is None:
             self._probs = np.ones(self._models_n) / self._models_n
         else:
