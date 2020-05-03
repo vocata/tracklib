@@ -16,6 +16,7 @@ __all__ = [
 import numpy as np
 import scipy.linalg as lg
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 from tracklib.utils import multi_normal
 from scipy.special import factorial
 
@@ -579,10 +580,10 @@ class Trajectory2D():
             self._traj.append(state)
 
     def show_traj(self):
-        _, ax = plt.subplots()
-        ax.axis('equal')
-        ax.scatter(self._traj[0][0], self._traj[0][3], s=50, c='r', marker='x', label=self._stage[0]['model'])
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(self._traj[0][0], self._traj[0][3], self._traj[0][6], s=50, c='r', marker='x', label=self._stage[0]['model'])
         for i in range(1, len(self._traj)):
-            ax.plot(self._traj[i][0, :], self._traj[i][3, :], '.-', linewidth=1, ms=3, label=self._stage[i]['model'])
+            ax.plot(self._traj[i][0, :], self._traj[i][3, :], self._traj[i][6, :], '.-', linewidth=1, ms=3, label=self._stage[i]['model'])
         ax.legend()
         plt.show()
