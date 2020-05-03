@@ -75,17 +75,9 @@ class MMFilter(KFBase):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             Pi = self._switch_fcn(cov_org[i], types[i], types[0])
             err = xi - xtmp
-            Ptmp += self._probs[i] * (cov_org[i] + np.outer(err, err))
+            Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._prior_cov = Ptmp
-        # self._prior_state = 0
-        # for i in range(self._models_n):
-        #     self._prior_state += self._probs[i] * self._models[i].prior_state
-        # self._prior_cov = 0
-        # for i in range(self._models_n):
-        #     err = self._models[i].prior_state - self._prior_state
-        #     self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
-        # self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
     def __post_update(self):
         state_org = [self._models[i].post_state for i in range(self._models_n)]
@@ -103,17 +95,9 @@ class MMFilter(KFBase):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             Pi = self._switch_fcn(cov_org[i], types[i], types[0])
             err = xi - xtmp
-            Ptmp += self._probs[i] * (cov_org[i] + np.outer(err, err))
+            Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._post_cov = Ptmp
-        # self._post_state = 0
-        # for i in range(self._models_n):
-        #     self._post_state += self._probs[i] * self._models[i].post_state
-        # self._post_cov = 0
-        # for i in range(self._models_n):
-        #     err = self._models[i].post_state - self._post_state
-        #     self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
-        # self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
     def __innov_update(self):
         innov_org = [self._models[i].innov for i in range(self._models_n)]
@@ -130,26 +114,20 @@ class MMFilter(KFBase):
             ictmp += self._probs[i] * (innov_cov_org[i] + np.outer(err, err))
         ictmp = (ictmp + ictmp.T) / 2
         self._innov_cov = ictmp
-        # self._innov = 0
-        # for i in range(self._models_n):
-        #     self._innov += self._probs[i] * self._models[i].innov
-        # self._innov_cov = 0
-        # for i in range(self._models_n):
-        #     err = self._models[i].innov - self._innov
-        #     self._innov_cov += self._probs[i] * (self._models[i].innov_cov + np.outer(err, err))
-        # self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
 
     def _set_post_state(self, state):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
-            self._models[i].post_state = state
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            self._models[i].post_state = xi
     
     def _set_post_cov(self, cov):
         if self._models_n == 0:
             raise AttributeError("AttributeError: can't set attribute")
         for i in range(self._models_n):
-            self._models[i].post_cov = cov
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].post_cov = Pi
     
     # the innovation and its covariance of model with maximum model probability
     # def _get_innov(self):
@@ -181,7 +159,9 @@ class MMFilter(KFBase):
             cov = [cov] * self._models_n
 
         for i in range(self._models_n):
-            self._models[i].init(state[i], cov[i])
+            x = self._switch_fcn(state[i], self._model_types[0], self._model_types[i])
+            P = self._switch_fcn(cov[i], self._model_types[0], self._model_types[i])
+            self._models[i].init(x, P)
         self.__post_update()
         self._len = 0
         self._stage = 0

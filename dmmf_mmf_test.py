@@ -59,6 +59,13 @@ def DMMF_MMF_test():
     R = model.R_ca(axis, sigma_v)
     ca_kf = ft.KFilter(F, L, H, M, Q, R, ca_xdim, ca_zdim)
 
+    # mmf including CV and CA
+    mmf_models = [cv_kf, ca_kf]
+    mmf_types = ['cv', 'ca']
+    mmf = ft.MMFilter()
+    mmf.add_models(mmf_models, mmf_types)
+    print('mmf xdim: %d' % mmf.xdim)
+
     # CT
     ct_xdim, ct_zdim = 7, 3
     sigma_w = np.sqrt(1.0)
@@ -74,27 +81,31 @@ def DMMF_MMF_test():
     ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
 
     # number of models
-    r = 3
+    r = 2
 
-    models = [cv_kf, ca_kf, ct_ekf]
-    types = ['cv', 'ca', 'ct2D']
+    dmmf_models = [mmf, ct_ekf]
+    dmmf_types = ['cv', 'ct2D']
     dmmf = ft.IMMFilter()
-    dmmf.add_models(models, types)
+    dmmf.add_models(dmmf_models, dmmf_types)
+    print('dmmf xdim: %d' % mmf.xdim)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     dmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    prob_arr = np.empty((r, N))
+    dmmf_prob_arr = np.empty((r, N))
+    mmf_prob_arr = np.empty((r, N))
 
     post_state_arr[:, 0] = dmmf.post_state
-    prob_arr[:, 0] = dmmf.probs()
+    dmmf_prob_arr[:, 0] = dmmf.probs()
+    mmf_prob_arr[:, 0] = mmf.probs()
     for n in range(1, N):
         dmmf.step(traj_meas[:, n])
 
         post_state_arr[:, n] = dmmf.post_state
-        prob_arr[:, n] = dmmf.probs()
+        dmmf_prob_arr[:, n] = dmmf.probs()
+        mmf_prob_arr[:, n] = mmf.probs()
     print(len(dmmf))
     print(dmmf)
     print(dmmf.prior_state)
@@ -117,13 +128,29 @@ def DMMF_MMF_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     n = np.arange(N)
+    labels = ['hybrid', 'ct2D']
     for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=types[i])
+        ax.plot(n, dmmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
     ax.set_ylim([0, 1])
     ax.legend()
+    ax.set_title('models probability(dmmf)')
+    plt.show()
+
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    n = np.arange(N)
+    labels = ['cv', 'ca']
+    for i in range(r):
+        ax.plot(n, mmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
+    ax.set_xlabel('time(s)')
+    ax.set_ylabel('probability')
+    ax.set_xlim([0, 1200])
+    ax.set_ylim([0, 1])
+    ax.legend()
+    ax.set_title('models probability(mmf)')
     plt.show()
 
 

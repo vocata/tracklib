@@ -27,6 +27,14 @@ def DMMF_test():
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
     stages.append({'model': 'ca', 'len': 333, 'acc': 3})
+
+    # stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
+    # stages.append({'model': 'ct', 'len': 200, 'omega': -8})
+    # stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
+    # stages.append({'model': 'ct', 'len': 200, 'omega': 5})
+    # stages.append({'model': 'cv', 'len': 200, 'vel': 50})
+    # stages.append({'model': 'ca', 'len': 200, 'acc': 3})
+
     traj.add_stage(stages)
     traj.show_traj()
     R = np.eye(3)
@@ -132,6 +140,7 @@ def DMMF_test():
     ax.set_xlim([0, 1200])
     ax.set_ylim([0, 1])
     ax.legend()
+    ax.set_title('models probability')
     plt.show()
 
 
