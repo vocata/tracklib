@@ -10,7 +10,6 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['IMMFilter']
 
-import copy
 import numpy as np
 import scipy.linalg as lg
 import tracklib.model as model
@@ -52,6 +51,8 @@ class IMMFilter(KFBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
+        if n < 0 or n >= self._models_n:
+            raise IndexError('index out of range')
         return self._models[n], self._probs[n]
 
     def __prior_update(self):
@@ -69,7 +70,7 @@ class IMMFilter(KFBase):
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             pi = self._switch_fcn(cov_org[i], types[i], types[0])
-            err = xi - self._prior_state
+            err = xi - xtmp
             Ptmp += self._probs[i] * (pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._prior_cov = Ptmp
@@ -89,22 +90,24 @@ class IMMFilter(KFBase):
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             pi = self._switch_fcn(cov_org[i], types[i], types[0])
-            err = xi - self._post_state
+            err = xi - xtmp
             Ptmp += self._probs[i] * (pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._post_cov = Ptmp
 
     def __innov_update(self):
-        self._innov = 0
+        innov_org = [self._models[i].innov for i in range(self._models_n)]
+        innov_cov_org = [self._models[i].innov_cov for i in range(self._models_n)]
+
         itmp = 0
         for i in range(self._models_n):
-            itmp += self._probs[i] * self._models[i].innov
+            itmp += self._probs[i] * innov_org[i]
         self._innov = itmp
 
         ictmp = 0
         for i in range(self._models_n):
-            err = self._models[i].innov - self._innov
-            ictmp += self._probs[i] * (self._models[i].innov_cov + np.outer(err, err))
+            err = innov_org[i] - itmp
+            ictmp += self._probs[i] * (innov_cov_org[i] + np.outer(err, err))
         ictmp = (ictmp + ictmp.T) / 2
         self._innov_cov = ictmp
 
@@ -207,6 +210,7 @@ class IMMFilter(KFBase):
 
         for i in range(self._models_n):
             self._models[i].predict(u)
+        # update prior state and covariance
         self.__prior_update()
 
         self._stage = 1
@@ -226,6 +230,7 @@ class IMMFilter(KFBase):
         # posterior model probability P(M(k)|Z^k)
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
+        # update posterior state and covariance
         self.__post_update()
 
         self._len += 1

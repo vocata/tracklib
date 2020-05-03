@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import copy
 import numpy as np
 import scipy.linalg as lg
 import tracklib as tlb

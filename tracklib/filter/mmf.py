@@ -17,6 +17,7 @@ __all__ = ['MMFilter']
 
 import numpy as np
 import scipy.linalg as lg
+import tracklib.model as model
 from .base import KFBase
 
 
@@ -24,9 +25,12 @@ class MMFilter(KFBase):
     '''
     Static multiple model filter
     '''
-    def __init__(self):
+    def __init__(self, switch_fcn=model.model_switch):
         super().__init__()
+        self._switch_fcn = switch_fcn
+
         self._models = []
+        self._model_types = []
         self._probs = None
         self._models_n = 0
 
@@ -51,37 +55,89 @@ class MMFilter(KFBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
+        if n < 0 or n >= self._models_n:
+            raise IndexError('index out of range')
         return self._models[n], self._probs[n]
 
     def __prior_update(self):
-        self._prior_state = 0
+        state_org = [self._models[i].prior_state for i in range(self._models_n)]
+        cov_org = [self._models[i].prior_cov for i in range(self._models_n)]
+        types = [self._model_types[i] for i in range(self._models_n)]
+
+        xtmp = 0
         for i in range(self._models_n):
-            self._prior_state += self._probs[i] * self._models[i].prior_state
-        self._prior_cov = 0
+            xi = self._switch_fcn(state_org[i], types[i], types[0])
+            xtmp += self._probs[i] * xi
+        self._prior_state = xtmp
+
+        Ptmp = 0
         for i in range(self._models_n):
-            err = self._models[i].prior_state - self._prior_state
-            self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+            xi = self._switch_fcn(state_org[i], types[i], types[0])
+            Pi = self._switch_fcn(cov_org[i], types[i], types[0])
+            err = xi - xtmp
+            Ptmp += self._probs[i] * (cov_org[i] + np.outer(err, err))
+        Ptmp = (Ptmp + Ptmp.T) / 2
+        self._prior_cov = Ptmp
+        # self._prior_state = 0
+        # for i in range(self._models_n):
+        #     self._prior_state += self._probs[i] * self._models[i].prior_state
+        # self._prior_cov = 0
+        # for i in range(self._models_n):
+        #     err = self._models[i].prior_state - self._prior_state
+        #     self._prior_cov += self._probs[i] * (self._models[i].prior_cov + np.outer(err, err))
+        # self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
 
     def __post_update(self):
-        self._post_state = 0
+        state_org = [self._models[i].post_state for i in range(self._models_n)]
+        cov_org = [self._models[i].post_cov for i in range(self._models_n)]
+        types = [self._model_types[i] for i in range(self._models_n)]
+
+        xtmp = 0
         for i in range(self._models_n):
-            self._post_state += self._probs[i] * self._models[i].post_state
-        self._post_cov = 0
+            xi = self._switch_fcn(state_org[i], types[i], types[0])
+            xtmp += self._probs[i] * xi
+        self._post_state = xtmp
+
+        Ptmp = 0
         for i in range(self._models_n):
-            err = self._models[i].post_state - self._post_state
-            self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+            xi = self._switch_fcn(state_org[i], types[i], types[0])
+            Pi = self._switch_fcn(cov_org[i], types[i], types[0])
+            err = xi - xtmp
+            Ptmp += self._probs[i] * (cov_org[i] + np.outer(err, err))
+        Ptmp = (Ptmp + Ptmp.T) / 2
+        self._post_cov = Ptmp
+        # self._post_state = 0
+        # for i in range(self._models_n):
+        #     self._post_state += self._probs[i] * self._models[i].post_state
+        # self._post_cov = 0
+        # for i in range(self._models_n):
+        #     err = self._models[i].post_state - self._post_state
+        #     self._post_cov += self._probs[i] * (self._models[i].post_cov + np.outer(err, err))
+        # self._post_cov = (self._post_cov + self._post_cov.T) / 2
 
     def __innov_update(self):
-        self._innov = 0
+        innov_org = [self._models[i].innov for i in range(self._models_n)]
+        innov_cov_org = [self._models[i].innov_cov for i in range(self._models_n)]
+
+        itmp = 0
         for i in range(self._models_n):
-            self._innov += self._probs[i] * self._models[i].innov
-        self._innov_cov = 0
+            itmp += self._probs[i] * innov_org[i]
+        self._innov = itmp
+
+        ictmp = 0
         for i in range(self._models_n):
-            err = self._models[i].innov - self._innov
-            self._innov_cov += self._probs[i] * (self._models[i].innov_cov + np.outer(err, err))
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
+            err = innov_org[i] - itmp
+            ictmp += self._probs[i] * (innov_cov_org[i] + np.outer(err, err))
+        ictmp = (ictmp + ictmp.T) / 2
+        self._innov_cov = ictmp
+        # self._innov = 0
+        # for i in range(self._models_n):
+        #     self._innov += self._probs[i] * self._models[i].innov
+        # self._innov_cov = 0
+        # for i in range(self._models_n):
+        #     err = self._models[i].innov - self._innov
+        #     self._innov_cov += self._probs[i] * (self._models[i].innov_cov + np.outer(err, err))
+        # self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
 
     def _set_post_state(self, state):
         if self._models_n == 0:
@@ -131,7 +187,7 @@ class MMFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def add_models(self, models, probs=None):
+    def add_models(self, models, model_types, probs=None):
         '''
         Add new model
 
@@ -139,6 +195,8 @@ class MMFilter(KFBase):
         ----------
         models : list, of length N
             the list of Kalman filter
+        model_types : list, of length N
+            the types corresponding to models
         probs : 1-D array_like, of length N
             model probability
 
@@ -148,6 +206,7 @@ class MMFilter(KFBase):
         '''
         self._models_n = len(models)
         self._models.extend(models)
+        self._model_types.extend(model_types)
         self._xdim = models[0].xdim
         self._zdim = models[0].zdim
         if probs is None:
