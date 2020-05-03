@@ -19,8 +19,6 @@ def MMFilter_test():
     axis = 2
     xdim, zdim = 4, 2
     
-    np.random.seed(2020)
-
     # model 1
     sigma_w1 = np.sqrt(10 * np.random.rand())
     sigma_v1 = np.sqrt(10 * np.random.rand())
