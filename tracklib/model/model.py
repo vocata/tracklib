@@ -236,6 +236,8 @@ def R_ca(axis, std):
 
 
 def F_ct2D(axis, turn_rate, T):
+    assert (axis >= 2)
+
     omega = np.deg2rad(turn_rate)
     wt = omega * T
     sin_wt = np.sin(wt)
@@ -256,6 +258,8 @@ def F_ct2D(axis, turn_rate, T):
 
 
 def f_ct2D(axis, T):
+    assert (axis >= 2)
+
     def f(x, u):
         omega = np.deg2rad(x[4])
         wt = omega * T
@@ -280,6 +284,8 @@ def f_ct2D(axis, T):
 
 
 def f_ct2D_jac(axis, T):
+    assert (axis >= 2)
+
     def fjac(x, u):
         omega = np.deg2rad(x[4])
         wt = omega * T
@@ -316,6 +322,8 @@ def f_ct2D_jac(axis, T):
 
 
 def Q_ct2D(axis, T, std):
+    assert (axis >= 2)
+
     if isinstance(std, (int, float)):
         std = [std] * (axis + 1)    # omega
     block = np.array([T**2 / 2, T], dtype=float).reshape(-1, 1)
@@ -327,6 +335,8 @@ def Q_ct2D(axis, T, std):
 
 
 def h_ct2D(axis):
+    assert (axis >= 2)
+
     def h(x):
         if axis == 3:
             H = H_pos_only(2, 3)
@@ -338,6 +348,8 @@ def h_ct2D(axis):
 
 
 def h_ct2D_jac(axis):
+    assert (axis >= 2)
+
     def hjac(x):
         if axis == 3:
             H = H_pos_only(2, 3)
@@ -349,6 +361,8 @@ def h_ct2D_jac(axis):
 
 
 def R_ct2D(axis, std):
+    assert (axis >= 2)
+
     return R_pos_only(axis, std)
 
 
