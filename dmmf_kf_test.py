@@ -18,7 +18,7 @@ def DMMF_test():
     # np.random.seed(2018)
     T = 0.1
     xdim, zdim = 6, 3
-    axis = 2
+    axis = 3
 
     # generate trajectory
     # start = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)

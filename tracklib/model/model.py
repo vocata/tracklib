@@ -28,11 +28,11 @@ def F_poly(order, axis, T):
     Parameters
     ----------
     order : int
-        The order >=0 of the filter. If order=1, then it is constant velocity,
-        2 means constant acceleration, 3 means constant jerk, etc.
+        The order of the filter. If order=2, then it is constant velocity,
+        3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        1 means x-axis and y-axis, etc.
+        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
 
@@ -42,15 +42,15 @@ def F_poly(order, axis, T):
         The state transition matrix under a linear dynamic model of the given order
         and axis.
     '''
-    assert (order >= 0)
-    assert (axis >= 0)
+    assert (order >= 1)
+    assert (axis >= 1)
 
-    F_base = np.zeros((order + 1, order + 1))
-    tmp = np.arange(order + 1)
+    F_base = np.zeros((order, order))
+    tmp = np.arange(order)
     F_base[0, :] = T**tmp / factorial(tmp)
-    for row in range(1, order + 1):
-        F_base[row, row:] = F_base[0, :order - row + 1]
-    F = np.kron(np.eye(axis + 1), F_base)
+    for row in range(1, order):
+        F_base[row, row:] = F_base[0, :order - row]
+    F = np.kron(np.eye(axis), F_base)
 
     return F
 
@@ -63,11 +63,11 @@ def Q_poly_dc(order, axis, T, std):
     Parameters
     ----------
     order : int
-        The order >=0 of the filter. If order=1, then it is constant velocity,
-        2 means constant acceleration, 3 means constant jerk, etc.
+        The order of the filter. If order=2, then it is constant velocity,
+        3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        1 means x-axis and y-axis, etc.
+        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
     std : number, list or ndarray
@@ -78,12 +78,12 @@ def Q_poly_dc(order, axis, T, std):
     Q : ndarray
         Process noise convariance
     '''
-    assert (order >= 0)
-    assert (axis >= 0)
+    assert (order >= 1)
+    assert (axis >= 1)
 
     if isinstance(std, (int, float)):
-        std = [std] * (axis + 1)
-    sel = np.arange(order, -1, -1)
+        std = [std] * axis
+    sel = np.arange(order - 1, -1, -1)
     col, row = np.meshgrid(sel, sel)
     Q_base = T**(col + row + 1) / (factorial(col) * factorial(row) * (col + row + 1))
     Q = np.kron(np.diag(std)**2, Q_base)
@@ -99,11 +99,11 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     Parameters
     ----------
     order : int
-        The order >=0 of the filter. If order=1, then it is constant velocity,
-        2 means constant acceleration, 3 means constant jerk, etc.
+        The order of the filter. If order=2, then it is constant velocity,
+        3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        1 means x-axis and y-axis, etc.
+        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
     std : number, list or ndarray
@@ -127,12 +127,12 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     Likewise, for the alpha-beta filter, order=1, ht=1 and for the alpha-
     beta-gamma filter, order=2, ht=0
     '''
-    assert (order >= 0)
-    assert (axis >= 0)
+    assert (order >= 1)
+    assert (axis >= 1)
 
     if isinstance(std, (int, float)):
-        std = [std] * (axis + 1)
-    sel = np.arange(ht + order, ht - 1, -1)
+        std = [std] * axis
+    sel = np.arange(ht + order - 1, ht - 1, -1)
     L = T**sel / factorial(sel)
     Q_base = np.outer(L, L)
     Q = np.kron(np.diag(std)**2, Q_base)
@@ -148,57 +148,57 @@ def H_only_pos(order, axis):
     Parameters
     ----------
     order : int
-        The order >=0 of the filter. If order=1, then it is constant velocity,
-        2 means constant acceleration, 3 means constant jerk, etc.
+        The order of the filter. If order=2, then it is constant velocity,
+        3 means constant acceleration, 4 means constant jerk, etc.
     axis : int
-        Motion dimensions in Cartesian coordinate. If axis=0, it means x-axis,
-        1 means x-axis and y-axis, etc.
+        Motion dimensions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
 
     Returns
     -------
     H : ndarray
         the measurement or obervation matrix
     '''
-    assert (order >= 0)
-    assert (axis >= 0)
+    assert (order >= 1)
+    assert (axis >= 1)
 
-    H = np.eye((order + 1) * (axis + 1))
-    H = H[::order + 1]
+    H = np.eye(order * axis)
+    H = H[::order]
 
     return H
 
 
 # specific model
 def F_cv(axis, T):
-    return F_poly(1, axis, T)
-
-
-def Q_cv_dc(axis, T, std):
-    return Q_poly_dc(1, axis, T, std)
-
-
-def Q_cv_dd(axis, T, std):
-    return Q_poly_dd(1, axis, T, std, ht=1)
-
-
-def H_cv(axis):
-    return H_only_pos(1, axis)
-
-
-def F_ca(axis, T):
     return F_poly(2, axis, T)
 
 
-def Q_ca_dc(axis, T, std):
+def Q_cv_dc(axis, T, std):
     return Q_poly_dc(2, axis, T, std)
 
 
+def Q_cv_dd(axis, T, std):
+    return Q_poly_dd(2, axis, T, std, ht=1)
+
+
+def H_cv(axis):
+    return H_only_pos(2, axis)
+
+
+def F_ca(axis, T):
+    return F_poly(3, axis, T)
+
+
+def Q_ca_dc(axis, T, std):
+    return Q_poly_dc(3, axis, T, std)
+
+
 def Q_ca_dd(axis, T, std):
-    return Q_poly_dd(2, axis, T, std, ht=0)
+    return Q_poly_dd(3, axis, T, std, ht=0)
 
 
 def H_ca(axis):
-    return H_only_pos(2, axis)
+    return H_only_pos(3, axis)
 
 
 def F_ct2D(axis, turn_rate, T):
@@ -215,8 +215,8 @@ def F_ct2D(axis, turn_rate, T):
     F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
                   [0, -cos_div, 1, sin_div], [0, sin_wt, 0, cos_wt]],
                  dtype=float)
-    if axis == 2:
-        zblock = F_cv(0, T)
+    if axis == 3:
+        zblock = F_cv(1, T)
         F = lg.block_diag(F, zblock)
     return F
 
@@ -238,8 +238,8 @@ def f_ct2D(axis, T):
                       [0, -cos_div, 1, sin_div], [0, sin_wt, 0, cos_wt]],
                      dtype=float)
         F = lg.block_diag(F, 1)
-        if axis == 2:
-            zblock = F_cv(0, T)
+        if axis == 3:
+            zblock = F_cv(1, T)
             F = lg.block_diag(F, zblock)
         return np.dot(F, x)
     return f
@@ -274,8 +274,8 @@ def f_ct2D_jac(axis, T):
         F[1, -1] = f1
         F[2, -1] = f2
         F[3, -1] = f3
-        if axis == 2:
-            zblock = F_cv(0, T)
+        if axis == 3:
+            zblock = F_cv(1, T)
             F = lg.block_diag(F, zblock)
         return F
     return fjac
@@ -287,17 +287,17 @@ def Q_ct2D(axis, T, std):
     block = np.array([T**2 / 2, T], dtype=float).reshape(-1, 1)
     L = lg.block_diag(block, block, T)
     Q = np.diag(std)**2
-    if axis == 2:
+    if axis == 3:
         L = lg.block_diag(L, block)
     return L @ Q @ L.T
 
 
 def h_ct2D(axis):
     def h(x):
-        if axis == 2:
-            H = H_only_pos(1, 2)
+        if axis == 3:
+            H = H_only_pos(2, 3)
         else:
-            H = H_only_pos(1, 1)
+            H = H_only_pos(2, 2)
         H = np.insert(H, 4, 0, axis=1)
         return np.dot(H, x)
     return h
@@ -305,10 +305,10 @@ def h_ct2D(axis):
 
 def h_ct2D_jac(axis):
     def hjac(x):
-        if axis == 2:
-            H = H_only_pos(1, 2)
+        if axis == 3:
+            H = H_only_pos(2, 3)
         else:
-            H = H_only_pos(1, 1)
+            H = H_only_pos(2, 2)
         H = np.insert(H, 4, 0, axis=1)
         return H
     return hjac
