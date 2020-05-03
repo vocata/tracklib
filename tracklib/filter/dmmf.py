@@ -111,6 +111,20 @@ class IMMFilter(KFBase):
         ictmp = (ictmp + ictmp.T) / 2
         self._innov_cov = ictmp
 
+    def _set_post_state(self, state):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            self._models[i].post_state = xi
+
+    def _set_post_cov(self, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+        for i in range(self._models_n):
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].post_cov = Pi
+
     def init(self, state, cov):
         '''
         Initial filter

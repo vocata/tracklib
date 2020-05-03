@@ -186,6 +186,7 @@ def MMFilter_test():
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.legend()
+    ax.set_title('model probability')
     plt.show()
 
 
