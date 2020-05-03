@@ -25,7 +25,7 @@ def DMMF_MMF_test():
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
     stages.append({'model': 'ct', 'len': 200, 'omega': -8})
-    stages.append({'model': 'cv', 'len': 200, 'vel': [None, None, 1]})
+    stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
     stages.append({'model': 'ct', 'len': 200, 'omega': 5})
     stages.append({'model': 'cv', 'len': 200, 'vel': 50})
     stages.append({'model': 'ca', 'len': 200, 'acc': 3})
