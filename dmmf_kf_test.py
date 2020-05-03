@@ -20,18 +20,18 @@ def DMMF_test():
     axis = 3
 
     # generate trajectory
-    # np.random.seed(2018)
-    # start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    # traj = model.Trajectory2D(T, start)
-    # stages = []
-    # stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
-    # stages.append({'model': 'ct', 'len': 333, 'omega': 10})
-    # stages.append({'model': 'ca', 'len': 333, 'acc': 3})
-    # traj.add_stage(stages)
-    # traj.show_traj()
-    # R = np.eye(3)
-    # traj_real, traj_meas = traj(R)
-    # N = len(traj)
+    np.random.seed(2018)
+    start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    traj = model.Trajectory2D(T, start)
+    stages = []
+    stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
+    stages.append({'model': 'ct', 'len': 333, 'omega': 10})
+    stages.append({'model': 'ca', 'len': 333, 'acc': 3})
+    traj.add_stage(stages)
+    traj.show_traj()
+    R = np.eye(3)
+    traj_real, traj_meas = traj(R)
+    N = len(traj)
 
     # traj_real = np.loadtxt(
     #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\truePos.csv',
