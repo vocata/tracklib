@@ -485,21 +485,21 @@ def model_switch(x, type_in, type_out):
 
 
 class Trajectory2D():
-    def __init__(self, T, start=np.zeros(6)):
-        assert (len(start) == 6)
+    def __init__(self, T, start=np.zeros(9)):
+        assert (len(start) == 9)
 
         self._T = T
         self._head = start.copy()
         self._traj = [start.copy().reshape(-1, 1)]
         self._stage = [{'model': 'start'}]
         self._len = 1
-        self._xdim = 6
+        self._xdim = 9
 
     def __len__(self):
         return self._len
 
     def __call__(self, R):
-        H = H_only_pos(2, 1)
+        H = H_ca(3)
         state = np.concatenate(self._traj, axis=1)
         v = multi_normal(0, R, self._len, axis=1)
         traj_real = np.dot(H, state)
@@ -516,9 +516,11 @@ class Trajectory2D():
         '''
         stage are list of dicts, for example:
         stage = [
-            {'model': 'cv', 'len': 100, 'velocity': [30, 20]},
-            {'model': 'ca', 'len': 100, 'acceleration': [10, 30]},
-            {'model': 'ct', 'len': 100, 'omega': pi}
+            {'model': 'cv', 'len': 100, 'vel': [30, 20, 1]},
+            {'model': 'cv', 'len': 100, 'vel': 7},
+            {'model': 'ca', 'len': 100, 'acc': [10, 30, 1]},
+            {'model': 'ca', 'len': 100, 'acc': 3},
+            {'model': 'ct', 'len': 100, 'omega': 30}
         ]
         '''
         self._stage.extend(stages)
@@ -528,41 +530,46 @@ class Trajectory2D():
             self._len += traj_len
 
             state = np.zeros((self._xdim, traj_len))
-            if mdl.lower() == 'cv':
-                F = F_cv(1, self._T)
-                v = stages[i]['velocity']
+            if mdl == 'cv':
+                F = F_cv(3, self._T)
+                v = stages[i]['vel']
                 if isinstance(v, (int, float)):
-                    cur_v = self._head[[1, 4]]
+                    cur_v = self._head[[1, 4, 7]]
                     unit_v = cur_v / lg.norm(cur_v)
                     v *= unit_v
                 if v[0] is not None:
                     self._head[1] = v[0]
                 if v[1] is not None:
                     self._head[4] = v[1]
+                if v[2] is not None:
+                    self._head[7] = v[2]
 
-                sel = [0, 1, 3, 4]
+                sel = [0, 1, 3, 4, 6, 7]
                 for i in range(traj_len):
                     self._head[sel] = np.dot(F, self._head[sel])
                     state[sel, i] = self._head[sel]
-            elif mdl.lower() == 'ca':
-                F = F_ca(1, self._T)
-                a = stages[i]['acceleration']
+            elif mdl == 'ca':
+                F = F_ca(3, self._T)
+                a = stages[i]['acc']
                 if isinstance(a, (int, float)):
-                    cur_v = self._head[[1, 4]]
+                    cur_v = self._head[[1, 4, 7]]
                     unit_v = cur_v / lg.norm(cur_v)
                     a *= unit_v
                 if a[0] is not None:
                     self._head[2] = a[0]
                 if a[1] is not None:
                     self._head[5] = a[1]
+                if a[2] is not None:
+                    self._head[8] = a[2]
 
                 for i in range(traj_len):
                     self._head[:] = np.dot(F, self._head)
                     state[:, i] = self._head
-            elif mdl.lower() == 'ct':
-                F = F_ct2D(1, stages[i]['omega'], self._T)
+            elif mdl == 'ct':
+                omega = stages[i]['omega']
+                F = F_ct2D(3, omega, self._T)
 
-                sel = [0, 1, 3, 4]
+                sel = [0, 1, 3, 4, 6, 7]
                 for i in range(traj_len):
                     self._head[sel] = np.dot(F, self._head[sel])
                     state[sel, i] = self._head[sel]

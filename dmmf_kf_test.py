@@ -15,33 +15,29 @@ the program may yield uncertain result.
 
 
 def DMMF_test():
-    # np.random.seed(2018)
     T = 0.1
     xdim, zdim = 6, 3
     axis = 3
 
     # generate trajectory
-    # start = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
-    # traj = model.Trajectory2D(T, start)
-    # stages = []
-    # stages.append({'model': 'cv', 'len': 333, 'velocity': [200, 0]})
-    # stages.append({'model': 'ct', 'len': 333, 'omega': 10})
-    # stages.append({'model': 'ca', 'len': 333, 'acceleration': 3})
-    # traj.add_stage(stages)
-    # # traj.show_traj()
-    # R = np.eye(2)
-    # traj_real, traj_meas = traj(R)
-    # N = len(traj)
-    # row = np.zeros((1, N))
-    # traj_real = np.vstack((traj_real, row))
-    # traj_meas = np.vstack((traj_meas, row))
+    np.random.seed(2018)
+    start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    traj = model.Trajectory2D(T, start)
+    stages = []
+    stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 0]})
+    stages.append({'model': 'ct', 'len': 333, 'omega': 10})
+    stages.append({'model': 'ca', 'len': 333, 'acc': 3})
+    traj.add_stage(stages)
+    # traj.show_traj()
+    R = np.eye(3)
+    traj_real, traj_meas = traj(R)
+    N = len(traj)
 
-    traj_meas = np.loadtxt(
-        r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
-        dtype=np.float64,
-        delimiter=',')
-    # traj_meas = traj_meas[:-1, :]
-    N = traj_meas.shape[1]
+    # traj_meas = np.loadtxt(
+    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
+    #     dtype=np.float64,
+    #     delimiter=',')
+    # N = traj_meas.shape[1]
 
     # CV
     cv_xdim, cv_zdim = 6, 3
@@ -87,7 +83,7 @@ def DMMF_test():
     dmmf.add_models([cv_kf, ca_kf, ct_ekf], ['cv', 'ca', 'ct2D'])
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
-    P_init = np.diag([1.0, 1e3, 1.0, 1e3, 1.0, 1e3])
+    P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     dmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((xdim, N))
