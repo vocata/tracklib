@@ -136,5 +136,4 @@ def DMMF_test():
 
 
 if __name__ == '__main__':
-    # gen_traj()
     DMMF_test()
