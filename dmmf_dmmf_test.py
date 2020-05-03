@@ -15,7 +15,7 @@ the program may yield uncertain result.
 '''
 
 
-def DMMF_MMF_test():
+def DMMF_DMMF_test():
     T = 0.1
     axis = 3
 
@@ -62,7 +62,7 @@ def DMMF_MMF_test():
     # mmf including CV and CA
     mmf_models = [cv_kf, ca_kf]
     mmf_types = ['cv', 'ca']
-    mmf = ft.MMFilter()
+    mmf = ft.IMMFilter()
     mmf.add_models(mmf_models, mmf_types)
     print('mmf xdim: %d' % mmf.xdim)
 
@@ -155,4 +155,4 @@ def DMMF_MMF_test():
 
 
 if __name__ == '__main__':
-    DMMF_MMF_test()
+    DMMF_DMMF_test()
