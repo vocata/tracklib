@@ -14,6 +14,8 @@ __version__ = '1.0'
 __all__ = ['filter', 'math', 'model', 'utils']
 
 from . import filter
+from . import smoother
+from . import tracker
 from . import model
 from . import math
 from . import utils
