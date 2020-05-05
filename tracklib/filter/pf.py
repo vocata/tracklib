@@ -57,15 +57,15 @@ class SIRPFilter(PFBase):
         self._len = 0
         self._init = True
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
+        if len(kwargs) > 0:
+            if 'L' in kwargs: self._L[:] = kwargs['L']
+            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
 
         # resample, put this operation here for getting MAP estimate consistent with other particle filters
         Neff = 1 / np.sum(self._weights**2)
@@ -132,15 +132,15 @@ class RPFilter(PFBase):
         self._len = 0
         self._init = True
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
+        if len(kwargs) > 0:
+            if 'L' in kwargs: self._L[:] = kwargs['L']
+            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T

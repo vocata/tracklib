@@ -70,14 +70,14 @@ class GPFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None, **kw):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
+        if len(kwargs) > 0:
+            if 'L' in kwargs: self._L[:] = kwargs['L']
+            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         # draw samples from the posterior density
@@ -99,14 +99,14 @@ class GPFilter(KFBase):
 
         self._stage = 1
 
-    def update(self, z, **kw):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
         # update weights to approximate the posterior density
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):
@@ -126,10 +126,10 @@ class GPFilter(KFBase):
         self._len += 1
         self._stage = 0  # update finished
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)

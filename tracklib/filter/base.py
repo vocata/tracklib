@@ -36,15 +36,15 @@ class KFBase(abc.ABC):
     #     pass
 
     @abc.abstractmethod
-    def predict(self, *args, **kw):
+    def predict(self, *args, **kwargs):
         pass
 
     @abc.abstractmethod
-    def update(self, *args, **kw):
+    def update(self, *args, **kwargs):
         pass
 
     @abc.abstractmethod
-    def step(self, *args, **kw):
+    def step(self, *args, **kwargs):
         pass
 
     @property
@@ -207,7 +207,7 @@ class PFBase(abc.ABC):
         return self._len
 
     @abc.abstractmethod
-    def step(self, *args, **kw):
+    def step(self, *args, **kwargs):
         pass
     
     @property

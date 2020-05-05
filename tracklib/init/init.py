@@ -6,7 +6,10 @@ REFERENCES:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['single_point_init', 'two_point_diff_init', 'biased_three_point_diff_init', 'unbiased_three_point_diff_init']
+__all__ = [
+    'single_point_init', 'two_point_diff_init', 'biased_three_point_diff_init',
+    'unbiased_three_point_diff_init'
+]
 
 import numpy as np
 
@@ -44,17 +47,17 @@ def single_point_init(z, R, v_max):
     state to be estimated have infinite prior convariance and velocity components
     have prior convariance (v_max^2) / 3, see[1].
     '''
-    z_dim = len(z)
+    zdim = len(z)
     if isinstance(R, (int, float)):
-        R = np.diag([R] * z_dim)
+        R = np.diag([R] * zdim)
     if isinstance(v_max, (int, float)):
-        v_max = [v_max] * z_dim
+        v_max = [v_max] * zdim
 
-    state = np.zeros(2 * z_dim)
-    state[:z_dim] = z
-    cov = np.zeros((2 * z_dim, 2 * z_dim))
-    cov[:z_dim, :z_dim] = R
-    cov[z_dim:, z_dim:] = np.diag(v_max)**2 / 3
+    state = np.zeros(2 * zdim)
+    state[:zdim] = z
+    cov = np.zeros((2 * zdim, 2 * zdim))
+    cov[:zdim, :zdim] = R
+    cov[zdim:, zdim:] = np.diag(v_max)**2 / 3
 
     return __swap(state, cov, 1)
 
@@ -65,48 +68,48 @@ def two_point_diff_init(z1, z2, R1, R2, T, q=None):
     None, then it is assumed there is no process noise. This parameter is used in
     discretized continuous-time linear dynamic model
     '''
-    z_dim = len(z1)
+    zdim = len(z1)
     if isinstance(R1, (int, float)):
-        R1 = np.diag([R1] * z_dim)
+        R1 = np.diag([R1] * zdim)
     if isinstance(R2, (int, float)):
-        R2 = np.diag([R2] * z_dim)
+        R2 = np.diag([R2] * zdim)
     if q is not None:
         if isinstance(q, (int, float)):
-            q = [q] * z_dim
+            q = [q] * zdim
     else:
-        q = [0] * z_dim
+        q = [0] * zdim
 
-    state = np.zeros(2 * z_dim)
-    state[:z_dim] = z2
-    state[z_dim:] = (z2 - z1) / T
-    cov = np.zeros((2 * z_dim, 2 * z_dim))
-    cov[:z_dim, :z_dim] = R2
-    cov[:z_dim, z_dim:] = cov[z_dim:, :z_dim] = R2 / T
-    cov[z_dim:, z_dim:] = (R1 + R2) / T**2 + T * np.diag(q) / 3
+    state = np.zeros(2 * zdim)
+    state[:zdim] = z2
+    state[zdim:] = (z2 - z1) / T
+    cov = np.zeros((2 * zdim, 2 * zdim))
+    cov[:zdim, :zdim] = R2
+    cov[:zdim, zdim:] = cov[zdim:, :zdim] = R2 / T
+    cov[zdim:, zdim:] = (R1 + R2) / T**2 + T * np.diag(q) / 3
 
     return __swap(state, cov, 1)
 
 
 def biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T):
-    z_dim = len(z1)
+    zdim = len(z1)
     if isinstance(R1, (int, float)):
-        R1 = np.diag([R1] * z_dim)
+        R1 = np.diag([R1] * zdim)
     if isinstance(R2, (int, float)):
-        R2 = np.diag([R2] * z_dim)
+        R2 = np.diag([R2] * zdim)
     if isinstance(R3, (int, float)):
-        R3 = np.diag([R3] * z_dim)
+        R3 = np.diag([R3] * zdim)
 
-    state = np.zeros(3 * z_dim)
-    state[:z_dim] = z3
-    state[z_dim:2 * z_dim] = (z3 - z2) / T
-    state[2 * z_dim:] = (z3 - 2 * z2 + z1) / T**2
-    cov = np.zeros((3 * z_dim, 3 * z_dim))
-    cov[:z_dim, :z_dim] = R3
-    cov[:z_dim, z_dim:2 * z_dim] = cov[z_dim:2 * z_dim, :z_dim] = R3 / T
-    cov[:z_dim, 2 * z_dim:] = cov[2 * z_dim:, :z_dim] = R3 / T**2
-    cov[z_dim:2 * z_dim, z_dim:2 * z_dim] = (R3 + R2) / T**2
-    cov[z_dim:2 * z_dim, 2 * z_dim:] = cov[2 * z_dim:, z_dim:2 * z_dim] = (R3 + 2 * R2) / T**3
-    cov[2 * z_dim:, 2 * z_dim:] = (R3 + 4 * R2 + R1) / T**4
+    state = np.zeros(3 * zdim)
+    state[:zdim] = z3
+    state[zdim:2 * zdim] = (z3 - z2) / T
+    state[2 * zdim:] = (z3 - 2 * z2 + z1) / T**2
+    cov = np.zeros((3 * zdim, 3 * zdim))
+    cov[:zdim, :zdim] = R3
+    cov[:zdim, zdim:2 * zdim] = cov[zdim:2 * zdim, :zdim] = R3 / T
+    cov[:zdim, 2 * zdim:] = cov[2 * zdim:, :zdim] = R3 / T**2
+    cov[zdim:2 * zdim, zdim:2 * zdim] = (R3 + R2) / T**2
+    cov[zdim:2 * zdim, 2 * zdim:] = cov[2 * zdim:, zdim:2 * zdim] = (R3 + 2 * R2) / T**3
+    cov[2 * zdim:, 2 * zdim:] = (R3 + 4 * R2 + R1) / T**4
 
     return __swap(state, cov, 2)
 
@@ -118,30 +121,30 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
     None, then it is assumed there is no process noise. This parameter is used in
     discretized continuous-time linear dynamic model
     '''
-    z_dim = len(z1)
+    zdim = len(z1)
     if isinstance(R1, (int, float)):
-        R1 = np.diag([R1] * z_dim)
+        R1 = np.diag([R1] * zdim)
     if isinstance(R2, (int, float)):
-        R2 = np.diag([R2] * z_dim)
+        R2 = np.diag([R2] * zdim)
     if isinstance(R3, (int, float)):
-        R3 = np.diag([R3] * z_dim)
+        R3 = np.diag([R3] * zdim)
     if q is not None:
         if isinstance(q, (int, float)):
-            q = [q] * z_dim
+            q = [q] * zdim
     else:
-        q = [0] * z_dim
+        q = [0] * zdim
 
-    state = np.zeros(3 * z_dim)
-    state[:z_dim] = z3
-    state[z_dim:2 * z_dim] = (3 * z3 - 4 * z2 + z1) / (2 * T)
-    state[2 * z_dim:] = (z3 - 2 * z2 + z1) / T**2
-    cov = np.zeros((3 * z_dim, 3 * z_dim))
-    cov[:z_dim, :z_dim] = R3
-    cov[:z_dim, z_dim:2 * z_dim] = cov[z_dim:2 * z_dim, :z_dim] = 3 * R3 / (2 * T)
-    cov[:z_dim, 2 * z_dim:] = cov[2 * z_dim:, :z_dim] = R3 / T**2
-    cov[z_dim: 2 * z_dim, z_dim: 2 * z_dim] = (9 * R3 + 16 * R2 + R1) / (4 * T**2) + 9 * T**3 * np.diag(q) / 80
-    cov[z_dim: 2 * z_dim, 2 * z_dim:] = cov[2 * z_dim:, z_dim: 2 * z_dim] = (3 * R3 + 8 * R2 + R1) / (2 * T**3) + T**2 * np.diag(q) / 3
-    cov[2 * z_dim:, 2 * z_dim:] = (R3 + 4 * R2 + R1) / T**4 + 13 * T * np.array(q, dtype=float) / 12
+    state = np.zeros(3 * zdim)
+    state[:zdim] = z3
+    state[zdim:2 * zdim] = (3 * z3 - 4 * z2 + z1) / (2 * T)
+    state[2 * zdim:] = (z3 - 2 * z2 + z1) / T**2
+    cov = np.zeros((3 * zdim, 3 * zdim))
+    cov[:zdim, :zdim] = R3
+    cov[:zdim, zdim:2 * zdim] = cov[zdim:2 * zdim, :zdim] = 3 * R3 / (2 * T)
+    cov[:zdim, 2 * zdim:] = cov[2 * zdim:, :zdim] = R3 / T**2
+    cov[zdim: 2 * zdim, zdim: 2 * zdim] = (9 * R3 + 16 * R2 + R1) / (4 * T**2) + 9 * T**3 * np.diag(q) / 80
+    cov[zdim: 2 * zdim, 2 * zdim:] = cov[2 * zdim:, zdim: 2 * zdim] = (3 * R3 + 8 * R2 + R1) / (2 * T**3) + T**2 * np.diag(q) / 3
+    cov[2 * zdim:, 2 * zdim:] = (R3 + 4 * R2 + R1) / T**4 + 13 * T * np.array(q, dtype=float) / 12
 
     return __swap(state, cov, 2)
 
@@ -152,3 +155,38 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # T = 2
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)
 # print(state, cov, sep='\n\n')
+
+
+# specific initializer
+def cv_init(z, R, v_max=None):
+    if v_max is None:
+        v_var = 100
+    else:
+        v_var = v_max**2 / 3
+    
+    zdim = len(z)
+    state = np.kron(z, [1, 0])
+    cov = np.kron(R, np.diag([1, 0]))
+    tmp = np.kron(np.eye(zdim), np.diag([0, v_var]))
+    cov += tmp
+
+    return state, cov
+
+
+def ca_init(z, R, v_max=None, a_max=None):
+    if v_max is None:
+        v_var = 100
+    else:
+        v_var = v_max**2 / 3
+    if a_max is None:
+        a_var = 100
+    else:
+        a_var = a_max**2 / 3
+    
+    zdim = len(z)
+    state = np.kron(z, [1, 0, 0])
+    cov = np.kron(R, np.diag([1, 0, 0]))
+    tmp = np.kron(np.eye(zdim), np.diag([0, v_var, a_var]))
+    cov += tmp
+
+    return state, cov

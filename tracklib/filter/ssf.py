@@ -433,7 +433,7 @@ class SSFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None, **kw):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -443,7 +443,7 @@ class SSFilter(KFBase):
 
         self._stage = 1
 
-    def update(self, z, **kw):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -455,10 +455,10 @@ class SSFilter(KFBase):
         self._stage = 0
         self._len += 1
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)

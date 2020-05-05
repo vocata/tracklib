@@ -481,7 +481,7 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, state)
             return stmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
         if type_out == 'cv':
@@ -505,7 +505,7 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, stmp)
             return stmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct2D':
         axis = dim // 2
         if type_out == 'cv':
@@ -529,9 +529,9 @@ def state_switch(state, type_in, type_out):
         elif type_out == 'ct2D':
             return state
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     else:
-        raise ValueError('unkonw input type %s' % type_in)
+        raise ValueError('unknown input type: %s' % type_in)
 
 
 def cov_switch(cov, type_in, type_out):
@@ -557,7 +557,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp[4, 4] = uncertainty
             return ctmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
         if type_out == 'cv':
@@ -582,7 +582,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp[4, 4] = uncertainty
             return ctmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct2D':
         axis = dim // 2
         if type_out == 'cv':
@@ -607,9 +607,9 @@ def cov_switch(cov, type_in, type_out):
         elif type_out == 'ct2D':
             return cov
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     else:
-        raise ValueError('unkonw input type %s' % type_in)
+        raise ValueError('unknown input type: %s' % type_in)
 
 
 def model_switch(x, type_in, type_out):

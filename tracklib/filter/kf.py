@@ -66,16 +66,16 @@ class KFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None, **kw):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'F' in kw: self._F[:] = kw['F']
-            if 'G' in kw: self._G[:] = kw['G']
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
+        if len(kwargs) > 0:
+            if 'F' in kwargs: self._F[:] = kwargs['F']
+            if 'G' in kwargs: self._G[:] = kwargs['G']
+            if 'L' in kwargs: self._L[:] = kwargs['L']
+            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
@@ -85,15 +85,15 @@ class KFilter(KFBase):
 
         self._stage = 1  # predict finished
 
-    def update(self, z, **kw):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'H' in kw: self._H[:] = kw['H']
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
+        if len(kwargs) > 0:
+            if 'H' in kwargs: self._H[:] = kwargs['H']
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
         z_prior = self._H @ self._prior_state
@@ -110,13 +110,13 @@ class KFilter(KFBase):
         self._len += 1
         self._stage = 0  # update finished
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)
 
 
 class SeqKFilter(KFBase):
@@ -173,16 +173,16 @@ class SeqKFilter(KFBase):
         self._stage = 0
         self._init = True
 
-    def predict(self, u=None, **kw):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'F' in kw: self._F[:] = kw['F']
-            if 'G' in kw: self._G[:] = kw['G']
-            if 'L' in kw: self._L[:] = kw['L']
-            if 'Q' in kw: self._Q[:] = kw['Q']
+        if len(kwargs) > 0:
+            if 'F' in kwargs: self._F[:] = kwargs['F']
+            if 'G' in kwargs: self._G[:] = kwargs['G']
+            if 'L' in kwargs: self._L[:] = kwargs['L']
+            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
         self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
@@ -192,16 +192,16 @@ class SeqKFilter(KFBase):
 
         self._stage = 1  # predict finished
 
-    def update(self, z, **kw):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kw) > 0:
-            if 'H' in kw: self._H[:] = kw['H']
-            if 'M' in kw: self._M[:] = kw['M']
-            if 'R' in kw: self._R[:] = kw['R']
-            if 'M' in kw or 'R' in kw:
+        if len(kwargs) > 0:
+            if 'H' in kwargs: self._H[:] = kwargs['H']
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+            if 'M' in kwargs or 'R' in kwargs:
                 R_tilde = self._M @ self._R @ self._M.T
                 d, self._S = lg.eigh(R_tilde)
                 self._D = np.diag(d)
@@ -230,10 +230,10 @@ class SeqKFilter(KFBase):
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)

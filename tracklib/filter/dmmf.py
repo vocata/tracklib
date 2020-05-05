@@ -190,7 +190,7 @@ class IMMFilter(KFBase):
         else:
             self._trans_mat = np.copy(trans_mat)
 
-    def predict(self, u=None):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -223,20 +223,20 @@ class IMMFilter(KFBase):
             self._models[i].post_cov = Pi
 
         for i in range(self._models_n):
-            self._models[i].predict(u)
+            self._models[i].predict(u, **kwargs)
         # update prior state and covariance
         self.__prior_update()
 
         self._stage = 1
 
-    def update(self, z):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
-            self._models[i].update(z)
+            self._models[i].update(z, **kwargs)
             r = self._models[i].innov
             S = self._models[i].innov_cov
             pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
@@ -250,11 +250,11 @@ class IMMFilter(KFBase):
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
 
-        self.predict(u)
-        self.update(z)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)
 
     def models(self):
         return self._models

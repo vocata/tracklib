@@ -194,19 +194,19 @@ class MMFilter(KFBase):
         else:
             self._probs = np.copy(probs)
 
-    def predict(self, u=None, **kw):
+    def predict(self, u=None, **kwargs):
         assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         for i in range(self._models_n):
-            self._models[i].predict(u, **kw)
+            self._models[i].predict(u, **kwargs)
         # update prior state and covariance
         self.__prior_update()
 
         self._stage = 1
 
-    def update(self, z, **kw):
+    def update(self, z, **kwargs):
         assert (self._stage == 1)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -214,7 +214,7 @@ class MMFilter(KFBase):
         # update probability
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
-            self._models[i].update(z, **kw)
+            self._models[i].update(z, **kwargs)
             r = self._models[i].innov
             S = self._models[i].innov_cov
             # If there is a singular value, exp will be very small and all values in the pdf will be 0,
@@ -231,11 +231,11 @@ class MMFilter(KFBase):
         self._len += 1
         self._stage = 0
 
-    def step(self, z, u=None, **kw):
+    def step(self, z, u=None, **kwargs):
         assert (self._stage == 0)
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        self.predict(u, **kwargs)
+        self.update(z, **kwargs)
 
     def weighted_state(self):
         return self._post_state
