@@ -11,13 +11,13 @@ from __future__ import division, absolute_import, print_function
 
 
 __version__ = '1.0'
-__all__ = ['filter', 'math', 'model', 'utils']
+__all__ = ['filter', 'smoother', 'tracker', 'model', 'init', 'math', 'utils']
 
 from . import filter
 from . import smoother
 from . import tracker
 from . import model
+from . import init
 from . import math
 from . import utils
-from . import init
 from .utils import *
