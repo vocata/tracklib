@@ -162,7 +162,7 @@ class EKFilterAN(KFBase):
             z_pred += quad / 2
         innov = z - z_pred
         R_tilde = self._M @ self._R @ self._M.T
-        S = H @ self._state @ H.T + R_tilde
+        S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
@@ -184,7 +184,7 @@ class EKFilterAN(KFBase):
             z_pred += quad / 2
         innov = z - z_pred
         R_tilde = self._M @ self._R @ self._M.T
-        S = H @ self._state @ H.T + R_tilde
+        S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
 

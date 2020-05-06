@@ -55,7 +55,6 @@ class GNNTracker():
 
     def __len__(self):
         return self._len
-    
 
     def add_detection(self, detection):
         if len(self._tentative_tracks) + len(self._confirmed_tracks) == 0:

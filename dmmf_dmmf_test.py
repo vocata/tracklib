@@ -45,7 +45,7 @@ def DMMF_DMMF_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    cv_kf = ft.KFilter(F, L, H, M, Q, R, cv_xdim, cv_zdim)
+    cv_kf = ft.KFilter(F, L, H, M, Q, R)
 
     # CA
     ca_xdim, ca_zdim = 9, 3
@@ -57,14 +57,12 @@ def DMMF_DMMF_test():
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
-    ca_kf = ft.KFilter(F, L, H, M, Q, R, ca_xdim, ca_zdim)
-
+    ca_kf = ft.KFilter(F, L, H, M, Q, R)
     # mmf including CV and CA
     dmmf_models1 = [cv_kf, ca_kf]
     mmf_types1 = ['cv', 'ca']
     dmmf1 = ft.IMMFilter()
     dmmf1.add_models(dmmf_models1, mmf_types1)
-    print('dmmf1 xdim: %d' % dmmf1.xdim)
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -87,7 +85,6 @@ def DMMF_DMMF_test():
     dmmf_types2 = ['cv', 'ct2D']
     dmmf2 = ft.IMMFilter()
     dmmf2.add_models(dmmf_models2, dmmf_types2)
-    print('dmmf2 xdim: %d' % dmmf2.xdim)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -97,19 +94,18 @@ def DMMF_DMMF_test():
     dmmf2_prob_arr = np.empty((r, N))
     dmmf1_prob_arr = np.empty((r, N))
 
-    post_state_arr[:, 0] = dmmf2.post_state
+    post_state_arr[:, 0] = dmmf2.state
     dmmf2_prob_arr[:, 0] = dmmf2.probs()
     dmmf1_prob_arr[:, 0] = dmmf1.probs()
     for n in range(1, N):
-        dmmf2.step(traj_meas[:, n])
+        dmmf2.predict()
+        dmmf2.correct(traj_meas[:, n])
 
-        post_state_arr[:, n] = dmmf2.post_state
+        post_state_arr[:, n] = dmmf2.state
         dmmf2_prob_arr[:, n] = dmmf2.probs()
         dmmf1_prob_arr[:, n] = dmmf1.probs()
-    print(len(dmmf2))
+
     print(dmmf2)
-    print(dmmf2.prior_state)
-    print(dmmf2.post_state)
 
     # trajectory
     fig = plt.figure()
