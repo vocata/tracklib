@@ -5,15 +5,13 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'multi_normal',
-    'disc_random'
+    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
+    'sph2cart', 'multi_normal', 'disc_random'
 ]
 
 import numpy as np
 import scipy.linalg as lg
 from collections.abc import Iterable, Iterator
-
-EPSILON = 0.000001
 
 
 def is_matrix(x):
@@ -111,17 +109,35 @@ def rad2deg(rad):
 
 
 def cart2pol(x, y, z=None):
-    r = (x**2 + y**2)**(1 / 2)
-    th = np.arctan2(y, x)
+    r = np.sqrt(x**2 + y**2)
+    az = np.arctan2(y, x)
 
-    return (r, th, z) if z else (r, th)
+    return r, az, z if z else r, az
 
 
-def pol2cart(r, th, z=None):
-    x = r * np.cos(th)
-    y = r * np.sin(th)
+def pol2cart(r, az, z=None):
+    x = r * np.cos(az)
+    y = r * np.sin(az)
 
-    return (x, y, z) if z else (x, y)
+    return x, y, z if z else x, y
+
+
+def cart2sph(x, y, z):
+    proj = np.sqrt(x**2 + y**2)
+    r = np.sqrt(proj + z**2)
+    elev = np.arctan2(z, proj)
+    az = np.arctan2(y, x)
+
+    return r, elev, az
+
+
+def sph2cart(r, az, elev):
+    z = r * np.sin(elev)
+    proj = r * np.cos(elev)
+    x = proj * np.cos(az)
+    y = proj * np.sin(az)
+
+    return x, y, z
 
 
 def multi_normal(mean, cov, Ns=1, axis=0):

@@ -163,11 +163,10 @@ def cv_init(z, R, v_max=None):
         v_var = 100
     else:
         v_var = v_max**2 / 3
-    
-    zdim = len(z)
+    dim = len(z)
     state = np.kron(z, [1, 0])
     cov = np.kron(R, np.diag([1, 0]))
-    tmp = np.kron(np.eye(zdim), np.diag([0, v_var]))
+    tmp = np.kron(np.eye(dim), np.diag([0, v_var]))
     cov += tmp
 
     return state, cov
@@ -182,11 +181,15 @@ def ca_init(z, R, v_max=None, a_max=None):
         a_var = 100
     else:
         a_var = a_max**2 / 3
-    
-    zdim = len(z)
-    state = np.kron(z, [1, 0, 0])
-    cov = np.kron(R, np.diag([1, 0, 0]))
-    tmp = np.kron(np.eye(zdim), np.diag([0, v_var, a_var]))
+    dim = len(z)
+    state = np.kron(z, [1.0, 0.0, 0.0])
+    cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))
+    tmp = np.kron(np.eye(dim), np.diag([0.0, v_var, a_var]))
     cov += tmp
 
     return state, cov
+
+# R = np.array([[1.0, 0.2, 0.0], [0.2, 2.0, 0.0], [0.0, 0.0, 1.0]], dtype=float)
+# z = [1, 3, 0]
+# state, cov = ca_init(z, R)
+# print(cov)
