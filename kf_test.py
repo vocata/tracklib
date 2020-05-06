@@ -63,7 +63,6 @@ def KFilter_test():
         post_state_arr[:, n] = kf.state
         post_cov_arr[:, :, n] = kf.cov
 
-    print(len(kf))
     print(kf)
 
     state_err = state_arr - post_state_arr

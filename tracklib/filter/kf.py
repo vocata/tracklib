@@ -58,7 +58,6 @@ class KFilter(KFBase):
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
-        self._len = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
@@ -72,10 +71,10 @@ class KFilter(KFBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        self._cov = self._at**2 * self._F @ self._cov @ self._F.T + Q_tilde
-        self._cov = (self._cov + self._cov.T) / 2
         ctl = 0 if u is None else self._G @ u
         self._state = self._F @ self._state + ctl
+        self._cov = self._at**2 * self._F @ self._cov @ self._F.T + Q_tilde
+        self._cov = (self._cov + self._cov.T) / 2
 
     def correct(self, z, **kwargs):
         if self._init == False:
@@ -95,8 +94,6 @@ class KFilter(KFBase):
         self._state = self._state + K @ innov
         self._cov = self._cov - K @ S @ K.T
         self._cov = (self._cov + self._cov.T) / 2
-
-        self._len += 1
 
     def distance(self, z, **kwargs):
         if self._init == False:

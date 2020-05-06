@@ -82,7 +82,6 @@ class EKFilterAN(KFBase):
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
-        self._len = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
@@ -95,9 +94,9 @@ class EKFilterAN(KFBase):
 
         F = self._fjac(self._state, u)
         Q_tilde = self._L @ self._Q @ self._L.T
+        self._state = self._f(self._state, u)
         self._cov = F @ self._cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
-        self._state = self._f(self._state, u)
         if self._order == 2:
             FH = self._fhes(self._state, u)
             quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
@@ -146,8 +145,6 @@ class EKFilterAN(KFBase):
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
             self._cov = (self._cov + self._cov.T) / 2
-
-        self._len += 1
 
     def distance(self, z, **kwargs):
         if self._init == False:
@@ -261,7 +258,6 @@ class EKFilterNAN(KFBase):
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
-        self._len = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
@@ -272,9 +268,9 @@ class EKFilterNAN(KFBase):
 
         F, L = self._fjac(self._state, u, np.zeros(self._wdim))
         Q_tilde = L @ self._Q @ L.T
+        self._state = self._f(self._state, u, np.zeros(self._wdim))
         self._cov = F @ self._cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
-        self._state = self._f(self._state, u, np.zeros(self._wdim))
         if self._order == 2:
             FH = self._fhes(self._state, u, np.zeros(self._wdim))
             quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
@@ -321,8 +317,6 @@ class EKFilterNAN(KFBase):
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
             self._cov = (self._cov + self._cov.T) / 2
-
-        self._len += 1
 
     def distance(self, z, **kwargs):
         if self._init == False:

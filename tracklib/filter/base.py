@@ -15,16 +15,6 @@ class KFBase(abc.ABC):
         self._state = None
         self._cov = None
 
-        self._len = 0
-        self._init = False
-
-    def __len__(self):
-        return self._len
-
-    # @abc.abstractmethod
-    # def distance(self, z):
-    #     pass
-
     @abc.abstractmethod
     def predict(self, u=None, **kwargs):
         pass
@@ -48,7 +38,7 @@ class KFBase(abc.ABC):
         elif self._state is not None:
             return self._state.copy()
         else:
-            raise AttributeError("'%s' object has no attribute 'prior_state'" %
+            raise AttributeError("'%s' object has no attribute 'state'" %
                                  self.__class__.__name__)
     
     @state.setter
@@ -65,7 +55,7 @@ class KFBase(abc.ABC):
         elif self._cov is not None:
             return self._cov.copy()
         else:
-            raise AttributeError("'%s' object has no attribute 'prior_cov'" %
+            raise AttributeError("'%s' object has no attribute 'cov'" %
                                  self.__class__.__name__)
     
     @cov.setter

@@ -69,7 +69,6 @@ def EKFilter_test():
         post_state_arr[:, n] = ekf.state
         post_cov_arr[:, :, n] = ekf.cov
 
-    print(len(ekf))
     print(ekf)
 
     state_err = state_arr - post_state_arr
