@@ -39,9 +39,7 @@ class EKFilterAN(KFBase):
         self._Q = Q.copy()
         self._R = R.copy()
         self._xdim = xdim
-        self._wdim = self._Q.shape[0]
         self._zdim = zdim
-        self._vdim = self._R.shape[0]
         if fjac is None:
             def fjac(x, u):
                 F = num_diff(x, partial(self._f, u=u), self._xdim)
@@ -75,21 +73,19 @@ class EKFilterAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
+    def _set_state(self, state):
+        self._state = state.copy()
 
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
+    def _set_cov(self, cov):
+        self._cov = cov.copy()
 
     def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
+        self._state = state.copy()
+        self._cov = cov.copy()
         self._len = 0
-        self._stage = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -97,20 +93,17 @@ class EKFilterAN(KFBase):
             if 'L' in kwargs: self._L[:] = kwargs['L']
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F = self._fjac(self._post_state, u)
+        F = self._fjac(self._state, u)
         Q_tilde = self._L @ self._Q @ self._L.T
-        self._prior_cov = F @ self._post_cov @ F.T + Q_tilde
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
-        self._prior_state = self._f(self._post_state, u)
+        self._cov = F @ self._cov @ F.T + Q_tilde
+        self._cov = (self._cov + self._cov.T) / 2
+        self._state = self._f(self._state, u)
         if self._order == 2:
-            FH = self._fhes(self._post_state, u)
-            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)], dtype=float)
-            self._prior_state += quad / 2
+            FH = self._fhes(self._state, u)
+            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            self._state += quad / 2
 
-        self._stage = 1
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -118,50 +111,87 @@ class EKFilterAN(KFBase):
             if 'M' in kwargs: self._M[:] = kwargs['M']
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        H = self._hjac(self._prior_state)
-        R_tilde = self._M @ self._R @ self._M.T
-        z_prior = self._h(self._prior_state)
+        prior_state = self._state
+        prior_cov = self._cov
+
+        H = self._hjac(prior_state)
+        z_pred = self._h(prior_state)
         if self._order == 2:
-            HH = self._hhes(self._prior_state)
-            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)], dtype=float)
-            z_prior += quad / 2
-        self._innov = z - z_prior
-        self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
-        self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
-        self._post_state = self._prior_state + self._gain @ self._innov
-        # the Joseph-form covariance update is used for improving numerical
-        temp = np.eye(self._xdim) - self._gain @ H
-        self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+            HH = self._hhes(prior_state)
+            quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = self._M @ self._R @ self._M.T
+        S = H @ prior_cov @ H.T + R_tilde
+        S = (S + S.T) / 2
+        K = prior_cov @ H.T @ lg.inv(S)
+
+        self._state = prior_state + K @ innov
+        self._cov = prior_cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
         for _ in range(self._it):
-            H = self._hjac(self._post_state)
-            R_tilde = self._M @ self._R @ self._M.T
-            z_prior = self._h(self._post_state) + H @ (self._prior_state - self._post_state)
+            H = self._hjac(self._state)
+            z_pred = self._h(self._state) + H @ (prior_state - self._state)
             if self._order == 2:
-                HH = self._hhes(self._post_state)
-                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)], dtype=float)
-                z_prior += quad / 2
-            self._innov = z - z_prior
-            self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
-            self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
-            self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
-            self._post_state = self._prior_state + self._gain @ self._innov
-            temp = np.eye(self._xdim) - self._gain @ H
-            self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
-            self._post_cov = (self._post_cov + self._post_cov.T) / 2
+                HH = self._hhes(self._state)
+                quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+                z_pred += quad / 2
+            innov = z - z_pred
+            R_tilde = self._M @ self._R @ self._M.T
+            S = H @ prior_cov @ H.T + R_tilde
+            S = (S + S.T) / 2
+            K = prior_cov @ H.T @ lg.inv(S)
+
+            self._state = prior_state + K @ innov
+            self._cov = prior_cov - K @ S @ K.T
+            self._cov = (self._cov + self._cov.T) / 2
 
         self._len += 1
-        self._stage = 0
 
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        H = self._hjac(self._state)
+        z_pred = self._h(self._state)
+        if self._order == 2:
+            HH = self._hhes(self._state)
+            quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = self._M @ self._R @ self._M.T
+        S = H @ self._state @ H.T + R_tilde
+        S = (S + S.T) / 2
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
+
+        return d
+    
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        H = self._hjac(self._state)
+        z_pred = self._h(self._state)
+        if self._order == 2:
+            HH = self._hhes(self._state)
+            quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = self._M @ self._R @ self._M.T
+        S = H @ self._state @ H.T + R_tilde
+        S = (S + S.T) / 2
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf
 
 
 class EKFilterNAN(KFBase):
@@ -222,86 +252,114 @@ class EKFilterNAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
+    def _set_state(self, state):
+        self._state = state.copy()
 
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
+    def _set_cov(self, cov):
+        self._cov = cov.copy()
 
     def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
+        self._state = state.copy()
+        self._cov = cov.copy()
         self._len = 0
-        self._stage = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F, L = self._fjac(self._post_state, u, np.zeros(self._wdim))
+        F, L = self._fjac(self._state, u, np.zeros(self._wdim))
         Q_tilde = L @ self._Q @ L.T
-        self._prior_cov = F @ self._post_cov @ F.T + Q_tilde
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
-        self._prior_state = self._f(self._post_state, u, np.zeros(self._wdim))
+        self._cov = F @ self._cov @ F.T + Q_tilde
+        self._cov = (self._cov + self._cov.T) / 2
+        self._state = self._f(self._state, u, np.zeros(self._wdim))
         if self._order == 2:
-            FH = self._fhes(self._post_state, u, np.zeros(self._wdim))
-            quad = np.array([np.trace(FH[:, :, i] @ self._post_cov) for i in range(self._xdim)], dtype=float)
-            self._prior_state += quad / 2
+            FH = self._fhes(self._state, u, np.zeros(self._wdim))
+            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            self._state += quad / 2
 
-        self._stage = 1
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        H, M = self._hjac(self._prior_state, np.zeros(self._vdim))
-        R_tilde = M @ self._R @ M.T
-        z_prior = self._h(self._prior_state, np.zeros(self._vdim))
+        prior_state = self._state
+        prior_cov = self._cov
+
+        H, M = self._hjac(prior_state, np.zeros(self._vdim))
+        z_pred = self._h(prior_state, np.zeros(self._vdim))
         if self._order == 2:
-            HH = self._hhes(self._prior_state, np.zeros(self._vdim))
-            quad = np.array([np.trace(HH[:, :, i] @ self._prior_cov) for i in range(self._zdim)], dtype=float)
-            z_prior += quad / 2
-        self._innov = z - z_prior
-        self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
-        self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
-        self._post_state = self._prior_state + self._gain @ self._innov
-        # the Joseph-form covariance update is used for improving numerical
-        temp = np.eye(self._xdim) - self._gain @ H
-        self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+            HH = self._hhes(prior_state, np.zeros(self._vdim))
+            quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = M @ self._R @ M.T
+        S = H @ prior_cov @ H.T + R_tilde
+        S = (S + S.T) / 2
+        K = prior_cov @ H.T @ lg.inv(S)
+
+        self._state = prior_state + K @ innov
+        self._cov = prior_cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
         for _ in range(self._it):
-            H, M = self._hjac(self._post_state, np.zeros(self._vdim))
-            R_tilde = M @ self._R @ M.T
-            z_prior = self._h(self._post_state, np.zeros(self._vdim)) + H @ (self._prior_state - self._post_state)
+            H, M = self._hjac(self._state, np.zeros(self._vdim))
+            z_pred = self._h(self._state, np.zeros(self._vdim)) + H @ (prior_state - self._state)
             if self._order == 2:
-                HH = self._hhes(self._post_state, np.zeros(self._vdim))
-                quad = np.array([np.trace(HH[:, :, i] @ self._post_cov) for i in range(self._zdim)], dtype=float)
-                z_prior += quad / 2
-            self._innov = z - z_prior
-            self._innov_cov = H @ self._prior_cov @ H.T + R_tilde
-            self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
-            self._gain = self._prior_cov @ H.T @ lg.inv(self._innov_cov)
-            self._post_state = self._prior_state + self._gain @ self._innov
-            temp = np.eye(self._xdim) - self._gain @ H
-            self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
-            self._post_cov = (self._post_cov + self._post_cov.T) / 2
+                HH = self._hhes(self._state, np.zeros(self._vdim))
+                quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+                z_pred += quad / 2
+            innov = z - z_pred
+            R_tilde = M @ self._R @ M.T
+            S = H @ prior_cov @ H.T + R_tilde
+            S = (S + S.T) / 2
+            K = prior_cov @ H.T @ lg.inv(S)
+
+            self._state = prior_state + K @ innov
+            self._cov = prior_cov - K @ S @ K.T
+            self._cov = (self._cov + self._cov.T) / 2
 
         self._len += 1
-        self._stage = 0
 
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
+        if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        H, M = self._hjac(self._state, np.zeros(self._vdim))
+        z_pred = self._h(self._state, np.zeros(self._vdim))
+        if self._order == 2:
+            HH = self._hhes(self._state, np.zeros(self._vdim))
+            quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = M @ self._R @ M.T
+        S = H @ self._cov @ H.T + R_tilde
+        S = (S + S.T) / 2
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
+
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        H, M = self._hjac(self._state, np.zeros(self._vdim))
+        z_pred = self._h(self._state, np.zeros(self._vdim))
+        if self._order == 2:
+            HH = self._hhes(self._state, np.zeros(self._vdim))
+            quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        innov = z - z_pred
+        R_tilde = M @ self._R @ M.T
+        S = H @ self._cov @ H.T + R_tilde
+        S = (S + S.T) / 2
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf

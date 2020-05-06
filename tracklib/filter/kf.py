@@ -8,7 +8,7 @@ REFERENCE:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['KFilter', 'SeqKFilter']
+__all__ = ['KFilter']
 
 import numpy as np
 import scipy.linalg as lg
@@ -27,7 +27,7 @@ class KFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
+    def __init__(self, F, L, H, M, Q, R, G=None, at=1):
         super().__init__()
 
         self._F = F.copy()
@@ -36,10 +36,6 @@ class KFilter(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
-        self._xdim = xdim
-        self._wdim = self._Q.shape[0]
-        self._zdim = zdim
-        self._vdim = self._R.shape[0]
         if G is None:
             self._G = G
         else:
@@ -53,21 +49,19 @@ class KFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
+    def _set_state(self, state):
+        self._state = state.copy()
     
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
+    def _set_cov(self, cov):
+        self._cov = cov.copy()
 
     def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
+        self._state = state.copy()
+        self._cov = cov.copy()
         self._len = 0
-        self._stage = 0
         self._init = True
 
     def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -78,15 +72,12 @@ class KFilter(KFBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         Q_tilde = self._L @ self._Q @ self._L.T
-        self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+        self._cov = self._at**2 * self._F @ self._cov @ self._F.T + Q_tilde
+        self._cov = (self._cov + self._cov.T) / 2
         ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
+        self._state = self._F @ self._state + ctl
 
-        self._stage = 1  # predict finished
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -96,104 +87,18 @@ class KFilter(KFBase):
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        z_prior = self._H @ self._prior_state
-        self._innov = z - z_prior
-        self._innov_cov = self._H @ self._prior_cov @ self._H.T + R_tilde
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
-        self._gain = self._prior_cov @ self._H.T @ lg.inv(self._innov_cov)
-        self._post_state = self._prior_state + self._gain @ self._innov
-        # the Joseph-form covariance update is used for improving numerical
-        temp = np.eye(self._xdim) - self._gain @ self._H
-        self._post_cov = temp @ self._prior_cov @ temp.T + self._gain @ R_tilde @ self._gain.T
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+        innov = z - self._H @ self._state
+        S = self._H @ self._cov @ self._H.T + R_tilde
+        S = (S + S.T) / 2
+        K = self._cov @ self._H.T @ lg.inv(S)
+
+        self._state = self._state + K @ innov
+        self._cov = self._cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
         self._len += 1
-        self._stage = 0  # update finished
 
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
-        if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
-
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
-
-
-class SeqKFilter(KFBase):
-    '''
-    Sequential linear Kalman filter, see[1]
-
-    system model:
-    x_k = F_k-1*x_k-1 + G_k-1*u_k-1 + L_k-1*w_k-1
-    z_k = H_k*x_k + M_k*v_k
-    E(w_k*w_j') = Q_k*δ_kj
-    E(v_k*v_j') = R_k*δ_kj
-
-    w_k, v_k, x_0 are uncorrelated to each other
-    '''
-    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, at=1):
-        super().__init__()
-
-        self._F = F.copy()
-        self._L = L.copy()
-        self._H = H.copy()
-        self._M = M.copy()
-        self._Q = Q.copy()
-        self._R = R.copy()
-        self._xdim = xdim
-        self._wdim = self._Q.shape[0]
-        self._zdim = zdim
-        self._vdim = self._R.shape[0]
-        if G is None:
-            self._G = G
-        else:
-            self._G = G.copy()
-        self._at = at
-        R_tilde = self._M @ self._R @ self._M.T
-        d, self._S = lg.eigh(R_tilde)
-        self._D = np.diag(d)
-
-    def __str__(self):
-        msg = 'Sequential linear Kalman filter'
-        return msg
-
-    def __repr__(self):
-        return self.__str__()
-
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
-    
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
-
-    def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
-        self._len = 0
-        self._stage = 0
-        self._init = True
-
-    def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
-        if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
-
-        if len(kwargs) > 0:
-            if 'F' in kwargs: self._F[:] = kwargs['F']
-            if 'G' in kwargs: self._G[:] = kwargs['G']
-            if 'L' in kwargs: self._L[:] = kwargs['L']
-            if 'Q' in kwargs: self._Q[:] = kwargs['Q']
-
-        Q_tilde = self._L @ self._Q @ self._L.T
-        self._prior_cov = self._at**2 * self._F @ self._post_cov @ self._F.T + Q_tilde
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
-        ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
-
-        self._stage = 1  # predict finished
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -201,39 +106,29 @@ class SeqKFilter(KFBase):
             if 'H' in kwargs: self._H[:] = kwargs['H']
             if 'M' in kwargs: self._M[:] = kwargs['M']
             if 'R' in kwargs: self._R[:] = kwargs['R']
-            if 'M' in kwargs or 'R' in kwargs:
-                R_tilde = self._M @ self._R @ self._M.T
-                d, self._S = lg.eigh(R_tilde)
-                self._D = np.diag(d)
 
-        prior_state = self._prior_state
-        post_cov = self._prior_cov
-        H_tilde = self._S.T @ self._H
-        z_tilde = self._S.T @ z
-        for n in range(self._zdim):
-            H_n = H_tilde[n, :]
-            z_n = z_tilde[n]
-            r_n = self._D[n, n]
+        R_tilde = self._M @ self._R @ self._M.T
+        innov = z - self._H @ self._state
+        S = self._H @ self._cov @ self._H.T + R_tilde
+        S = (S + S.T) / 2
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
-            z_prior = H_n @ prior_state
-            innov = z_n - z_prior
-            innov_cov = H_n @ post_cov @ H_n + r_n
-            gain = (post_cov @ H_n) / innov_cov
-            prior_state = prior_state + gain * innov
-            # the Joseph-form covariance update is used for improving numerical
-            temp = np.eye(self._xdim) - np.outer(gain, H_n)
-            post_cov = temp @ post_cov @ temp.T + r_n * np.outer(gain, gain)
-            post_cov = (post_cov + post_cov.T) / 2
-        self._post_state = prior_state
-        self._post_cov = post_cov
+        return d
+        
 
-        self._len += 1
-        self._stage = 0
-
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
+    def likelihood(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
+        if len(kwargs) > 0:
+            if 'H' in kwargs: self._H[:] = kwargs['H']
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        R_tilde = self._M @ self._R @ self._M.T
+        innov = z - self._H @ self._state
+        S = self._H @ self._cov @ self._H.T + R_tilde
+        S = (S + S.T) / 2
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf

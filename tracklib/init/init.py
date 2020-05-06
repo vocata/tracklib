@@ -8,7 +8,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'single_point_init', 'two_point_diff_init', 'biased_three_point_diff_init',
-    'unbiased_three_point_diff_init'
+    'unbiased_three_point_diff_init', 'cv_init', 'ca_init'
 ]
 
 import numpy as np

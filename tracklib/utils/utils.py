@@ -112,14 +112,14 @@ def cart2pol(x, y, z=None):
     r = np.sqrt(x**2 + y**2)
     az = np.arctan2(y, x)
 
-    return r, az, z if z else r, az
+    return (r, az, z) if z else (r, az)
 
 
 def pol2cart(r, az, z=None):
     x = r * np.cos(az)
     y = r * np.sin(az)
 
-    return x, y, z if z else x, y
+    return (x, y, z) if z else (x, y)
 
 
 def cart2sph(x, y, z):
