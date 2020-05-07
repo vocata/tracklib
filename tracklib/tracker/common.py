@@ -5,7 +5,7 @@ REFERENCES:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['HistoryLogic', 'Detection']
+__all__ = ['HistoryLogic', 'ScoreLogic', 'Detection']
 
 import numpy as np
 import scipy.optimize as op
@@ -49,7 +49,7 @@ class HistoryLogic():
         return np.sum(self._flag[:self._c_N] == True) >= self._c_M
 
     def detached(self):
-        return np.sum(self._flag[:self._d_N] == True) >= self._d_M
+        return np.sum(self._flag[:self._d_N] == False) >= self._d_M
 
     def type(self):
         return self._logic_type
@@ -60,34 +60,31 @@ class ScoreLogic():
 
 
 class Detection():
-    def __init__(self, data, covariance, coordinate):
-        self._len = data.shape[0]
-        self._dim = data.shape[1]
-        if coordinate == 'cartesian':
-            self._data = data
-            self._covariance = covariance
-        elif coordinate == 'polar':
-            if self._dim == 2:
-                self._data = np.array([tlb.pol2cart(*d) for d in data], dtype=float)
-                # TODO coverted measurement covariance
-                # self.covariance == ?
-            if self._dim == 3:
-                self.data = np.array([tlb.sph2cart(*d) for d in data], dtype=float)
-                # TODO coverted measurement covariance
-                # self.covariance == ?
+    def __init__(self, data=None, covariance=None):
+        if data is None:
+            self._data = []
+            self._cov = []
         else:
-            raise ValueError('unknown coordinate: %s' % coordinate)
-        
+            self._data = data
+            self._cov = covariance
+        self._len = len(self._data)
+
     def __iter__(self):
-        iter(self._data)
+        it = ((self._data[i], self._cov[i]) for i in range(self._len))
+        return it
 
     def __getitem__(self, n):
         if n < 0 or n >= self._len:
             raise IndexError('index out of range')
-        return self._data[n]
-    
+        return self._data[n], self._cov[n]
+
     def __len__(self):
         return self._len
     
+    @property
+    def data(self):
+        return self._data
+
+    @property
     def covariance(self):
-        return self._covariance
+        return self._cov
