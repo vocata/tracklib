@@ -5,7 +5,7 @@ REFERENCES:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['HistoryLogic', 'Track', 'Detection']
+__all__ = ['HistoryLogic', 'Detection']
 
 import numpy as np
 import scipy.optimize as op
@@ -55,70 +55,23 @@ class HistoryLogic():
         return self._logic_type
 
 
-class Track():
-    track_id = 0
-    def __init__(self, filter, logic):
-        self._filter = filter
-        self._logic = logic
-        self._is_coasted = False
-        self._age = 1
-        self._id = Track.track_id
-
-        Track.track_id += 1
-    
-    def distance(self, target):
-        if self._is_coasted:
-            pass
-        else:
-            pass
-
-    def assign(self, target, cov):
-        self._filter.update(target, R=cov)
-        if self._logic.type() == 'history':
-            self._logic.hit()
-        else:
-            pass    # TODO other logic
-        self._is_coasted = False
-        self._age += 1
-
-    def coast(self):
-        self._filter.skin()
-        if self._logic.type() == 'history':
-            self._logic.miss()
-        else:
-            pass    # TODO other logic
-        self._is_coasted = True
-        self._age += 1
-
-    def is_confirmed(self):
-        return self._logic.confirmed()
-    
-    def is_detached(self):
-        return self._logic.detached()
-
-    def age(self):
-        return self._age
-
-    def id(self):
-        return self._id
+class ScoreLogic():
+    pass
 
 
 class Detection():
     def __init__(self, data, covariance, coordinate):
-        '''
-        coordinate == cartesian: data[0], data[1], data[2] == x, y, z.
-        coordinate == polar: data[0], data[1], data[2] == range, azimuth, elevation
-        '''
-        dim = len(data)
+        self._len = data.shape[0]
+        self._dim = data.shape[1]
         if coordinate == 'cartesian':
             self._data = data
             self._covariance = covariance
         elif coordinate == 'polar':
-            if dim == 2:
+            if self._dim == 2:
                 self._data = np.array([tlb.pol2cart(*d) for d in data], dtype=float)
                 # TODO coverted measurement covariance
                 # self.covariance == ?
-            if dim == 3:
+            if self._dim == 3:
                 self.data = np.array([tlb.sph2cart(*d) for d in data], dtype=float)
                 # TODO coverted measurement covariance
                 # self.covariance == ?
@@ -127,6 +80,14 @@ class Detection():
         
     def __iter__(self):
         iter(self._data)
+
+    def __getitem__(self, n):
+        if n < 0 or n >= self._len:
+            raise IndexError('index out of range')
+        return self._data[n]
+    
+    def __len__(self):
+        return self._len
     
     def covariance(self):
         return self._covariance
