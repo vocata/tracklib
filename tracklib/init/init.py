@@ -7,7 +7,7 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'single_point_init', 'two_point_diff_init', 'biased_three_point_diff_init',
+    'two_point_diff_init', 'biased_three_point_diff_init',
     'unbiased_three_point_diff_init', 'cv_init', 'ca_init'
 ]
 
@@ -38,28 +38,6 @@ def __swap(state, cov, order):
     cov = ctmp_col
 
     return state, cov
-
-
-def single_point_init(z, R, v_max):
-    '''
-    Single-point method initializes the state estimate just including position and
-    velocity in the sense of Bayesian, which assumes that position components in 
-    state to be estimated have infinite prior convariance and velocity components
-    have prior convariance (v_max^2) / 3, see[1].
-    '''
-    zdim = len(z)
-    if isinstance(R, (int, float)):
-        R = np.diag([R] * zdim)
-    if isinstance(v_max, (int, float)):
-        v_max = [v_max] * zdim
-
-    state = np.zeros(2 * zdim)
-    state[:zdim] = z
-    cov = np.zeros((2 * zdim, 2 * zdim))
-    cov[:zdim, :zdim] = R
-    cov[zdim:, zdim:] = np.diag(v_max)**2 / 3
-
-    return __swap(state, cov, 1)
 
 
 def two_point_diff_init(z1, z2, R1, R2, T, q=None):
@@ -158,34 +136,44 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 
 
 # specific initializer
-def cv_init(z, R, v_max=None):
-    if v_max is None:
-        v_var = 100
-    else:
-        v_var = v_max**2 / 3
+def cv_init(z, R, vmax=100):
     dim = len(z)
-    state = np.kron(z, [1, 0])
-    cov = np.kron(R, np.diag([1, 0]))
-    tmp = np.kron(np.eye(dim), np.diag([0, v_var]))
-    cov += tmp
+    if isinstance(vmax, (int, float)):
+        vvar = np.array([vmax] * dim, dtype=float)
+    else:
+        vvar = np.array(vmax, dtype=float)**2 / 3
+
+    state = np.kron(z, [1.0, 0.0])
+    cov = np.kron(R, np.diag([1.0, 0.0]))
+    diag_idx = np.diag_indices_from(cov)
+    R_diag = R.diagonal()
+    tmp = []
+    for i in range(dim):
+        tmp.extend([R_diag[i], vvar[i]])
+    cov[diag_idx] = tmp
 
     return state, cov
 
 
-def ca_init(z, R, v_max=None, a_max=None):
-    if v_max is None:
-        v_var = 100
-    else:
-        v_var = v_max**2 / 3
-    if a_max is None:
-        a_var = 100
-    else:
-        a_var = a_max**2 / 3
+def ca_init(z, R, vmax=100, amax=10):
     dim = len(z)
+    if isinstance(vmax, (int, float)):
+        vvar = np.array([vmax] * dim, dtype=float)
+    else:
+        vvar = np.array(vmax, dtype=float)**2 / 3
+    if isinstance(amax, (int, float)):
+        avar = np.array([amax] * dim, dtype=float)
+    else:
+        avar = np.array(amax, dtype=float)**2 / 3
+
     state = np.kron(z, [1.0, 0.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))
-    tmp = np.kron(np.eye(dim), np.diag([0.0, v_var, a_var]))
-    cov += tmp
+    diag_idx = np.diag_indices_from(cov)
+    R_diag = R.diagonal()
+    tmp = []
+    for i in range(dim):
+        tmp.extend([R_diag[i], vvar[i], avar[i]])
+    cov[diag_idx] = tmp
 
     return state, cov
 

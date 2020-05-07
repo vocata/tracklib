@@ -36,7 +36,7 @@ class UKFilterAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, xdim, zdim, factory):
+    def __init__(self, f, L, h, M, Q, R, point_generator):
         super().__init__()
 
         self._f = f
@@ -45,11 +45,7 @@ class UKFilterAN(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
-        self._xdim = xdim
-        self._wdim = self._Q.shape[0]
-        self._zdim = zdim
-        self._vdim = self._R.shape[0]
-        self._factory = factory
+        self._pt_gen = point_generator
 
     def __str__(self):
         msg = 'Additive noise unscented Kalman filter'
@@ -58,22 +54,19 @@ class UKFilterAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
+    def _set_state(self, state):
+        self._state = state.copy()
     
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
+    def _set_cov(self, cov):
+        self._cov = cov.copy()
 
     def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
-        self._factory.init(len(state))
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
+        self._cov = cov.copy()
+        self._pt_gen.init(len(state))
         self._init = True
 
     def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -81,28 +74,25 @@ class UKFilterAN(KFBase):
             if 'L' in kwargs: self._L[:] = kwargs['L']
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        pts_num = self._factory.points_num()
-        w_mean, w_cov = self._factory.weights()
-        points = self._factory.sigma_points(self._post_state, self._post_cov)
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+        pts = self._pt_gen.sigma_points(self._state, self._cov)
 
-        self.__f_map = np.zeros_like(points)
-        self._prior_state = 0
+        self.__f_map = []
+        self._state = 0
         for i in range(pts_num):
-            f_map = self._f(points[:, i], u)
-            self.__f_map[:, i] = f_map
-            self._prior_state += w_mean[i] * f_map
+            tmp = self._f(pts[:, i], u)
+            self.__f_map.append(tmp)
+            self._state += w_mean[i] * tmp
 
-        self._prior_cov = 0
+        self._cov = 0
         for i in range(pts_num):
-            err = self.__f_map[:, i] - self._prior_state
-            self._prior_cov += w_cov[i] * np.outer(err, err)
-        self._prior_cov += self._L @ self._Q @ self._L.T
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+            err = self.__f_map[i] - self._state
+            self._cov += w_cov[i] * np.outer(err, err)
+        self._cov += self._L @ self._Q @ self._L.T
+        self._cov = (self._cov + self._cov.T) / 2
 
-        self._stage = 1
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -110,43 +100,92 @@ class UKFilterAN(KFBase):
             if 'M' in kwargs: self._M[:] = kwargs['M']
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        pts_num = self._factory.points_num()
-        w_mean, w_cov = self._factory.weights()
-        points = self._factory.sigma_points(self._prior_state, self._prior_cov)
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+        pts = self._pt_gen.sigma_points(self._state, self._cov)
 
-        self.__h_map = np.zeros((self._zdim, pts_num))
-        z_prior = 0
+        h_map = []
+        z_pred = 0
         for i in range(pts_num):
-            h_map = self._h(points[:, i])
-            self.__h_map[:, i] = h_map
-            z_prior += w_mean[i] * h_map
+            tmp = self._h(pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
 
-        self._innov_cov = 0
+        S = 0
         xz_cov = 0
         for i in range(pts_num):
-            z_err = self.__h_map[:, i] - z_prior
-            self._innov_cov += w_cov[i] * np.outer(z_err, z_err)
-            x_err = self.__f_map[:, i] - self._prior_state
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+            x_err = self.__f_map[i] - self._state
             xz_cov += w_cov[i] * np.outer(x_err, z_err)
-        self._innov_cov += self._M @ self._R @ self._M.T
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
+        S += self._M @ self._R @ self._M.T
+        S = (S + S.T) / 2
+        innov = z - z_pred
+        K = xz_cov @ lg.inv(S)
 
-        self._innov = z - z_prior
-        self._gain = xz_cov @ lg.inv(self._innov_cov)
-        self._post_state = self._prior_state + self._gain @ self._innov
-        self._post_cov = self._prior_cov - self._gain @ self._innov_cov @ self._gain.T
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+        self._state = self._state + K @ innov
+        self._cov = self._cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
-        self._len += 1
-        self._stage = 0  # update finished
-
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+        pts = self._pt_gen.sigma_points(self._state, self._cov)
+
+        h_map = []
+        z_pred = 0
+        for i in range(pts_num):
+            tmp = self._h(pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
+
+        S = 0
+        for i in range(pts_num):
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+        S += self._M @ self._R @ self._M.T
+        S = (S + S.T) / 2
+        innov = z - z_pred
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
+
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+        pts = self._pt_gen.sigma_points(self._state, self._cov)
+
+        h_map = []
+        z_pred = 0
+        for i in range(pts_num):
+            tmp = self._h(pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
+
+        S = 0
+        for i in range(pts_num):
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+        S += self._M @ self._R @ self._M.T
+        S = (S + S.T) / 2
+        innov = z - z_pred
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf
 
 
 class UKFilterNAN(KFBase):
@@ -161,7 +200,7 @@ class UKFilterNAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, xdim, zdim, factory, epsilon=0.01):
+    def __init__(self, f, h, Q, R, point_generator, epsilon=0.01):
         super().__init__()
 
         self._f = f
@@ -170,11 +209,7 @@ class UKFilterNAN(KFBase):
         # on the diagonal can make it positive definite.
         self._Q = Q + epsilon * np.diag(Q.diagonal())
         self._R = R + epsilon * np.diag(R.diagonal())
-        self._xdim = xdim
-        self._wdim = self._Q.shape[0]
-        self._zdim = zdim
-        self._vdim = self._R.shape[0]
-        self._factory = factory
+        self._pt_gen = point_generator
 
     def __str__(self):
         msg = 'Nonadditive noise unscented Kalman filter'
@@ -183,99 +218,147 @@ class UKFilterNAN(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_post_state(self, state):
-        self._post_state = state.copy()
+    def _set_state(self, state):
+        self._state = state.copy()
     
-    def _set_post_cov(self, cov):
-        self._post_cov = cov.copy()
+    def _set_cov(self, cov):
+        self._cov = cov.copy()
 
     def init(self, state, cov):
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
-        self._factory.init(len(state) + self._Q.shape[0] + self._R.shape[0])
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
+        self._cov = cov.copy()
+        self._pt_gen.init(len(state) + self._Q.shape[0] + self._R.shape[0])
         self._init = True
 
     def predict(self, u=None, **kwargs):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        pts_num = self._factory.points_num()
-        w_mean, w_cov = self._factory.weights()
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
 
-        post_cov_asm = lg.block_diag(self._post_cov, self._Q, self._R)
-        post_state_asm = np.concatenate((self._post_state, np.zeros(self._wdim), np.zeros(self._vdim)))
-        pts_asm = self._factory.sigma_points(post_state_asm, post_cov_asm)
-        pts = pts_asm[:self._xdim, :]
-        w_pts = pts_asm[self._xdim:self._xdim + self._wdim, :]
+        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
+        pts = pts_asm[:len(self._state)]
+        w_pts = pts_asm[len(self._state):len(self._state) + self._Q.shape[0]]
 
-        self.__f_map = np.zeros_like(pts)
-        self._prior_state = 0
+        self.__f_map = []
+        self._state = 0
         for i in range(pts_num):
-            f_map = self._f(pts[:, i], u, w_pts[:, i])
-            self.__f_map[:, i] = f_map
-            self._prior_state += w_mean[i] * f_map
+            tmp = self._f(pts[:, i], u, w_pts[:, i])
+            self.__f_map.append(tmp)
+            self._state += w_mean[i] * tmp
 
-        self._prior_cov = 0
+        self._cov = 0
         for i in range(pts_num):
-            err = self.__f_map[:, i] - self._prior_state
-            self._prior_cov += w_cov[i] * np.outer(err, err)
-        self._prior_cov = (self._prior_cov + self._prior_cov.T) / 2
+            err = self.__f_map[i] - self._state
+            self._cov += w_cov[i] * np.outer(err, err)
+        self._cov = (self._cov + self._cov.T) / 2
 
-        self._stage = 1
-
-    def update(self, z, **kwargs):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        pts_num = self._factory.points_num()
-        w_mean, w_cov = self._factory.weights()
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
 
-        prior_cov_asm = lg.block_diag(self._prior_cov, self._Q, self._R)
-        prior_state_asm = np.concatenate((self._prior_state, np.zeros(self._wdim), np.zeros(self._vdim)))
-        pts_asm = self._factory.sigma_points(prior_state_asm, prior_cov_asm)
-        pts = pts_asm[:self._xdim, :]
-        v_pts = pts_asm[self._xdim + self._wdim:, :]
+        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
+        pts = pts_asm[:len(self._state)]
+        v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
 
-        self.__h_map = np.zeros((self._zdim, pts_num))
-        z_prior = 0
+        h_map = []
+        z_pred = 0
         for i in range(pts_num):
-            h_map = self._h(pts[:, i], v_pts[:, i])
-            self.__h_map[:, i] = h_map
-            z_prior += w_mean[i] * h_map
+            tmp = self._h(pts[:, i], v_pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
 
-        self._innov_cov = 0
+        S = 0
         xz_cov = 0
         for i in range(pts_num):
-            z_err = self.__h_map[:, i] - z_prior
-            self._innov_cov += w_cov[i] * np.outer(z_err, z_err)
-            x_err = self.__f_map[:, i] - self._prior_state
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+            x_err = self.__f_map[i] - self._state
             xz_cov += w_cov[i] * np.outer(x_err, z_err)
-        self._innov_cov = (self._innov_cov + self._innov_cov.T) / 2
+        S = (S + S.T) / 2
 
-        self._innov = z - z_prior
-        self._gain = xz_cov @ lg.inv(self._innov_cov)
-        self._post_state = self._prior_state + self._gain @ self._innov
-        self._post_cov = self._prior_cov - self._gain @ self._innov_cov @ self._gain.T
-        self._post_cov = (self._post_cov + self._post_cov.T) / 2
+        innov = z - z_pred
+        K = xz_cov @ lg.inv(S)
 
-        self._len += 1
-        self._stage = 0  # update finished
+        self._state = self._state + K @ innov
+        self._cov = self._cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
-    def step(self, z, u=None, **kwargs):
-        assert (self._stage == 0)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kwargs)
-        self.update(z, **kwargs)
+        if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+
+        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
+        pts = pts_asm[:len(self._state)]
+        v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
+
+        h_map = []
+        z_pred = 0
+        for i in range(pts_num):
+            tmp = self._h(pts[:, i], v_pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
+
+        S = 0
+        for i in range(pts_num):
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+        S = (S + S.T) / 2
+        innov = z - z_pred
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
+
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+
+        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
+        pts = pts_asm[:len(self._state)]
+        v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
+
+        h_map = []
+        z_pred = 0
+        for i in range(pts_num):
+            tmp = self._h(pts[:, i], v_pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
+
+        S = 0
+        for i in range(pts_num):
+            z_err = h_map[i] - z_pred
+            S += w_cov[i] * np.outer(z_err, z_err)
+        S = (S + S.T) / 2
+        innov = z - z_pred
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf
 
 
 class SimplexSigmaPoints():
@@ -298,17 +381,17 @@ class SimplexSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._dim + 2
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
@@ -354,17 +437,17 @@ class SphericalSimplexSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._dim + 2
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
@@ -412,17 +495,17 @@ class SymmetricSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return 2 * self._dim
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)
@@ -449,7 +532,7 @@ class ScaledSigmaPoints():
             Incorporates prior knowledge of the distribution of the state. For Gaussian
             distributions, beta = 2 is optimal.
         kappa
-            A second scaling parameter that is usually set to 0. Smaller values correspond
+            the scaling parameter that is usually set to 0. Smaller values correspond
             to sigma points closer to the mean state. The spread is proportional to the
             square-root of kappa. if kappa = 3 - n, n is the dimension of state, it is
             possible to match some of the fourth order terms when state is Gaussian.
@@ -479,17 +562,17 @@ class ScaledSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return 2 * self._dim + 1
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         return self._w_mean, self._w_cov
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the factory must be initialized with init() before use')
+            raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
         if self._decompose == 'cholesky':
             cov_sqrt = lg.cholesky(cov, lower=True)

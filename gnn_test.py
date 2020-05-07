@@ -32,7 +32,7 @@ def GNNTracker_test():
     R = model.R_cv(axis, sigma_v)
     ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
-    ft_init = tk.GNNFilterInitializer(init.cv_init, v_max=speed)
+    ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[speed, speed, 100])
 
     lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 2, 3, 6, 6)
 
