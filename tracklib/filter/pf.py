@@ -59,6 +59,12 @@ class SIRPFilter(KFBase):
         self._weights = np.zeros(self._Ns) + 1 / self._Ns
         self._init = True
 
+    def reset(self, state, cov):
+        self._state = state.copy()
+        self._cov = state.copy()
+        self._samples = multi_normal(state, cov, self._Ns, axis=0)
+        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+
     def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')

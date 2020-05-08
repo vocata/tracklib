@@ -78,20 +78,6 @@ class MMFilter(KFBase):
             Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._cov = Ptmp
-
-    def _set_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            self._models[i].state = xi
-    
-    def _set_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
-            self._models[i].cov = Pi
     
     def init(self, state, cov):
         '''
@@ -121,6 +107,15 @@ class MMFilter(KFBase):
             self._models[i].init(x, P)
         self.__update()
         self._init = True
+
+    def reset(self, state, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+
+        for i in range(self._models_n):
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].reset(xi, Pi)
 
     def add_models(self, models, model_types, probs=None):
         '''

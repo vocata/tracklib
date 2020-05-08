@@ -360,6 +360,11 @@ class SSFilter(KFBase):
 
         self._init = True
 
+    def reset(self, state, cov):
+        self._state = state.copy()
+        # cov is fixed
+        # self._cov = cov.copy()
+
     def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')

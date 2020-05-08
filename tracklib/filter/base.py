@@ -16,6 +16,14 @@ class KFBase(abc.ABC):
         self._cov = None
 
     @abc.abstractmethod
+    def init(self, state, cov):
+        pass
+
+    @abc.abstractmethod
+    def reset(self, state, cov):
+        pass
+
+    @abc.abstractmethod
     def predict(self, u=None, **kwargs):
         pass
 
@@ -33,38 +41,20 @@ class KFBase(abc.ABC):
 
     @property
     def state(self):
-        if hasattr(self, '_get_state'):
-            return self._get_state()
-        elif self._state is not None:
+        if self._state is not None:
             return self._state.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'state'" %
                                  self.__class__.__name__)
-    
-    @state.setter
-    def state(self, state):
-        if hasattr(self, '_set_state'):
-            self._set_state(state)
-        else:
-            raise AttributeError("AttributeError: can't set attribute")
 
     @property
     def cov(self):
-        if hasattr(self, '_get_cov'):
-            return self._get_cov()
-        elif self._cov is not None:
+        if self._cov is not None:
             return self._cov.copy()
         else:
             raise AttributeError("'%s' object has no attribute 'cov'" %
                                  self.__class__.__name__)
     
-    @cov.setter
-    def cov(self, cov):
-        if hasattr(self, '_set_cov'):
-            self._set_cov(cov)
-        else:
-            raise AttributeError("AttributeError: can't set attribute")
-
 
 class PFBase(abc.ABC):
     def __init__(self):

@@ -49,16 +49,14 @@ class KFilter(KFBase):
     def __repr__(self):
         return self.__str__()
 
-    def _set_state(self, state):
-        self._state = state.copy()
-    
-    def _set_cov(self, cov):
-        self._cov = cov.copy()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
         self._init = True
+
+    def reset(self, state, cov):
+        self._state = state.copy()
+        self._cov = cov.copy()
 
     def predict(self, u=None, **kwargs):
         if self._init == False:

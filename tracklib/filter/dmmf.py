@@ -75,20 +75,6 @@ class IMMFilter(KFBase):
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._cov = Ptmp
 
-    def _set_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            self._models[i].state = xi
-
-    def _set_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
-            self._models[i].cov = Pi
-
     def init(self, state, cov):
         '''
         Initial filter
@@ -114,6 +100,15 @@ class IMMFilter(KFBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._init = True
+
+    def reset(self, state, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+
+        for i in range(self._models_n):
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].reset(xi, Pi)
 
     def add_models(self, models, model_types, probs=None, trans_mat=None):
         '''
@@ -165,21 +160,24 @@ class IMMFilter(KFBase):
         state_org = [self._models[i].state for i in range(self._models_n)]
         cov_org = [self._models[i].cov for i in range(self._models_n)]
         types = [self._model_types[i] for i in range(self._models_n)]
+
+        mixed_state = []
         for i in range(self._models_n):
             xi = 0
             for j in range(self._models_n):
                 xj = self._switch_fcn(state_org[j], types[j], types[i])
                 xi += mixing_probs[i, j] * xj
-            self._models[i].state = xi
+            mixed_state.append(xi)
         for i in range(self._models_n):
             Pi = 0
+            xi = mixed_state[i]
             for j in range(self._models_n):
                 xj = self._switch_fcn(state_org[j], types[j], types[i])
                 Pj = self._switch_fcn(cov_org[j], types[j], types[i])
-                err = xj - self._models[i].state
+                err = xj - xi
                 Pi += mixing_probs[i, j] * (Pj + np.outer(err, err))
             Pi = (Pi + Pi.T) / 2
-            self._models[i].cov = Pi
+            self._models[i].reset(xi, Pi)
 
         for i in range(self._models_n):
             self._models[i].predict(u, **kwargs)
