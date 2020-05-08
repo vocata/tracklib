@@ -101,7 +101,8 @@ class SIRPFilter(KFBase):
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):
             noi = z - self._h(self._samples[i])
-            pdf = np.exp(-noi @ lg.inv(R_tilde) @ noi / 2) / np.sqrt(lg.det(2 * np.pi * R_tilde))
+            pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
+            pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= pdf
         self._weights /= np.sum(self._weights)
 
@@ -163,7 +164,7 @@ class SIRPFilter(KFBase):
 
         return pdf
 
-class RPFilter():
+class RPFilter(KFBase):
     '''
     Regularized particle filter
 
@@ -198,44 +199,116 @@ class RPFilter():
         return self.__str__()
 
     def init(self, state, cov):
+        self._state = state.copy()
+        self._cov = cov.copy()
+        self._samples = multi_normal(state, cov, Ns=self._Ns, axis=0)
+        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+        self._init = True
+
+    def reset(self, state, cov):
+        self._state = state.copy()
+        self._cov = cov.copy()
         self._samples = multi_normal(state, cov, Ns=self._Ns, axis=0)
         self._weights = np.zeros(self._Ns) + 1 / self._Ns
 
-        self._len = 0
-        self._init = True
-
-    def step(self, z, u=None, **kwargs):
+    def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        # compute prior state and covariance
+        # E[f(x_k-1)+w_k-1|z_1:k] = E[f(x_k-1)|z_1:k] = Σf(x_k-1^i)*w^i
+        f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
+        self._state = np.dot(self._weights, f_map)
+        self._cov = 0
+        for i in range(self._Ns):
+            err = f_map[i] - self._state
+            self._cov += self._weights[i] * np.outer(err, err)
+        self._cov = (self._cov + self._cov.T) / 2
 
         # update samples
         Q_tilde = self._L @ self._Q @ self._L.T
-        proc_noi = multi_normal(0, Q_tilde, Ns=self._Ns, axis=0)
+        proc_noi = multi_normal(0, Q_tilde, self._Ns, axis=0)
         for i in range(self._Ns):
-            self._samples[i] = self._f(self._samples[i], u) + proc_noi[i]
+            self._samples[i] = f_map[i] + proc_noi[i]
+
+    def correct(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
 
         # update weights
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):
-            z_prior = self._h(self._samples[i])
+            noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
-            pdf *= np.exp(-0.5 * (z - z_prior) @ lg.inv(R_tilde) @ (z - z_prior))
+            pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= pdf
-        self._weights[:] = self._weights / np.sum(self._weights)
+        self._weights /= np.sum(self._weights)
 
-        # regularization
+        # resample and regularize
         Neff = 1 / np.sum(self._weights**2)
         if Neff <= self._Neff:
             self._samples[:], self._weights[:] = self._kernal.resample(
                 self._samples, self._weights, resample_alg=self._resample_alg)
 
-        self._len += 1
+        # compute post state and covariance
+        self._state = np.dot(self._weights, self._samples)
+        self._cov = 0
+        for i in range(self._Ns):
+            err = self._samples[i] - self._state
+            self._cov += self._weights[i] * np.outer(err, err)
+        self._cov = (self._cov + self._cov.T) / 2
+
+    def distance(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        R_tilde = self._M @ self._R @ self._M.T
+        h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
+        z_pred = np.dot(self._weights, h_map)
+        innov = z - z_pred
+        S = 0
+        for i in range(self._Ns):
+            err = h_map[i] - z_pred
+            S += self._weights[i] * np.outer(err, err)
+        S += R_tilde
+        S = (S + S.T) / 2
+        d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
+
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        if len(kwargs) > 0:
+            if 'M' in kwargs: self._M[:] = kwargs['M']
+            if 'R' in kwargs: self._R[:] = kwargs['R']
+
+        R_tilde = self._M @ self._R @ self._M.T
+        h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
+        z_pred = np.dot(self._weights, h_map)
+        innov = z - z_pred
+        S = 0
+        for i in range(self._Ns):
+            err = h_map[i] - z_pred
+            S += self._weights[i] * np.outer(err, err)
+        S += R_tilde
+        S = (S + S.T) / 2
+        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+
+        return pdf
 
 
 class EpanechnikovKernal():

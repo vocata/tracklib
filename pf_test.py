@@ -35,7 +35,11 @@ def PFilter_test():
 
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
-    pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff)
+    # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff)
+
+    kernal = ft.EpanechnikovKernal(xdim, Ns)
+    # kernal = ft.GuassianKernal(xdim, Ns)
+    pf = ft.RPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, kernal=kernal, resample_alg='roulette')
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
