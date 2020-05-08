@@ -123,15 +123,14 @@ class GPFilter(KFBase):
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        meas_nois = multi_normal(0, R_tilde, self._Ns, axis=0)
-        z_samples = [self._h(self._samples[i]) + meas_nois[i] for i in range(self._Ns)]
+        z_samples = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.sum(z_samples, axis=0) / self._Ns
         innov = z - z_pred
         S = 0
         for i in range(self._Ns):
             err = z_samples[i] - z_pred
             S += np.outer(err, err)
-        S /= self._Ns
+        S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
         # print('distance')
         # print(S)
@@ -148,15 +147,14 @@ class GPFilter(KFBase):
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        meas_nois = multi_normal(0, R_tilde, self._Ns, axis=0)
-        z_samples = [self._h(self._samples[i]) + meas_nois[i] for i in range(self._Ns)]
+        z_samples = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.sum(z_samples, axis=0) / self._Ns
         innov = z - z_pred
         S = 0
         for i in range(self._Ns):
             err = z_samples[i] - z_pred
             S += np.outer(err, err)
-        S /= self._Ns
+        S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
         # print('likelihood')
         # print(S)
