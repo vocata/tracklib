@@ -139,7 +139,7 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 def cv_init(z, R, vmax=100):
     dim = len(z)
     if isinstance(vmax, (int, float)):
-        vvar = np.array([vmax] * dim, dtype=float)
+        vvar = np.array([vmax] * dim, dtype=float)**2 / 3
     else:
         vvar = np.array(vmax, dtype=float)**2 / 3
 
@@ -158,11 +158,11 @@ def cv_init(z, R, vmax=100):
 def ca_init(z, R, vmax=100, amax=10):
     dim = len(z)
     if isinstance(vmax, (int, float)):
-        vvar = np.array([vmax] * dim, dtype=float)
+        vvar = np.array([vmax] * dim, dtype=float)**2 / 3
     else:
         vvar = np.array(vmax, dtype=float)**2 / 3
     if isinstance(amax, (int, float)):
-        avar = np.array([amax] * dim, dtype=float)
+        avar = np.array([amax] * dim, dtype=float)**2 / 3
     else:
         avar = np.array(amax, dtype=float)**2 / 3
 

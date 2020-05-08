@@ -81,7 +81,7 @@ class GPFilter(KFBase):
         for i in range(self._Ns):
             self._samples[i] = self._f(self._samples[i], u) + proc_noi[i]
 
-        # compute prior_state and prior_cov, useless
+        # compute prior_state and prior_cov, for coasted
         self._state = np.sum(self._samples, axis=0) / self._Ns
         self._cov = 0
         for i in range(self._Ns):
@@ -101,10 +101,11 @@ class GPFilter(KFBase):
         # update weights to approximate the posterior density
         R_tilde = self._M @ self._R @ self._M.T
         for i in range(self._Ns):
-            innov = z - self._h(self._samples[i])
-            pdf = np.exp(-innov @ lg.inv(R_tilde) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * R_tilde))
+            # this is not the innovation, just likelihood of measurement for each predicted sample
+            noi = z - self._h(self._samples[i])
+            pdf = np.exp(-noi @ lg.inv(R_tilde) @ noi / 2) / np.sqrt(lg.det(2 * np.pi * R_tilde))
             self._weights[i] = pdf
-        self._weights[:] = self._weights / np.sum(self._weights)    # normalize
+        self._weights /= np.sum(self._weights)    # normalize
 
         # compute post_state and post_cov and the samples have been drawn in predict step
         self._state = np.dot(self._weights, self._samples)
@@ -123,12 +124,14 @@ class GPFilter(KFBase):
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        z_samples = [self._h(self._samples[i]) for i in range(self._Ns)]
-        z_pred = np.sum(z_samples, axis=0) / self._Ns
+        h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
+        z_pred = np.sum(h_map, axis=0) / self._Ns
+        # this is the real innovation, and the covariance fo innovation is uitilized to calculate
+        # the likelihood fo measurement for predicted measurement
         innov = z - z_pred
         S = 0
         for i in range(self._Ns):
-            err = z_samples[i] - z_pred
+            err = h_map[i] - z_pred
             S += np.outer(err, err)
         S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
@@ -147,12 +150,12 @@ class GPFilter(KFBase):
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
         R_tilde = self._M @ self._R @ self._M.T
-        z_samples = [self._h(self._samples[i]) for i in range(self._Ns)]
-        z_pred = np.sum(z_samples, axis=0) / self._Ns
+        h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
+        z_pred = np.sum(h_map, axis=0) / self._Ns
         innov = z - z_pred
         S = 0
         for i in range(self._Ns):
-            err = z_samples[i] - z_pred
+            err = h_map[i] - z_pred
             S += np.outer(err, err)
         S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
