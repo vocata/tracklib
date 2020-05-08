@@ -160,7 +160,8 @@ class SIRPFilter(KFBase):
             S += self._weights[i] * np.outer(err, err)
         S += R_tilde
         S = (S + S.T) / 2
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf
 
@@ -306,7 +307,8 @@ class RPFilter(KFBase):
             S += self._weights[i] * np.outer(err, err)
         S += R_tilde
         S = (S + S.T) / 2
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf
 

@@ -89,6 +89,16 @@ def DMMF_test():
     R = model.R_ct2D(axis, sigma_v)
     ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
 
+    # pt_gen = ft.ScaledSigmaPoints()
+    # ct_ekf = ft.UKFilterAN(f, L, h, M, Q, R, pt_gen)
+
+    # ct_ekf = ft.SIRPFilter(f, L, h, M, Q, R, 200, 100)
+
+    # kernal = ft.EpanechnikovKernal(7, 200)
+    # ct_ekf = ft.RPFilter(f, L, h, M, Q, R, 200, 100, kernal=kernal)
+
+    # ct_ekf = ft.GPFilter(f, L, h, M, Q, R, 200)
+
     # number of models
     r = 3
 

@@ -101,7 +101,8 @@ class GPFilter(KFBase):
         for i in range(self._Ns):
             # this is not the innovation, just likelihood of measurement for each predicted sample
             noi = z - self._h(self._samples[i])
-            pdf = np.exp(-noi @ lg.inv(R_tilde) @ noi / 2) / np.sqrt(lg.det(2 * np.pi * R_tilde))
+            pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
+            pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] = pdf
         self._weights /= np.sum(self._weights)    # normalize
 
@@ -133,8 +134,6 @@ class GPFilter(KFBase):
             S += np.outer(err, err)
         S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
-        # print('distance')
-        # print(S)
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
         return d
@@ -157,8 +156,7 @@ class GPFilter(KFBase):
             S += np.outer(err, err)
         S = S / self._Ns + R_tilde
         S = (S + S.T) / 2
-        # print('likelihood')
-        # print(S)
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf

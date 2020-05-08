@@ -124,6 +124,7 @@ class KFilter(KFBase):
         innov = z - self._H @ self._state
         S = self._H @ self._cov @ self._H.T + R_tilde
         S = (S + S.T) / 2
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf

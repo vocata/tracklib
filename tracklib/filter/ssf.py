@@ -395,6 +395,7 @@ class SSFilter(KFBase):
             raise RuntimeError('the filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
-        pdf = np.exp(-innov @ lg.inv(self._S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * self._S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * self._S))
+        pdf *= np.exp(-innov @ lg.inv(self._S) @ innov / 2)
 
         return pdf

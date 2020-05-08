@@ -184,7 +184,8 @@ class EKFilterAN(KFBase):
         R_tilde = self._M @ self._R @ self._M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf
 
@@ -350,6 +351,7 @@ class EKFilterNAN(KFBase):
         R_tilde = M @ self._R @ M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf

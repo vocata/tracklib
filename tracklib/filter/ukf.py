@@ -181,7 +181,8 @@ class UKFilterAN(KFBase):
         S += self._M @ self._R @ self._M.T
         S = (S + S.T) / 2
         innov = z - z_pred
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf
 
@@ -352,7 +353,8 @@ class UKFilterNAN(KFBase):
             S += w_cov[i] * np.outer(z_err, z_err)
         S = (S + S.T) / 2
         innov = z - z_pred
-        pdf = np.exp(-innov @ lg.inv(S) @ innov / 2) / np.sqrt(lg.det(2 * np.pi * S))
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
+        pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
         return pdf
 
