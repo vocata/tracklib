@@ -22,6 +22,7 @@ __all__ = [
 import numpy as np
 import scipy.linalg as lg
 from .base import KFBase
+from tracklib.utils import cholcov
 
 
 class UKFilterAN(KFBase):
@@ -199,7 +200,7 @@ class UKFilterNAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, point_generator, epsilon=0.01):
+    def __init__(self, f, h, Q, R, point_generator, epsilon=0.0001):
         super().__init__()
 
         self._f = f
@@ -360,13 +361,9 @@ class UKFilterNAN(KFBase):
 
 
 class SimplexSigmaPoints():
-    def __init__(self, w0=0, decompose='cholesky'):
+    def __init__(self, w0=0):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        if decompose == 'cholesky' or decompose == 'svd':
-            self._decompose = decompose
-        else:
-            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -391,11 +388,7 @@ class SimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
-        if self._decompose == 'cholesky':
-            cov_sqrt = lg.cholesky(cov, lower=True)
-        else:
-            U, s, V = lg.svd(cov)
-            cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
+        cov_sqrt = cholcov(cov, lower=True)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0], dtype=float)
@@ -417,13 +410,9 @@ class SimplexSigmaPoints():
 
 
 class SphericalSimplexSigmaPoints():
-    def __init__(self, w0=0, decompose='cholesky'):
+    def __init__(self, w0=0):
         assert (0 <= w0 and w0 < 1)
         self._w0 = w0
-        if decompose == 'cholesky' or decompose == 'svd':
-            self._decompose = decompose
-        else:
-            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -447,11 +436,7 @@ class SphericalSimplexSigmaPoints():
         if self._init == False:
             raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
-        if self._decompose == 'cholesky':
-            cov_sqrt = lg.cholesky(cov, lower=True)
-        else:
-            U, s, V = lg.svd(cov)
-            cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
+        cov_sqrt = cholcov(cov, lower=True)
 
         psi = np.zeros(self._dim + 2).tolist()
         psi[0] = np.array([0], dtype=float)
@@ -479,11 +464,7 @@ class SymmetricSigmaPoints():
     stability and avoids divergence which might occur in UKF, especially
     when running in a single-precision platform. 
     '''
-    def __init__(self, decompose='cholesky'):
-        if decompose == 'cholesky' or decompose == 'svd':
-            self._decompose = decompose
-        else:
-            raise ValueError('unknown decomposition: %s' % decompose)
+    def __init__(self):
         self._init = False
 
     def init(self, dim):
@@ -505,11 +486,7 @@ class SymmetricSigmaPoints():
         if self._init == False:
             raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
-        if self._decompose == 'cholesky':
-            cov_sqrt = lg.cholesky(cov, lower=True)
-        else:
-            U, s, V = lg.svd(cov)
-            cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
+        cov_sqrt = cholcov(cov, lower=True)
 
         pts = np.zeros((self._dim, 2 * self._dim))
         for i in range(self._dim):
@@ -519,7 +496,7 @@ class SymmetricSigmaPoints():
 
 
 class ScaledSigmaPoints():
-    def __init__(self, alpha=1, beta=2, kappa=None, decompose='cholesky'):
+    def __init__(self, alpha=1, beta=2, kappa=None):
         '''
         alpha:
             Determines the spread of the sigma points around the mean state value.
@@ -540,10 +517,6 @@ class ScaledSigmaPoints():
         self._alpha = alpha
         self._beta = beta
         self._kappa = kappa
-        if decompose == 'cholesky' or decompose == 'svd':
-            self._decompose = decompose
-        else:
-            raise ValueError('unknown decomposition: %s' % decompose)
         self._init = False
 
     def init(self, dim):
@@ -572,11 +545,7 @@ class ScaledSigmaPoints():
         if self._init == False:
             raise RuntimeError('the point generator must be initialized with init() before use')
         # P = C * C'
-        if self._decompose == 'cholesky':
-            cov_sqrt = lg.cholesky(cov, lower=True)
-        else:
-            U, s, V = lg.svd(cov)
-            cov_sqrt = U @ np.diag(np.sqrt(s)) @ V.T
+        cov_sqrt = cholcov(cov, lower=True)
 
         pts = np.zeros((self._dim, 2 * self._dim + 1))
         pts[:, -1] = mean

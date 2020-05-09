@@ -149,7 +149,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     std : number, list
         The standard deviation of discrete-time porcess noise
     ht : int
-        ht means that the order of the noise is 'ht' greater than the highest order
+        ht means that the order of the noise is `ht` greater than the highest order
         of the state, e.g., if the highest order of state is acceleration, then ht=0
         means that the noise is of the same order as the highest order of state, that
         is, the noise is acceleration and the model is DWPA, see section 6.3.3 in [1].

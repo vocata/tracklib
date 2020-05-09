@@ -4,9 +4,8 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
-    'is_posi_def', 'is_posi_semidef', 'is_neg_def', 'is_neg_semidef', 'col',
-    'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'multi_normal', 'disc_random'
+    'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
+    'sph2cart', 'cholcov', 'multi_normal', 'disc_random'
 ]
 
 import numpy as np
@@ -36,34 +35,6 @@ def is_diag(x):
 
 def is_symmetirc(x):
     return not np.any(x - x.T)
-
-
-def is_posi_def(x):
-    if not is_symmetirc(x):
-        return False
-    e, _ = lg.eigh(x)
-    return np.all(e > 0)
-
-
-def is_posi_semidef(x):
-    if not is_symmetirc(x):
-        return False
-    e, _ = lg.eigh(x)
-    return np.all(e >= 0)
-
-
-def is_neg_def(x):
-    if not is_symmetirc(x):
-        return False
-    e, _ = lg.eigh(x)
-    return np.all(e < 0)
-
-
-def is_neg_semidef(x):
-    if not is_symmetirc(x):
-        return False
-    e, _ = lg.eigh(x)
-    return np.all(e <= 0)
 
 
 def col(x, *args, dtype=float, **kw):
@@ -140,6 +111,39 @@ def sph2cart(r, az, elev):
     return x, y, z
 
 
+def cholcov(cov, lower=False):
+    '''
+    Compute the Cholesky-like decomposition of a matrix.
+
+    return S such that cov = dot(S.T,S). `cov` must be square, symmetric, and
+    positive semi-definite. If `cov` is positive definite, then S is the square,
+    upper triangular Cholesky factor. If 'cov' is not positive definite, S is
+    computed from an eigenvalue decomposition of cov. S is not necessarily triangular.
+
+    Parameters
+    ----------
+    cov : 2-D array_like, of shape (N, N)
+        Matrix to be decomposed
+    lower : bool, optional
+        Whether to compute the upper or lower triangular Cholesky
+        factorization.  Default is upper-triangular.
+
+    Returns
+    -------
+    S : (N, N) ndarray
+        Upper- or lower-triangular Cholesky factor of `cov`.
+    '''
+    try:
+        S = lg.cholesky(cov, lower)
+    except lg.LinAlgError:
+        U, s, V = lg.svd(cov)
+        if lower:
+            S = U @ np.diag(np.sqrt(s)) @ V.T
+        else:
+            S = U.T @ np.diag(np.sqrt(s)) @ V
+    return S
+
+
 def multi_normal(mean, cov, Ns=1, axis=0):
     '''
     Draw random samples from a normal (Gaussian) distribution with mean and cov
@@ -159,18 +163,17 @@ def multi_normal(mean, cov, Ns=1, axis=0):
     Returns
     -------
     out : ndarray
-        The drawn samples of shape (Ns, N) if axis is 0 or (N, Ns) axis is 1
+        The drawn samples of shape (Ns, N) if axis is 0, (N, Ns) axis is 1
     '''
 
-    N = cov.shape[0]
+    dim = cov.shape[0]
     if isinstance(mean, int):
-        mean = np.zeros(N) + mean
-    U, S, V = lg.svd(cov)
-    D = U @ np.diag(np.sqrt(S)) @ V.T
+        mean = np.zeros(dim) + mean
+    D = cholcov(cov, lower=True)
     if Ns == 1:
-        wgn = np.random.randn(N)
+        wgn = np.random.randn(dim)
     else:
-        wgn = np.random.randn(N, Ns)
+        wgn = np.random.randn(dim, Ns)
     if axis == 0:
         out = np.dot(wgn.T, D.T)
         out += mean

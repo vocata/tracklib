@@ -16,7 +16,7 @@ __all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GuassianKernal']
 
 import numpy as np
 import scipy.linalg as lg
-from .base import KFBase, PFBase
+from .base import KFBase
 from tracklib.utils import multi_normal, disc_random
 
 
@@ -31,6 +31,9 @@ class SIRPFilter(KFBase):
     E(v_k*v_j') = R_k*δ_kj
 
     w_k, v_k, x_0 are uncorrelated to each other
+
+    note that the transition density is selected as its proposal distribution in SIR filter,
+    which is also called condensation filter.
     '''
     def __init__(self, f, L, h, M, Q, R, Ns, Neff, resample_alg='roulette'):
         super().__init__()
