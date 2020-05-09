@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
-This model include Abstract base class named KFBase and PFBase
+This model include Abstract base class
 '''
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['KFBase']
+__all__ = ['FilterBase']
 
 import abc
 
 
-class KFBase(abc.ABC):
+class FilterBase(abc.ABC):
     def __init__(self):
         self._state = None
         self._cov = None

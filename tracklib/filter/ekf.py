@@ -13,11 +13,11 @@ __all__ = ['EKFilterAN', 'EKFilterNAN']
 import numpy as np
 import scipy.linalg as lg
 from functools import partial
-from .base import KFBase
+from .base import FilterBase
 from tracklib.math import num_diff, num_diff_hessian
 
 
-class EKFilterAN(KFBase):
+class EKFilterAN(FilterBase):
     '''
     Additive extended Kalman filter, see[1]
 
@@ -190,7 +190,7 @@ class EKFilterAN(KFBase):
         return pdf
 
 
-class EKFilterNAN(KFBase):
+class EKFilterNAN(FilterBase):
     '''
     Nonadditive Extended Kalman filter, see[1]
 

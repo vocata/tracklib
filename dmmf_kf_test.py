@@ -87,7 +87,7 @@ def DMMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
-    # ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
+    ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
 
     # pt_gen = ft.ScaledSigmaPoints()
     # ct_ekf = ft.UKFilterAN(f, L, h, M, Q, R, pt_gen)

@@ -16,11 +16,11 @@ __all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GaussianKernal']
 
 import numpy as np
 import scipy.linalg as lg
-from .base import KFBase
+from .base import FilterBase
 from tracklib.utils import multi_normal, disc_random
 
 
-class SIRPFilter(KFBase):
+class SIRPFilter(FilterBase):
     '''
     Sampling importance resampling (SIR) filter
 
@@ -59,14 +59,14 @@ class SIRPFilter(KFBase):
         self._state = state.copy()
         self._cov = state.copy()
         self._samples = multi_normal(state, cov, self._Ns, axis=0)
-        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+        self._weights = np.full(self._Ns, 1 / self._Ns)
         self._init = True
 
     def reset(self, state, cov):
         self._state = state.copy()
         self._cov = state.copy()
         self._samples = multi_normal(state, cov, self._Ns, axis=0)
-        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+        self._weights = np.full(self._Ns, 1 / self._Ns)
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
@@ -168,7 +168,7 @@ class SIRPFilter(KFBase):
 
         return pdf
 
-class RPFilter(KFBase):
+class RPFilter(FilterBase):
     '''
     Regularized particle filter
 
@@ -206,14 +206,14 @@ class RPFilter(KFBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._samples = multi_normal(state, cov, Ns=self._Ns, axis=0)
-        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+        self._weights = np.full(self._Ns, 1 / self._Ns)
         self._init = True
 
     def reset(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
         self._samples = multi_normal(state, cov, Ns=self._Ns, axis=0)
-        self._weights = np.zeros(self._Ns) + 1 / self._Ns
+        self._weights = np.full(self._Ns, 1 / self._Ns)
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
@@ -336,7 +336,7 @@ class EpanechnikovKernal():
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)
-        weight = np.zeros_like(weights) + 1 / self._Ns
+        weight = np.full(weights.shape, 1 / self._Ns)
 
         # sample from beta distribution
         beta = np.random.beta(self._dim / 2, 2, self._Ns)
@@ -388,7 +388,7 @@ class GaussianKernal():
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)
-        weight = np.zeros_like(weights) + 1 / self._Ns
+        weight = np.full(weights.shape, 1 / self._Ns)
 
         eps = np.random.randn(self._dim, self._Ns)
         sample[:] = sample + self.opt_bandwidth * np.dot(D, eps).T

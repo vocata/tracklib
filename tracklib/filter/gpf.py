@@ -16,11 +16,11 @@ __all__ = ['GPFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .base import KFBase
+from .base import FilterBase
 from tracklib.utils import multi_normal, disc_random
 
 
-class GPFilter(KFBase):
+class GPFilter(FilterBase):
     '''
     Gaussian particle filter
 

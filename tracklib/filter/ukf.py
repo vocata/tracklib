@@ -21,11 +21,11 @@ __all__ = [
 
 import numpy as np
 import scipy.linalg as lg
-from .base import KFBase
+from .base import FilterBase
 from tracklib.utils import cholcov
 
 
-class UKFilterAN(KFBase):
+class UKFilterAN(FilterBase):
     '''
     Unscented Kalman filter
 
@@ -188,7 +188,7 @@ class UKFilterAN(KFBase):
         return pdf
 
 
-class UKFilterNAN(KFBase):
+class UKFilterNAN(FilterBase):
     '''
     Unscented Kalman filter
 
@@ -200,7 +200,7 @@ class UKFilterNAN(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, point_generator, epsilon=0.0001):
+    def __init__(self, f, h, Q, R, point_generator, epsilon=0.01):
         super().__init__()
 
         self._f = f
@@ -469,7 +469,7 @@ class SymmetricSigmaPoints():
 
     def init(self, dim):
         self._dim = dim
-        self._w = np.ones(2 * dim) / (2 * dim)
+        self._w = np.full(2 * dim, 1 / (2 * dim))
         self._init = True
 
     def points_num(self):
@@ -525,7 +525,7 @@ class ScaledSigmaPoints():
         if self._kappa is None:
             self._kappa = 3 - dim
         self._lamb = self._alpha**2 * (dim + self._kappa) - dim
-        self._w_mean = np.ones(2 * dim + 1) / (2 * (dim + self._lamb))
+        self._w_mean = np.full(2 * dim + 1, 1 / (2 * (dim + self._lamb)))
         self._w_mean[-1] = self._lamb / (dim + self._lamb)
         self._w_cov = self._w_mean.copy()
         self._w_cov[-1] = self._w_mean[-1] + (1 - self._alpha**2 + self._beta)

@@ -12,10 +12,10 @@ __all__ = ['KFilter']
 
 import numpy as np
 import scipy.linalg as lg
-from .base import KFBase
+from .base import FilterBase
 
 
-class KFilter(KFBase):
+class KFilter(FilterBase):
     '''
     Standard linear Kalman filter, see[1]
 

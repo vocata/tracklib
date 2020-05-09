@@ -168,7 +168,7 @@ def multi_normal(mean, cov, Ns=1, axis=0):
 
     dim = cov.shape[0]
     if isinstance(mean, int):
-        mean = np.zeros(dim) + mean
+        mean = np.full(dim, mean)
     D = cholcov(cov, lower=True)
     if Ns == 1:
         wgn = np.random.randn(dim)

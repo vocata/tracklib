@@ -13,10 +13,10 @@ __all__ = ['IMMFilter']
 import numpy as np
 import scipy.linalg as lg
 import tracklib.model as model
-from .base import KFBase
+from .base import FilterBase
 
 
-class IMMFilter(KFBase):
+class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
@@ -133,7 +133,7 @@ class IMMFilter(KFBase):
         self._models.extend(models)
         self._model_types.extend(model_types)
         if probs is None:
-            self._probs = np.ones(self._models_n) / self._models_n
+            self._probs = np.full(self._models_n, 1 / self._models_n)
         else:
             self._probs = np.copy(probs)
         if trans_mat is None:
@@ -205,7 +205,7 @@ class IMMFilter(KFBase):
         d = 0
         for i in range(self._models_n):
             d += self._probs[i] * self._models[i].distance(z, **kwargs)
-        
+
         return d
 
     def likelihood(self, z, **kwargs):
@@ -215,7 +215,7 @@ class IMMFilter(KFBase):
         pdf = 0
         for i in range(self._models_n):
             pdf += self._probs[i] * self._models[i].likelihood(z, **kwargs)
-        
+
         return pdf
 
     def models(self):

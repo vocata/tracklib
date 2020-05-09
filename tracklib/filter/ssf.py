@@ -21,7 +21,7 @@ __all__ = [
 import numpy as np
 import scipy.linalg as lg
 from functools import reduce
-from .base import KFBase
+from .base import FilterBase
 from tracklib.model import F_poly, H_pos_only
 
 
@@ -310,7 +310,7 @@ def analytic_ss(F, L, H, M, Q, R):
 
     return prior_cov, post_cov, innov_cov, gain
 
-class SSFilter(KFBase):
+class SSFilter(FilterBase):
     '''
     Steady-state Kalman filter for multiple state systems
 
