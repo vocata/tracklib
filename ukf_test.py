@@ -36,7 +36,7 @@ def UKFilter_test():
 
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
-    # pt_gen = ft.SimplexSigmaPoints()
+    # pt_gen = ft.SimplexSigmaPoints()      # not suitable for non-additive noise
     # pt_gen = ft.SphericalSimplexSigmaPoints()
     # pt_gen = ft.SymmetricSigmaPoints()       # CKF
     pt_gen = ft.ScaledSigmaPoints()
