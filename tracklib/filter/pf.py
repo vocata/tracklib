@@ -12,7 +12,7 @@ REFERENCE:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GuassianKernal']
+__all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GaussianKernal']
 
 import numpy as np
 import scipy.linalg as lg
@@ -369,7 +369,7 @@ class EpanechnikovKernal():
         return vol
 
 
-class GuassianKernal():
+class GaussianKernal():
     def __init__(self, dim, Ns):
         n = dim + 4
         self.opt_bandwidth = (4 / (dim + 2) / Ns)**(1 / n)

@@ -38,7 +38,7 @@ def PFilter_test():
     # pf = ft.SIRPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff)
 
     kernal = ft.EpanechnikovKernal(xdim, Ns)
-    # kernal = ft.GuassianKernal(xdim, Ns)
+    # kernal = ft.GaussianKernal(xdim, Ns)
     pf = ft.RPFilter(f, L, h, M, Q, R, Ns=Ns, Neff=Neff, kernal=kernal, resample_alg='roulette')
 
     state_arr = np.empty((xdim, N))
@@ -64,8 +64,6 @@ def PFilter_test():
         pf.predict()
         prior_state_arr[:, n] = pf.state
         prior_cov_arr[:, :, n] = pf.cov
-        pf.distance(z)
-        pf.likelihood(z)
 
         pf.correct(z)
         post_state_arr[:, n] = pf.state
