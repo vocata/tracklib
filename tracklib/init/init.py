@@ -135,7 +135,6 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # print(state, cov, sep='\n\n')
 
 
-# specific initializer
 def cv_init(z, R, vmax=100):
     dim = len(z)
     if isinstance(vmax, (int, float)):

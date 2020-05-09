@@ -19,11 +19,12 @@ def GNNTracker_test():
     N = len(time)
     T = np.mean(np.diff(time))
 
-    speed = 1e6/3600
     axis = 3
     cv_xdim, cv_zdim = 6, 3
-    sigma_w = np.sqrt(1000)
-    sigma_v = np.sqrt(1000)
+
+    # filter
+    sigma_w = [30, 30, 1]     # Increase the filter process noise to account for unknown acceleration.
+    sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
     L = np.eye(cv_xdim)
@@ -32,11 +33,21 @@ def GNNTracker_test():
     R = model.R_cv(axis, sigma_v)
     ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
-    ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[speed, speed, 100])
+    # initializer
+    vmax = 1200e3/3600        # 1200km/h, vmax is used to initialize state covariance
+    vxmax = vymax = vmax
+    vzmax = 10
+    ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
 
-    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 2, 3, 6, 6)
+    # logic
+    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, 45)
+    # The normalized Mahalanobis distance with penalty term is used,
+    # so the threshold is higher than that without penalty term
+    threshold = 45
+
+    # initialize the tracker
+    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
 
     tracks = {}
 

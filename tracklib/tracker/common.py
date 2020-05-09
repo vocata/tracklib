@@ -34,8 +34,7 @@ class HistoryLogic():
         self._d_N = delete_N
         max_N = max(confirm_N, delete_N)
         self._flag = np.zeros(max_N, dtype=np.bool)
-        self._flag[0] = 1
-        self._logic_type = 'history'
+        self._flag[0] = True
 
     def hit(self):
         self._flag[1:] = self._flag[:-1]
@@ -51,40 +50,37 @@ class HistoryLogic():
     def detached(self):
         return np.sum(self._flag[:self._d_N] == False) >= self._d_M
 
-    def type(self):
-        return self._logic_type
-
 
 class ScoreLogic():
     pass
 
 
 class Detection():
-    def __init__(self, data=None, covariance=None):
-        if data is None:
-            self._data = []
-            self._cov = []
-        else:
-            self._data = data
-            self._cov = covariance
-        self._len = len(self._data)
+    def __init__(self, meas, cov):
+        if not isinstance(meas, list):
+            raise ValueError('data must be a list')
+        if not isinstance(cov, list):
+            raise ValueError('covmust be a list')
+        self._meas = meas
+        self._cov = cov
+        self._len = len(meas)
 
     def __iter__(self):
-        it = ((self._data[i], self._cov[i]) for i in range(self._len))
+        it = ((self._meas[i], self._cov[i]) for i in range(self._len))
         return it
 
     def __getitem__(self, n):
         if n < 0 or n >= self._len:
             raise IndexError('index out of range')
-        return self._data[n], self._cov[n]
+        return self._meas[n], self._cov[n]
 
     def __len__(self):
         return self._len
     
     @property
-    def data(self):
-        return self._data
+    def meas(self):
+        return self._meas
 
     @property
-    def covariance(self):
+    def cov(self):
         return self._cov
