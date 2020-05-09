@@ -33,13 +33,12 @@ def ABFilter_test():
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
     alpha, beta = ft.get_alpha_beta(sigma_w, sigma_v, T)
-    abf = ft.AlphaBetaFilter(alpha, beta, xdim, zdim, T)
+    abf = ft.AlphaBetaFilter(alpha, beta, T)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
     prior_state_arr = np.empty((xdim, N))
     post_state_arr = np.empty((xdim, N))
-    innov_arr = np.empty((zdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -48,22 +47,18 @@ def ABFilter_test():
         x = F @ x + L @ w
         z = H @ x + M @ v
         if n == -1:
-            x_init, _ = init.single_point_init(z, R, 1)
+            x_init, _ = init.cv_init(z, R, 1)
             abf.init(x_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = z
-        abf.step(z)
 
-        prior_state = abf.prior_state
-        post_state = abf.post_state
-        innov = abf.innov
-        gain = abf.gain
+        abf.predict()
+        prior_state_arr[:, n] = abf.state
 
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
-        innov_arr[:, n] = innov
-    print(len(abf))
+        abf.correct(z)
+        post_state_arr[:, n] = abf.state
+
     print(abf)
 
     state_err = state_arr - post_state_arr
@@ -77,29 +72,16 @@ def ABFilter_test():
     ax.plot(n, measure_arr[0, :], '.')
     ax.plot(n, prior_state_arr[0, :], linewidth=0.8)
     ax.plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('x state')
     ax = fig.add_subplot(212)
     ax.plot(n, state_arr[2, :], linewidth=0.8)
     ax.plot(n, measure_arr[1, :], '.')
     ax.plot(n, prior_state_arr[2, :], linewidth=0.8)
     ax.plot(n, post_state_arr[2, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
     plt.show()
-
-    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
-    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_arr[0, :], linewidth=0.8)
-    ax.set_title('x innovation')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_arr[1, :], linewidth=0.8)
-    ax.set_title('y innovation')
-    plt.show()
-
-    print('Kalman gain:\n{}'.format(gain))
 
     # trajectory
     fig = plt.figure()
@@ -136,13 +118,12 @@ def ABGFilter_test():
     x_init = x
 
     alpha, beta, gamma = ft.get_alpha_beta_gamma(sigma_w, sigma_v, T)
-    abgf = ft.AlphaBetaGammaFilter(alpha, beta, gamma, xdim, zdim, T)
+    abgf = ft.AlphaBetaGammaFilter(alpha, beta, gamma, T)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
     prior_state_arr = np.empty((xdim, N))
     post_state_arr = np.empty((xdim, N))
-    innov_arr = np.empty((zdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
@@ -151,21 +132,18 @@ def ABGFilter_test():
         x = F @ x + L @ w
         z = H @ x + M @ v
         if n == -1:
+            x_init, _ = init.ca_init(z, R, 1, 0.1)
             abgf.init(x_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = z
-        abgf.step(z)
 
-        prior_state = abgf.prior_state
-        post_state = abgf.post_state
-        innov = abgf.innov
-        gain = abgf.gain
+        abgf.predict()
+        prior_state_arr[:, n] = abgf.state
 
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
-        innov_arr[:, n] = innov
-    print(len(abgf))
+        abgf.correct(z)
+        post_state_arr[:, n] = abgf.state
+
     print(abgf)
 
     state_err = state_arr - post_state_arr
@@ -179,29 +157,16 @@ def ABGFilter_test():
     ax.plot(n, measure_arr[0, :], '.')
     ax.plot(n, prior_state_arr[0, :], linewidth=0.8)
     ax.plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('x state')
     ax = fig.add_subplot(212)
     ax.plot(n, state_arr[3, :], linewidth=0.8)
     ax.plot(n, measure_arr[1, :], '.')
     ax.plot(n, prior_state_arr[3, :], linewidth=0.8)
     ax.plot(n, post_state_arr[3, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
     plt.show()
-
-    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
-    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_arr[0, :], linewidth=0.8)
-    ax.set_title('x innovation')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_arr[1, :], linewidth=0.8)
-    ax.set_title('y innovation')
-    plt.show()
-
-    print('Kalman gain:\n{}'.format(gain))
 
     # trajectory
     fig = plt.figure()
@@ -218,5 +183,5 @@ def ABGFilter_test():
     plt.show()
 
 if __name__ == '__main__':
-    ABFilter_test()
+    # ABFilter_test()
     ABGFilter_test()

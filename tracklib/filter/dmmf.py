@@ -13,10 +13,10 @@ __all__ = ['IMMFilter']
 import numpy as np
 import scipy.linalg as lg
 import tracklib.model as model
-from .base import KFBase
+from .base import FilterBase
 
 
-class IMMFilter(KFBase):
+class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
@@ -55,16 +55,16 @@ class IMMFilter(KFBase):
             raise IndexError('index out of range')
         return self._models[n], self._probs[n]
 
-    def __prior_update(self):
-        state_org = [self._models[i].prior_state for i in range(self._models_n)]
-        cov_org = [self._models[i].prior_cov for i in range(self._models_n)]
+    def __update(self):
+        state_org = [self._models[i].state for i in range(self._models_n)]
+        cov_org = [self._models[i].cov for i in range(self._models_n)]
         types = [self._model_types[i] for i in range(self._models_n)]
 
         xtmp = 0
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             xtmp += self._probs[i] * xi
-        self._prior_state = xtmp
+        self._state = xtmp
 
         Ptmp = 0
         for i in range(self._models_n):
@@ -73,57 +73,7 @@ class IMMFilter(KFBase):
             err = xi - xtmp
             Ptmp += self._probs[i] * (pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
-        self._prior_cov = Ptmp
-
-    def __post_update(self):
-        state_org = [self._models[i].post_state for i in range(self._models_n)]
-        cov_org = [self._models[i].post_cov for i in range(self._models_n)]
-        types = [self._model_types[i] for i in range(self._models_n)]
-
-        xtmp = 0
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            xtmp += self._probs[i] * xi
-        self._post_state = xtmp
-
-        Ptmp = 0
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            pi = self._switch_fcn(cov_org[i], types[i], types[0])
-            err = xi - xtmp
-            Ptmp += self._probs[i] * (pi + np.outer(err, err))
-        Ptmp = (Ptmp + Ptmp.T) / 2
-        self._post_cov = Ptmp
-
-    def __innov_update(self):
-        innov_org = [self._models[i].innov for i in range(self._models_n)]
-        innov_cov_org = [self._models[i].innov_cov for i in range(self._models_n)]
-
-        itmp = 0
-        for i in range(self._models_n):
-            itmp += self._probs[i] * innov_org[i]
-        self._innov = itmp
-
-        ictmp = 0
-        for i in range(self._models_n):
-            err = innov_org[i] - itmp
-            ictmp += self._probs[i] * (innov_cov_org[i] + np.outer(err, err))
-        ictmp = (ictmp + ictmp.T) / 2
-        self._innov_cov = ictmp
-
-    def _set_post_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            self._models[i].post_state = xi
-
-    def _set_post_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
-            self._models[i].post_cov = Pi
+        self._cov = Ptmp
 
     def init(self, state, cov):
         '''
@@ -147,11 +97,18 @@ class IMMFilter(KFBase):
             x = self._switch_fcn(state, self._model_types[0], self._model_types[i])
             P = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
             self._models[i].init(x, P)
-        self._post_state = state.copy()
-        self._post_cov = cov.copy()
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
+        self._cov = cov.copy()
         self._init = True
+
+    def reset(self, state, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+
+        for i in range(self._models_n):
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].reset(xi, Pi)
 
     def add_models(self, models, model_types, probs=None, trans_mat=None):
         '''
@@ -175,10 +132,8 @@ class IMMFilter(KFBase):
         self._models_n = len(models)
         self._models.extend(models)
         self._model_types.extend(model_types)
-        self._xdim = models[0].xdim
-        self._zdim = models[0].zdim
         if probs is None:
-            self._probs = np.ones(self._models_n) / self._models_n
+            self._probs = np.full(self._models_n, 1 / self._models_n)
         else:
             self._probs = np.copy(probs)
         if trans_mat is None:
@@ -190,8 +145,7 @@ class IMMFilter(KFBase):
         else:
             self._trans_mat = np.copy(trans_mat)
 
-    def predict(self, u=None):
-        assert (self._stage == 0)
+    def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
@@ -203,58 +157,66 @@ class IMMFilter(KFBase):
         # mixing probability P(M(k-1)|M(k),Z^(k-1))
         mixing_probs /= self._probs.reshape(-1, 1)
         # mixing
-        state_org = [self._models[i].post_state for i in range(self._models_n)]
-        cov_org = [self._models[i].post_cov for i in range(self._models_n)]
+        state_org = [self._models[i].state for i in range(self._models_n)]
+        cov_org = [self._models[i].cov for i in range(self._models_n)]
         types = [self._model_types[i] for i in range(self._models_n)]
+
+        mixed_state = []
         for i in range(self._models_n):
             xi = 0
             for j in range(self._models_n):
                 xj = self._switch_fcn(state_org[j], types[j], types[i])
                 xi += mixing_probs[i, j] * xj
-            self._models[i].post_state = xi
+            mixed_state.append(xi)
         for i in range(self._models_n):
             Pi = 0
+            xi = mixed_state[i]
             for j in range(self._models_n):
                 xj = self._switch_fcn(state_org[j], types[j], types[i])
                 Pj = self._switch_fcn(cov_org[j], types[j], types[i])
-                err = xj - self._models[i].post_state
+                err = xj - xi
                 Pi += mixing_probs[i, j] * (Pj + np.outer(err, err))
             Pi = (Pi + Pi.T) / 2
-            self._models[i].post_cov = Pi
+            self._models[i].reset(xi, Pi)
 
         for i in range(self._models_n):
-            self._models[i].predict(u)
+            self._models[i].predict(u, **kwargs)
         # update prior state and covariance
-        self.__prior_update()
+        self.__update()
 
-        self._stage = 1
-
-    def update(self, z):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
-            self._models[i].update(z)
-            r = self._models[i].innov
-            S = self._models[i].innov_cov
-            pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
-        self.__innov_update()
+            pdf[i] = self._models[i].likelihood(z, **kwargs)
+            self._models[i].correct(z, **kwargs)
         # posterior model probability P(M(k)|Z^k)
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance
-        self.__post_update()
+        self.__update()
 
-        self._len += 1
-        self._stage = 0
+    def distance(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
 
-    def step(self, z, u=None):
-        assert (self._stage == 0)
+        d = 0
+        for i in range(self._models_n):
+            d += self._probs[i] * self._models[i].distance(z, **kwargs)
 
-        self.predict(u)
-        self.update(z)
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        pdf = 0
+        for i in range(self._models_n):
+            pdf += self._probs[i] * self._models[i].likelihood(z, **kwargs)
+
+        return pdf
 
     def models(self):
         return self._models

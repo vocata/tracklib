@@ -17,7 +17,7 @@ the program may yield uncertain result.
 
 def GPFilter_test():
     N, T = 200, 1
-    Ns = 200
+    Ns = 100
 
     axis = 2
     xdim, zdim = 4, 2
@@ -35,7 +35,7 @@ def GPFilter_test():
 
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
-    gpf = ft.GPFilter(f, L, h, M, Q, R, xdim, zdim, Ns=Ns)
+    gpf = ft.GPFilter(f, L, h, M, Q, R, Ns=Ns)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
@@ -51,21 +51,20 @@ def GPFilter_test():
         x = f(x, 0) + L @ w
         z = h(x) + M @ v
         if n == -1:
-            x_init, P_init = init.single_point_init(z, R, 1)
+            x_init, P_init = init.cv_init(z, R, 1)
             gpf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
-        gpf.step(z) 
 
-        prior_state, prior_cov = gpf.prior_state, gpf.prior_cov
-        post_state, post_cov = gpf.post_state, gpf.post_cov
+        gpf.predict()
+        prior_state_arr[:, n] = gpf.state
+        prior_cov_arr[:, :, n] = gpf.cov
 
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
-        prior_cov_arr[:, :, n] = prior_cov
-        post_cov_arr[:, :, n] = post_cov
-    print(len(gpf))
+        gpf.correct(z)
+        post_state_arr[:, n] = gpf.state
+        post_cov_arr[:, :, n] = gpf.cov
+
     print(gpf)
 
     state_err = state_arr - post_state_arr
@@ -79,14 +78,14 @@ def GPFilter_test():
     ax.plot(n, measure_arr[0, :], '.')
     ax.plot(n, prior_state_arr[0, :], linewidth=0.8)
     ax.plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('x state')
     ax = fig.add_subplot(212)
     ax.plot(n, state_arr[2, :], linewidth=0.8)
     ax.plot(n, measure_arr[1, :], '.')
     ax.plot(n, prior_state_arr[2, :], linewidth=0.8)
     ax.plot(n, post_state_arr[2, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
     plt.show()
 
@@ -98,16 +97,15 @@ def GPFilter_test():
     ax = fig.add_subplot(211)
     ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
     ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
-    ax.legend(['prediction', 'estimation'])
+    ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
     ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
     ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
-    ax.legend(['prediction', 'estimation'])
+    ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
 
-    # trajectory
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot()

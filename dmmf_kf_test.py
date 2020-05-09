@@ -61,7 +61,7 @@ def DMMF_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    cv_kf = ft.KFilter(F, L, H, M, Q, R, cv_xdim, cv_zdim)
+    cv_kf = ft.KFilter(F, L, H, M, Q, R)
 
     # CA
     ca_xdim, ca_zdim = 9, 3
@@ -73,7 +73,7 @@ def DMMF_test():
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
-    ca_kf = ft.KFilter(F, L, H, M, Q, R, ca_xdim, ca_zdim)
+    ca_kf = ft.KFilter(F, L, H, M, Q, R)
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -88,6 +88,17 @@ def DMMF_test():
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
     ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
+
+    # pt_gen = ft.ScaledSigmaPoints()
+    # ct_ekf = ft.UKFilterAN(f, L, h, M, Q, R, pt_gen)
+
+    # ct_ekf = ft.SIRPFilter(f, L, h, M, Q, R, 200, 100)
+
+    # kernal = ft.EpanechnikovKernal(ct_xdim, 200)
+    # kernal = ft.GaussianKernal(ct_xdim, 200)
+    # ct_ekf = ft.RPFilter(f, L, h, M, Q, R, 200, 100, kernal=kernal)
+
+    # ct_ekf = ft.GPFilter(f, L, h, M, Q, R, 200)
 
     # number of models
     r = 3
@@ -104,17 +115,16 @@ def DMMF_test():
     post_state_arr = np.empty((cv_xdim, N))
     prob_arr = np.empty((r, N))
 
-    post_state_arr[:, 0] = dmmf.post_state
+    post_state_arr[:, 0] = dmmf.state
     prob_arr[:, 0] = dmmf.probs()
     for n in range(1, N):
-        dmmf.step(traj_meas[:, n])
+        dmmf.predict()
+        dmmf.correct(traj_meas[:, n])
 
-        post_state_arr[:, n] = dmmf.post_state
+        post_state_arr[:, n] = dmmf.state
         prob_arr[:, n] = dmmf.probs()
-    print(len(dmmf))
+
     print(dmmf)
-    print(dmmf.prior_state)
-    print(dmmf.post_state)
 
     # trajectory
     fig = plt.figure()

@@ -149,7 +149,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     std : number, list
         The standard deviation of discrete-time porcess noise
     ht : int
-        ht means that the order of the noise is 'ht' greater than the highest order
+        ht means that the order of the noise is `ht` greater than the highest order
         of the state, e.g., if the highest order of state is acceleration, then ht=0
         means that the noise is of the same order as the highest order of state, that
         is, the noise is acceleration and the model is DWPA, see section 6.3.3 in [1].
@@ -481,7 +481,7 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, state)
             return stmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
         if type_out == 'cv':
@@ -505,7 +505,7 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, stmp)
             return stmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct2D':
         axis = dim // 2
         if type_out == 'cv':
@@ -529,9 +529,9 @@ def state_switch(state, type_in, type_out):
         elif type_out == 'ct2D':
             return state
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     else:
-        raise ValueError('unkonw input type %s' % type_in)
+        raise ValueError('unknown input type: %s' % type_in)
 
 
 def cov_switch(cov, type_in, type_out):
@@ -557,7 +557,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp[4, 4] = uncertainty
             return ctmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
         if type_out == 'cv':
@@ -582,7 +582,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp[4, 4] = uncertainty
             return ctmp
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct2D':
         axis = dim // 2
         if type_out == 'cv':
@@ -607,9 +607,9 @@ def cov_switch(cov, type_in, type_out):
         elif type_out == 'ct2D':
             return cov
         else:
-            raise ValueError('unknown output type %s' % type_out)
+            raise ValueError('unknown output type: %s' % type_out)
     else:
-        raise ValueError('unkonw input type %s' % type_in)
+        raise ValueError('unknown input type: %s' % type_in)
 
 
 def model_switch(x, type_in, type_out):

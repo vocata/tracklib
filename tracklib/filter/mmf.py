@@ -18,10 +18,10 @@ __all__ = ['MMFilter']
 import numpy as np
 import scipy.linalg as lg
 import tracklib.model as model
-from .base import KFBase
+from .base import FilterBase
 
 
-class MMFilter(KFBase):
+class MMFilter(FilterBase):
     '''
     Static multiple model filter
     '''
@@ -59,16 +59,16 @@ class MMFilter(KFBase):
             raise IndexError('index out of range')
         return self._models[n], self._probs[n]
 
-    def __prior_update(self):
-        state_org = [self._models[i].prior_state for i in range(self._models_n)]
-        cov_org = [self._models[i].prior_cov for i in range(self._models_n)]
+    def __update(self):
+        state_org = [self._models[i].state for i in range(self._models_n)]
+        cov_org = [self._models[i].cov for i in range(self._models_n)]
         types = [self._model_types[i] for i in range(self._models_n)]
 
         xtmp = 0
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
             xtmp += self._probs[i] * xi
-        self._prior_state = xtmp
+        self._state = xtmp
 
         Ptmp = 0
         for i in range(self._models_n):
@@ -77,65 +77,8 @@ class MMFilter(KFBase):
             err = xi - xtmp
             Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
-        self._prior_cov = Ptmp
-
-    def __post_update(self):
-        state_org = [self._models[i].post_state for i in range(self._models_n)]
-        cov_org = [self._models[i].post_cov for i in range(self._models_n)]
-        types = [self._model_types[i] for i in range(self._models_n)]
-
-        xtmp = 0
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            xtmp += self._probs[i] * xi
-        self._post_state = xtmp
-
-        Ptmp = 0
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            Pi = self._switch_fcn(cov_org[i], types[i], types[0])
-            err = xi - xtmp
-            Ptmp += self._probs[i] * (Pi + np.outer(err, err))
-        Ptmp = (Ptmp + Ptmp.T) / 2
-        self._post_cov = Ptmp
-
-    def __innov_update(self):
-        innov_org = [self._models[i].innov for i in range(self._models_n)]
-        innov_cov_org = [self._models[i].innov_cov for i in range(self._models_n)]
-
-        itmp = 0
-        for i in range(self._models_n):
-            itmp += self._probs[i] * innov_org[i]
-        self._innov = itmp
-
-        ictmp = 0
-        for i in range(self._models_n):
-            err = innov_org[i] - itmp
-            ictmp += self._probs[i] * (innov_cov_org[i] + np.outer(err, err))
-        ictmp = (ictmp + ictmp.T) / 2
-        self._innov_cov = ictmp
-
-    def _set_post_state(self, state):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            self._models[i].post_state = xi
+        self._cov = Ptmp
     
-    def _set_post_cov(self, cov):
-        if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
-        for i in range(self._models_n):
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
-            self._models[i].post_cov = Pi
-    
-    # the innovation and its covariance of model with maximum model probability
-    # def _get_innov(self):
-    #     return self._models[np.argmax(self._probs)].innov
-
-    # def _get_innov_cov(self):
-    #     return self._models[np.argmax(self._probs)].innov_cov
-
     def init(self, state, cov):
         '''
         Initial filter
@@ -162,10 +105,17 @@ class MMFilter(KFBase):
             x = self._switch_fcn(state[i], self._model_types[0], self._model_types[i])
             P = self._switch_fcn(cov[i], self._model_types[0], self._model_types[i])
             self._models[i].init(x, P)
-        self.__post_update()
-        self._len = 0
-        self._stage = 0
+        self.__update()
         self._init = True
+
+    def reset(self, state, cov):
+        if self._models_n == 0:
+            raise AttributeError("AttributeError: can't set attribute")
+
+        for i in range(self._models_n):
+            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
+            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            self._models[i].reset(xi, Pi)
 
     def add_models(self, models, model_types, probs=None):
         '''
@@ -187,58 +137,54 @@ class MMFilter(KFBase):
         self._models_n = len(models)
         self._models.extend(models)
         self._model_types.extend(model_types)
-        self._xdim = models[0].xdim
-        self._zdim = models[0].zdim
         if probs is None:
-            self._probs = np.ones(self._models_n) / self._models_n
+            self._probs = np.full(self._models_n, 1 / self._models_n)
         else:
             self._probs = np.copy(probs)
 
-    def predict(self, u=None, **kw):
-        assert (self._stage == 0)
+    def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         for i in range(self._models_n):
-            self._models[i].predict(u, **kw)
+            self._models[i].predict(u, **kwargs)
         # update prior state and covariance
-        self.__prior_update()
+        self.__update()
 
-        self._stage = 1
-
-    def update(self, z, **kw):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         # update probability
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
-            self._models[i].update(z, **kw)
-            r = self._models[i].innov
-            S = self._models[i].innov_cov
-            # If there is a singular value, exp will be very small and all values in the pdf will be 0,
-            # then total defined below will be 0 and an ZeroDivisionError will occur.
-            pdf[i] = np.exp(-r @ lg.inv(S) @ r / 2) / np.sqrt(lg.det(2 * np.pi * S))
-        # update innovation and associated covariance before updating the model probability
-        self.__innov_update()
+            pdf[i] = self._models[i].likelihood(z, **kwargs)
+            self._models[i].correct(z, **kwargs)
         # update model probability
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance
-        self.__post_update()
+        self.__update()
 
-        self._len += 1
-        self._stage = 0
+    def distance(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
 
-    def step(self, z, u=None, **kw):
-        assert (self._stage == 0)
+        d = 0
+        for i in range(self._models_n):
+            d += self._probs[i] * self._models[i].distance(z, **kwargs)
+        
+        return d
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
 
-    def weighted_state(self):
-        return self._post_state
+        pdf = 0
+        for i in range(self._models_n):
+            pdf += self._probs[i] * self._models[i].likelihood(z, **kwargs)
+        
+        return pdf
 
     def models(self):
         return self._models
