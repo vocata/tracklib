@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import pickle as pic
 import numpy as np
 import scipy.io as io
 import tracklib.filter as ft
@@ -11,13 +12,13 @@ import matplotlib.pyplot as plt
 
 
 def GNNTracker_test():
-    mat = io.loadmat(r'C:\Users\Ray\Desktop\MTT\matlab.mat')
-    truePos = mat['truePos'][0].tolist()
-    measPos = mat['measPos'][0].tolist()
-    measCov = mat['measCov'][0].tolist()
-    time = mat['time'][0]
-    N = len(time)
-    T = np.mean(np.diff(time))
+    # load data
+    with open('traj.dat', 'rb') as f:
+        traj = pic.load(f)
+    true_pos = traj['true_pos']
+    meas_pos = traj['meas_pos']
+    meas_cov = traj['meas_cov']
+    N, T = traj['len'], traj['T']
 
     axis = 3
     cv_xdim, cv_zdim = 6, 3
@@ -49,33 +50,58 @@ def GNNTracker_test():
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
 
-    tracks = {}
+    track_history = {}
 
     for n in range(N):
-        meas_num = measPos[n].shape[0]
-        meas = [measPos[n][i, :] for i in range(meas_num)]
-        meas_cov = [measCov[n][:, :, i] if meas_num > 1 else measCov[n] for i in range(meas_num)]
-        det = tk.Detection(meas, meas_cov)
+        meas = meas_pos[n]
+        cov = meas_cov[n]
+        det = tk.Detection(meas, cov)
 
         tracker.add_detection(det)
 
-        all_tracks = tracker.all_tracks()
-        for t in all_tracks:
-            if t.id not in tracks:
-                tracks[t.id] = [t.state]
+        tracks = tracker.tracks()
+        for track in tracks:
+            if track.id not in track_history:
+                track_history[track.id] = [track.state]
             else:
-                tracks[t.id].append(t.state)
+                track_history[track.id].append(track.state)
+        # print(tracker.current_tracks_num())
 
     print(tracker.history_tracks_num())
 
+    # plot
+    xlim = (-1600, 2000)
+    ylim = (-20100, -18100)
     fig = plt.figure()
     ax = fig.add_subplot()
-    t_id = tracks.keys()
-    for id in t_id:
-        state = np.array(tracks[id], dtype=float)
-        ax.plot(state[:, 0], state[:, 2])
+    ax.plot(true_pos[0][0, :], true_pos[0][1, :], '-.', color='gray', linewidth=0.6)
+    ax.plot(true_pos[1][0, :], true_pos[1][1, :], '-.', color='gray', linewidth=0.6, label='true')
+    for i in range(N):
+        for j in range(len(meas_pos[i])):
+            ax.scatter(meas_pos[i][j][0], meas_pos[i][j][1], s=5, c='orange')
+            ax.scatter(meas_pos[i][j][0], meas_pos[i][j][1], s=5, c='orange')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.axis('equal'), ax.grid(), ax.legend()
+    ax.set_title('true trajectory and measurement')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
     plt.show()
-        
+
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    id = track_history.keys()
+    for i in id:
+        state = np.array(track_history[i], dtype=float).T
+        ax.plot(state[0, :], state[2, :], linewidth=0.8, label='id %d' % i)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.axis('equal'), ax.grid(), ax.legend()
+    ax.set_title('estimation')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    plt.show()
+
 
 if __name__ == '__main__':
     GNNTracker_test()

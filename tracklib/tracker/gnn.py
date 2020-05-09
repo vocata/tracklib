@@ -138,7 +138,7 @@ class GNNTracker():
     def current_tracks_num(self):
         return len(self._conf_tracks)
 
-    def all_tracks(self):
+    def tracks(self):
         return self._conf_tracks
 
     def add_detection(self, detection):
