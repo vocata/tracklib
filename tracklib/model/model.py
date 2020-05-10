@@ -84,12 +84,14 @@ def F_singer(axis, T, tau=20):
 
     alpha = 1 / tau
     F_base = np.zeros((3, 3))
+    aT = alpha * T
+    eaT = np.exp(-aT)
     F[0, 0] = 1
     F[0, 1] = T
-    F[0, 2] = (alpha * T - 1 + np.exp(-alpha * T)) * tau**2
+    F[0, 2] = (aT - 1 + eaT) * tau**2
     F[1, 1] = 1
-    F[1, 2] = (1 - np.exp(-alpha * T)) * tau
-    F[2, 2] = np.exp(-alpha * T)
+    F[1, 2] = (1 - eaT) * tau
+    F[2, 2] = eaT
     F = np.kron(np.eye(axis), F_base)
 
     return F
@@ -199,8 +201,8 @@ def Q_singer(axis, T, tau, std):
         is omitted, the default value of 20 is used.The time constant is assumed
         the same for all dimensions of motion, so this parameter is scalar.
     std : number, list
-        std^2 is the instantaneous variance of the acceleration, which can be obtained
-        by assuming it to be
+        std is the instantaneous standard deviation of the acceleration knowm as
+        Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
         1. Equal to a maxmum acceleration a_M with probability p_M and -a_M with the same
            probability
         2. Equal to zero with probability p_0
