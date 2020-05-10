@@ -12,15 +12,15 @@ __all__ = ['IMMFilter']
 
 import numpy as np
 import scipy.linalg as lg
-import tracklib.model as model
 from .base import FilterBase
+from tracklib.model import model_switch
 
 
 class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model.model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
