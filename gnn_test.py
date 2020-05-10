@@ -50,7 +50,7 @@ def GNNTracker_test():
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
 
-    track_history = {}
+    state_history = {}
 
     for n in range(N):
         meas = meas_pos[n]
@@ -61,10 +61,10 @@ def GNNTracker_test():
 
         tracks = tracker.tracks()
         for track in tracks:
-            if track.id not in track_history:
-                track_history[track.id] = [track.state]
+            if track.id not in state_history:
+                state_history[track.id] = [track.state]
             else:
-                track_history[track.id].append(track.state)
+                state_history[track.id].append(track.state)
         # print(tracker.current_tracks_num())
 
     print('total number of tracks: %d' % tracker.history_tracks_num())
@@ -88,9 +88,9 @@ def GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = track_history.keys()
+    id = state_history.keys()
     for i in id:
-        state = np.array(track_history[i], dtype=float).T
+        state = np.array(state_history[i], dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
@@ -168,7 +168,8 @@ def IMM_GNNTracker_test():
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
 
-    track_history = {}
+    state_history = {}
+    prob_history = {}
 
     for n in range(N):
         meas = meas_pos[n]
@@ -179,10 +180,12 @@ def IMM_GNNTracker_test():
 
         tracks = tracker.tracks()
         for track in tracks:
-            if track.id not in track_history:
-                track_history[track.id] = [track.state]
+            if track.id not in state_history:
+                state_history[track.id] = [track.state]
+                prob_history[track.id] = [track.filter().probs()]
             else:
-                track_history[track.id].append(track.state)
+                state_history[track.id].append(track.state)
+                prob_history[track.id].append(track.filter().probs())
         # print(tracker.current_tracks_num())
 
     print('total number of tracks: %d' % tracker.history_tracks_num())
@@ -206,9 +209,9 @@ def IMM_GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = track_history.keys()
+    id = state_history.keys()
     for i in id:
-        state = np.array(track_history[i], dtype=float).T
+        state = np.array(state_history[i], dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
@@ -216,6 +219,21 @@ def IMM_GNNTracker_test():
     ax.set_title('estimation')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+    plt.show()
+
+    # models number
+    models_num = 2
+    id = list(prob_history.keys())
+    tracks_num = len(id)
+    fig = plt.figure()
+    for i in range(tracks_num):
+        ax = fig.add_subplot(tracks_num, 1, i + 1)
+        prob = np.array(prob_history[id[i]], dtype=float).T
+        for j in range(models_num):
+            ax.plot(prob[j, :], linewidth=0.8, label=model_types[j])
+        ax.set_ylabel('Pr')
+        ax.grid(), ax.legend()
+        ax.set_title('track %d: model probability' % id[i])
     plt.show()
 
 
