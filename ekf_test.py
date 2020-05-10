@@ -25,19 +25,19 @@ def EKFilter_test():
 
     F = model.F_cv(axis, T)
     L = np.eye(xdim)
-    # f = lambda x, u: F @ x
-    f = lambda x, u, w: F @ x + L @ w
+    f = lambda x, u: F @ x
+    # f = lambda x, u, w: F @ x + L @ w
     Q = model.Q_cv_dd(axis, T, sigma_w)
 
     M = np.eye(zdim)
-    # h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
-    h = lambda x, v: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float) + M @ v
+    h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
+    # h = lambda x, v: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float) + M @ v
     R = model.R_cv(axis, sigma_v)
 
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
 
-    # ekf = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim, order=2, it=1)
-    ekf = ft.EKFilterNAN(f, h, Q, R, xdim, zdim, order=2, it=1)
+    ekf = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim, order=2, it=1)
+    # ekf = ft.EKFilterNAN(f, h, Q, R, xdim, zdim, order=2, it=1)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
@@ -45,37 +45,30 @@ def EKFilter_test():
     post_state_arr = np.empty((xdim, N))
     prior_cov_arr = np.empty((xdim, xdim, N))
     post_cov_arr = np.empty((xdim, xdim, N))
-    innov_arr = np.empty((zdim, N))
-    innov_cov_arr = np.empty((zdim, zdim, N))
 
     for n in range(-1, N):
         w = tlb.multi_normal(0, Q)
         v = tlb.multi_normal(0, R)
 
-        # x = f(x, 0) + L @ w
-        # z = h(x) + M @ v
-        x = f(x, 0, w)
-        z = h(x, v)
+        x = f(x, 0) + L @ w
+        z = h(x) + M @ v
+        # x = f(x, 0, w)
+        # z = h(x, v)
         if n == -1:
-            x_init, P_init = init.single_point_init(z, R, 1)
+            x_init, P_init = init.cv_init(z, R, 1)
             ekf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
-        ekf.step(z)
 
-        prior_state, prior_cov = ekf.prior_state, ekf.prior_cov
-        post_state, post_cov = ekf.post_state, ekf.post_cov
-        innov, innov_cov = ekf.innov, ekf.innov_cov
-        gain = ekf.gain
+        ekf.predict()
+        prior_state_arr[:, n] = ekf.state
+        prior_cov_arr[:, :, n] = ekf.cov
 
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
-        prior_cov_arr[:, :, n] = prior_cov
-        post_cov_arr[:, :, n] = post_cov
-        innov_arr[:, n] = innov
-        innov_cov_arr[:, :, n] = innov_cov
-    print(len(ekf))
+        ekf.correct(z)
+        post_state_arr[:, n] = ekf.state
+        post_cov_arr[:, :, n] = ekf.cov
+
     print(ekf)
 
     state_err = state_arr - post_state_arr
@@ -89,14 +82,14 @@ def EKFilter_test():
     ax.plot(n, measure_arr[0, :], '.')
     ax.plot(n, prior_state_arr[0, :], linewidth=0.8)
     ax.plot(n, post_state_arr[0, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('x state')
     ax = fig.add_subplot(212)
     ax.plot(n, state_arr[2, :], linewidth=0.8)
     ax.plot(n, measure_arr[1, :], '.')
     ax.plot(n, prior_state_arr[2, :], linewidth=0.8)
     ax.plot(n, post_state_arr[2, :], linewidth=0.8)
-    ax.legend(['real', 'measurement', 'prediction', 'estimation'])
+    ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
     plt.show()
 
@@ -108,38 +101,14 @@ def EKFilter_test():
     ax = fig.add_subplot(211)
     ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
     ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
-    ax.legend(['prediction', 'estimation'])
+    ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
     ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
     ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
-    ax.legend(['prediction', 'estimation'])
+    ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
-
-    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
-    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_arr[0, :], linewidth=0.8)
-    ax.set_title('x innovation')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_arr[1, :], linewidth=0.8)
-    ax.set_title('y innovation')
-    plt.show()
-
-    print('x innovation variance {}'.format(innov_cov_arr[0, 0, -1]))
-    print('y innovation variance {}'.format(innov_cov_arr[1, 1, -1]))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_cov_arr[0, 0, :], linewidth=0.8)
-    ax.set_title('x innovation variance')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_cov_arr[1, 1, :], linewidth=0.8)
-    ax.set_title('y innovation variance')
-    plt.show()
-
-    print('Kalman gain:\n{}'.format(gain))
 
     # trajectory
     fig = plt.figure()

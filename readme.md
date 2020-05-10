@@ -22,7 +22,7 @@ matplotlib
     8. Partical filter
 
 - tracker
-    1. PDA
+    1. GNN
     2. JPDA
     3. CPDA
     4. JIPDA

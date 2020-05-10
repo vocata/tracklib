@@ -21,7 +21,7 @@ __all__ = [
 import numpy as np
 import scipy.linalg as lg
 from functools import reduce
-from .base import KFBase
+from .base import FilterBase
 from tracklib.model import F_poly, H_pos_only
 
 
@@ -37,7 +37,7 @@ def get_alpha(sigma_w, sigma_v, T):
     return alpha
 
 
-class AlphaFilter(KFBase):
+class AlphaFilter():
     '''
     Alpha filter(one-state Newtonian system)
 
@@ -53,26 +53,14 @@ class AlphaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, xdim, zdim, T):
-        '''
-        alpha : 1-D array-like, of length zdim
-        xdim : int
-        zdim : int
-        T : float
-            The time-duration of the propagation interval.
-        '''
-        super().__init__()
+    def __init__(self, alpha, T):
+        self._state = None
         self._alpha = alpha
-        self._xdim = xdim
-        self._wdim = zdim
-        self._zdim = zdim
-        self._vdim = zdim
-        self._gain = np.diag(self._alpha)
 
-        order = xdim // zdim
-        axis = zdim
-        self._F = F_poly(order, axis, T)
-        self._H = H_pos_only(order, axis)
+        axis = len(alpha)
+        self._K = np.diag(self._alpha)
+        self._F = F_poly(1, axis, T)
+        self._H = H_pos_only(1, axis)
 
     def __str__(self):
         msg = 'Alpha filter'
@@ -82,39 +70,29 @@ class AlphaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state.copy()
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
         self._init = True
 
     def predict(self):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self._prior_state = self._F @ self._post_state
+        self._state = self._F @ self._state
 
-        self._stage = 1
-
-    def update(self, z):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        z_prior = self._H @ self._prior_state
-        self._innov = z - z_prior
-        self._post_state = self._prior_state + self._gain @ self._innov
+        innov = z - self._H @ self._state
+        self._state = self._state + self._K @ innov
 
-        self._len += 1
-        self._stage = 0
-
-    def step(self, z):
-        assert (self._stage == 0)
-        if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
-
-        self.predict()
-        self.update(z)
+    @property
+    def state(self):
+        if self._state is not None:
+            return self._state.copy()
+        else:
+            raise AttributeError("'%s' object has no attribute 'state'" %
+                                 self.__class__.__name__)
 
 
 def get_alpha_beta(sigma_w, sigma_v, T):
@@ -131,7 +109,7 @@ def get_alpha_beta(sigma_w, sigma_v, T):
     return alpha, beta
 
 
-class AlphaBetaFilter(KFBase):
+class AlphaBetaFilter():
     '''
     Alpha-beta filter(two-state Newtonian system)
 
@@ -147,31 +125,19 @@ class AlphaBetaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, beta, xdim, zdim, T):
-        '''
-        alpha : 1-D array-like, of length zdim
-        beta : 1-D array-like, of length zdim
-        xdim : int
-        zdim : int
-        T : float
-            The time-duration of the propagation interval.
-        '''
-        super().__init__()
+    def __init__(self, alpha, beta, T):
+        assert (len(alpha) == len(beta))
+
+        self._state = None
         self._alpha = alpha
         self._beta = beta
-        self._xdim = xdim
-        self._wdim = zdim
-        self._zdim = zdim
-        self._vdim = zdim
 
+        axis = len(alpha)
         trans = lambda x: np.array(x, dtype=float).reshape(-1, 1)
-        block = [trans([alpha[i], beta[i] / T]) for i in range(zdim)]
-        self._gain = lg.block_diag(*block)
-
-        order = xdim // zdim
-        axis = zdim
-        self._F = F_poly(order, axis, T)
-        self._H = H_pos_only(order, axis)
+        block = [trans([alpha[i], beta[i] / T]) for i in range(axis)]
+        self._K = lg.block_diag(*block)
+        self._F = F_poly(2, axis, T)
+        self._H = H_pos_only(2, axis)
 
     def __str__(self):
         msg = 'Alpha-beta filter'
@@ -181,39 +147,29 @@ class AlphaBetaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state.copy()
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
         self._init = True
 
     def predict(self):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self._prior_state = self._F @ self._post_state
+        self._state = self._F @ self._state
 
-        self._stage = 1
-
-    def update(self, z):
-        assert (self._stage == 1)
+    def correct(self, z):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        z_prior = self._H @ self._prior_state
-        self._innov = z - z_prior
-        self._post_state = self._prior_state + self._gain @ self._innov
+        innov = z - self._H @ self._state
+        self._state = self._state + self._K @ innov
 
-        self._len += 1
-        self._stage = 0
-
-    def step(self, z):
-        assert (self._stage == 0)
-        if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
-
-        self.predict()
-        self.update(z)
+    @property
+    def state(self):
+        if self._state is not None:
+            return self._state.copy()
+        else:
+            raise AttributeError("'%s' object has no attribute 'state'" %
+                                 self.__class__.__name__)
 
 
 def get_alpha_beta_gamma(sigma_w, sigma_v, T):
@@ -239,7 +195,7 @@ def get_alpha_beta_gamma(sigma_w, sigma_v, T):
     return alpha, beta, gamma
 
 
-class AlphaBetaGammaFilter(KFBase):
+class AlphaBetaGammaFilter():
     '''
     Alpha-beta-gamma filter(three-state Newtonian system)
 
@@ -255,33 +211,20 @@ class AlphaBetaGammaFilter(KFBase):
     that the state and measurement on each axis
     are independent of each other.r
     '''
-    def __init__(self, alpha, beta, gamma, xdim, zdim, T):
-        '''
-        alpha : 1-D array-like, of length zdim
-        beta : 1-D array-like, of length zdim
-        gamma : 1-D array-like, of length zdim
-        xdim : int
-        zdim : int
-        T : float
-            The time-duration of the propagation interval.
-        '''
-        super().__init__()
+    def __init__(self, alpha, beta, gamma, T):
+        assert (len(alpha) == len(beta) == len(gamma))
+
+        self._state = None
         self._alpha = alpha
         self._beta = beta
         self._gamma = gamma
-        self._xdim = xdim
-        self._wdim = zdim
-        self._zdim = zdim
-        self._vdim = zdim
 
+        axis = len(alpha)
         trans = lambda x: np.array(x, dtype=float).reshape(-1, 1)
-        block = [trans([alpha[i], beta[i] / T, gamma[i] / (2 * T**2)]) for i in range(zdim)]
-        self._gain = lg.block_diag(*block)
-
-        order = xdim // zdim
-        axis = zdim
-        self._F = F_poly(order, axis, T)
-        self._H = H_pos_only(order, axis)
+        block = [trans([alpha[i], beta[i] / T, gamma[i] / (2 * T**2)]) for i in range(axis)]
+        self._K = lg.block_diag(*block)
+        self._F = F_poly(3, axis, T)
+        self._H = H_pos_only(3, axis)
 
     def __str__(self):
         msg = 'Alpha-beta-gamma filter'
@@ -291,40 +234,29 @@ class AlphaBetaGammaFilter(KFBase):
         return self.__str__()
 
     def init(self, state):
-        self._post_state = state.copy()
-        self._len = 0
-        self._stage = 0
+        self._state = state.copy()
         self._init = True
 
     def predict(self):
-        assert (self._stage == 0)
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self._prior_state = self._F @ self._post_state
+        self._state = self._F @ self._state
 
-        self._stage = 1
-
-    def update(self, z):
-        assert (self._stage == 1)
+    def correct(self, z):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        z_prior = self._H @ self._prior_state
-        self._innov = z - z_prior
-        self._post_state = self._prior_state + self._gain @ self._innov
+        innov = z - self._H @ self._state
+        self._state = self._state + self._K @ innov
 
-        self._len += 1
-        self._stage = 0
-
-    def step(self, z):
-        assert (self._stage == 0)
-        if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
-
-        self.predict()
-        self.update(z)
-
+    @property
+    def state(self):
+        if self._state is not None:
+            return self._state.copy()
+        else:
+            raise AttributeError("'%s' object has no attribute 'state'" %
+                                 self.__class__.__name__)
 
 
 def numerical_ss(P, F, L, H, M, Q, R, it=5):
@@ -378,7 +310,7 @@ def analytic_ss(F, L, H, M, Q, R):
 
     return prior_cov, post_cov, innov_cov, gain
 
-class SSFilter(KFBase):
+class SSFilter(FilterBase):
     '''
     Steady-state Kalman filter for multiple state systems
 
@@ -390,7 +322,7 @@ class SSFilter(KFBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, F, L, H, M, Q, R, xdim, zdim, G=None, alg='riccati'):
+    def __init__(self, F, L, H, M, Q, R, G=None, alg='riccati'):
         super().__init__()
 
         self._F = F.copy()
@@ -399,10 +331,6 @@ class SSFilter(KFBase):
         self._M = M.copy()
         self._Q = Q.copy()
         self._R = R.copy()
-        self._xdim = xdim
-        self._wdim = self._Q.shape[0]
-        self._zdim = zdim
-        self._vdim = self._R.shape[0]
         if G is None:
             self._G = G
         else:
@@ -421,44 +349,53 @@ class SSFilter(KFBase):
 
     def init(self, state, cov):
         self._cov = cov.copy()
-        self._post_state = state.copy()
+        self._state = state.copy()
+
         if self._alg == 'riccati':
-            self._prior_cov, self._post_cov, self._innov_cov, self._gain = analytic_ss(
+            self._prior_cov, self._post_cov, self._S, self._K = analytic_ss(
                 self._F, self._L, self._H, self._M, self._Q, self._R)
         else:
-            self._prior_cov, self._post_cov, self._innov_cov, self._gain = numerical_ss(
+            self._prior_cov, self._post_cov, self._S, self._K = numerical_ss(
                 cov, self._F, self._L, self._H, self._M, self._Q, self._R)
 
-        self._len = 0
-        self._stage = 0
         self._init = True
 
-    def predict(self, u=None, **kw):
-        assert (self._stage == 0)
+    def reset(self, state, cov):
+        self._state = state.copy()
+        # cov is fixed
+        # self._cov = cov.copy()
+
+    def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         ctl = 0 if u is None else self._G @ u
-        self._prior_state = self._F @ self._post_state + ctl
+        self._state = self._F @ self._state + ctl
+        self._cov = self._prior_cov
 
-        self._stage = 1
-
-    def update(self, z, **kw):
-        assert (self._stage == 1)
+    def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        z_prior = self._H @ self._prior_state
-        self._innov = z - z_prior
-        self._post_state = self._prior_state + self._gain @ self._innov
+        innov = z - self._H @ self._state
+        self._state = self._state + self._K @ innov
+        self._cov = self._post_cov
 
-        self._stage = 0
-        self._len += 1
-
-    def step(self, z, u=None, **kw):
-        assert (self._stage == 0)
+    def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        self.predict(u, **kw)
-        self.update(z, **kw)
+        innov = z - self._H @ self._state
+        d = innov @ lg.inv(self._S) @ innov + np.log(lg.det(self._S))
+
+        return d
+
+    def likelihood(self, z, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        innov = z - self._H @ self._state
+        pdf = 1 / np.sqrt(lg.det(2 * np.pi * self._S))
+        pdf *= np.exp(-innov @ lg.inv(self._S) @ innov / 2)
+
+        return pdf

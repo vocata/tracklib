@@ -15,7 +15,7 @@ the program may yield uncertain result.
 '''
 
 
-def DMMF_MMF_test():
+def DMMF_DMMF_test():
     T = 0.1
     axis = 3
 
@@ -58,12 +58,11 @@ def DMMF_MMF_test():
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
     ca_kf = ft.KFilter(F, L, H, M, Q, R)
-
     # mmf including CV and CA
-    mmf_models = [cv_kf, ca_kf]
-    mmf_types = ['cv', 'ca']
-    mmf = ft.MMFilter()
-    mmf.add_models(mmf_models, mmf_types)
+    dmmf_models1 = [cv_kf, ca_kf]
+    mmf_types1 = ['cv', 'ca']
+    dmmf1 = ft.IMMFilter()
+    dmmf1.add_models(dmmf_models1, mmf_types1)
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -82,31 +81,31 @@ def DMMF_MMF_test():
     # number of models
     r = 2
 
-    dmmf_models = [mmf, ct_ekf]
-    dmmf_types = ['cv', 'ct2D']
-    dmmf = ft.IMMFilter()
-    dmmf.add_models(dmmf_models, dmmf_types)
+    dmmf_models2 = [dmmf1, ct_ekf]
+    dmmf_types2 = ['cv', 'ct2D']
+    dmmf2 = ft.IMMFilter()
+    dmmf2.add_models(dmmf_models2, dmmf_types2)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    dmmf.init(x_init, P_init)
+    dmmf2.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    dmmf_prob_arr = np.empty((r, N))
-    mmf_prob_arr = np.empty((r, N))
+    dmmf2_prob_arr = np.empty((r, N))
+    dmmf1_prob_arr = np.empty((r, N))
 
-    post_state_arr[:, 0] = dmmf.state
-    dmmf_prob_arr[:, 0] = dmmf.probs()
-    mmf_prob_arr[:, 0] = mmf.probs()
+    post_state_arr[:, 0] = dmmf2.state
+    dmmf2_prob_arr[:, 0] = dmmf2.probs()
+    dmmf1_prob_arr[:, 0] = dmmf1.probs()
     for n in range(1, N):
-        dmmf.predict()
-        dmmf.correct(traj_meas[:, n])
+        dmmf2.predict()
+        dmmf2.correct(traj_meas[:, n])
 
-        post_state_arr[:, n] = dmmf.state
-        dmmf_prob_arr[:, n] = dmmf.probs()
-        mmf_prob_arr[:, n] = mmf.probs()
+        post_state_arr[:, n] = dmmf2.state
+        dmmf2_prob_arr[:, n] = dmmf2.probs()
+        dmmf1_prob_arr[:, n] = dmmf1.probs()
 
-    print(dmmf)
+    print(dmmf2)
 
     # trajectory
     fig = plt.figure()
@@ -127,7 +126,7 @@ def DMMF_MMF_test():
     n = np.arange(N)
     labels = ['hybrid', 'ct2D']
     for i in range(r):
-        ax.plot(n, dmmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
+        ax.plot(n, dmmf2_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
@@ -141,7 +140,7 @@ def DMMF_MMF_test():
     n = np.arange(N)
     labels = ['cv', 'ca']
     for i in range(r):
-        ax.plot(n, mmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
+        ax.plot(n, dmmf1_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
@@ -152,4 +151,4 @@ def DMMF_MMF_test():
 
 
 if __name__ == '__main__':
-    DMMF_MMF_test()
+    DMMF_DMMF_test()

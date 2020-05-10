@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import copy
 import numpy as np
 import scipy.linalg as lg
 import tracklib as tlb
@@ -44,17 +43,16 @@ def GSEKFilter_test():
     r = 3
 
     models = [cv_ekf1, cv_ekf2, cv_ekf3]
+    types = ['cv', 'cv', 'cv']
     gsf = ft.MMFilter()
-    gsf.add_models(models)
+    gsf.add_models(models, types)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
     prior_state_arr = np.empty((xdim, N))
-    post_state_arr = np.empty((xdim, N))
     prior_cov_arr = np.empty((xdim, xdim, N))
+    post_state_arr = np.empty((xdim, N))
     post_cov_arr = np.empty((xdim, xdim, N))
-    innov_arr = np.empty((zdim, N))
-    innov_cov_arr = np.empty((zdim, zdim, N))
     prob_arr = np.empty((r, N + 1))
 
     prob_arr[:, 0] = gsf.probs()
@@ -68,27 +66,23 @@ def GSEKFilter_test():
             x_init, P_init = [], []
             # use different initial state and covariance to initiate the filter
             for i in range(len(models)):
-                x_i, P_i = init.single_point_init(z, R, 1)
+                x_i, P_i = init.cv_init(z, R, 1)
                 x_init.append(x_i + np.random.randn())
                 P_init.append(P_i)
             gsf.init(x_init, P_init)
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = tlb.pol2cart(z[0], z[1])
-        gsf.step(z)
 
-        prior_state, prior_cov = gsf.prior_state, gsf.prior_cov
-        post_state, post_cov = gsf.post_state, gsf.post_cov
-        innov, innov_cov = gsf.innov, gsf.innov_cov
+        gsf.predict()
+        prior_state_arr[:, n] = gsf.state
+        prior_cov_arr[:, :, n] = gsf.cov
 
-        prior_state_arr[:, n] = prior_state
-        post_state_arr[:, n] = post_state
-        prior_cov_arr[:, :, n] = prior_cov
-        post_cov_arr[:, :, n] = post_cov
-        innov_arr[:, n] = innov
-        innov_cov_arr[:, :, n] = innov_cov
+        gsf.correct(z)
+        post_state_arr[:, n] = gsf.state
+        post_cov_arr[:, :, n] = gsf.cov
         prob_arr[:, n + 1] = gsf.probs()
-    print(len(gsf))
+
     print(gsf)
 
     state_err = state_arr - post_state_arr
@@ -131,28 +125,6 @@ def GSEKFilter_test():
     ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
     ax.legend(['prediction', 'estimation'])
     ax.set_title('y error variance/mean square error')
-    plt.show()
-
-    print('mean of x innovation: {}'.format(innov_arr[0, :].mean()))
-    print('mean of y innovation: {}'.format(innov_arr[1, :].mean()))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_arr[0, :], linewidth=0.8)
-    ax.set_title('x innovation')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_arr[1, :], linewidth=0.8)
-    ax.set_title('y innovation')
-    plt.show()
-
-    print('x innovation variance {}'.format(innov_cov_arr[0, 0, -1]))
-    print('y innovation variance {}'.format(innov_cov_arr[1, 1, -1]))
-    fig = plt.figure()
-    ax = fig.add_subplot(211)
-    ax.plot(n, innov_cov_arr[0, 0, :], linewidth=0.8)
-    ax.set_title('x innovation variance')
-    ax = fig.add_subplot(212)
-    ax.plot(n, innov_cov_arr[1, 1, :], linewidth=0.8)
-    ax.set_title('y innovation variance')
     plt.show()
 
     # trajectory
