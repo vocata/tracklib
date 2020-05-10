@@ -23,7 +23,7 @@ def GNNTracker_test():
     axis = 3
     cv_xdim, cv_zdim = 6, 3
 
-    # filter
+    # filter, cv
     sigma_w = [30, 30, 1]     # Increase the filter process noise to account for unknown acceleration.
     sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
     F = model.F_cv(axis, T)

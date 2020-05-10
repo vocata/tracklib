@@ -105,8 +105,7 @@ def DMMF_test():
 
     models = [cv_kf, ca_kf, ct_ekf]
     types = ['cv', 'ca', 'ct2D']
-    dmmf = ft.IMMFilter()
-    dmmf.add_models(models, types)
+    dmmf = ft.IMMFilter(models, types)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])

@@ -44,8 +44,7 @@ def GSEKFilter_test():
 
     models = [cv_ekf1, cv_ekf2, cv_ekf3]
     types = ['cv', 'cv', 'cv']
-    gsf = ft.MMFilter()
-    gsf.add_models(models, types)
+    gsf = ft.MMFilter(models, types)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))

@@ -61,8 +61,7 @@ def DMMF_DMMF_test():
     # mmf including CV and CA
     dmmf_models1 = [cv_kf, ca_kf]
     mmf_types1 = ['cv', 'ca']
-    dmmf1 = ft.IMMFilter()
-    dmmf1.add_models(dmmf_models1, mmf_types1)
+    dmmf1 = ft.IMMFilter(dmmf_models1, mmf_types1)
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -83,8 +82,7 @@ def DMMF_DMMF_test():
 
     dmmf_models2 = [dmmf1, ct_ekf]
     dmmf_types2 = ['cv', 'ct2D']
-    dmmf2 = ft.IMMFilter()
-    dmmf2.add_models(dmmf_models2, dmmf_types2)
+    dmmf2 = ft.IMMFilter(dmmf_models2, dmmf_types2)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])

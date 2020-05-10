@@ -60,8 +60,7 @@ def MMFilter_test():
 
     models = [cv_kf1, cv_kf2, cv_kf3]
     types = ['cv', 'cv', 'cv']
-    mmf = ft.MMFilter()
-    mmf.add_models(models, types)
+    mmf = ft.MMFilter(models, types)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
