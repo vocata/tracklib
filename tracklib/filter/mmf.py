@@ -32,7 +32,7 @@ class MMFilter(FilterBase):
         self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
         self._types = model_types
         if model_probs is None:
-            self._probs = np.full(self._models_n, 1 / self._models_n)
+            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
         else:
             self._probs = model_probs
         self._switch_fcn = switch_fcn

@@ -98,21 +98,33 @@ def DMMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
-    model_cls.append(ft.EKFilterAN)
-    model_types.append('ct2D')
-    init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    # model_cls.append(ft.EKFilterAN)
+    # model_types.append('ct2D')
+    # init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
+    # init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
     # pt_gen = ft.ScaledSigmaPoints()
+    # model_cls.append(ft.UKFilterAN)
+    # model_types.append('ct2D')
     # init_args.append((f, L, h, M, Q, R, pt_gen))
+    # init_kwargs.append({})
 
+    # model_cls.append(ft.SIRPFilter)
+    # model_types.append('ct2D')
     # init_args.append((f, L, h, M, Q, R, 200, 100))
+    # init_kwargs.append({})
 
     # kernal = ft.EpanechnikovKernal(ct_xdim, 200)
     # kernal = ft.GaussianKernal(ct_xdim, 200)
-    # ct_ekf = ft.RPFilter(f, L, h, M, Q, R, 200, 100, kernal=kernal)
+    # model_cls.append(ft.RPFilter)
+    # model_types.append('ct2D')
+    # init_args.append((f, L, h, M, Q, R, 200, 100))
+    # init_kwargs.append({'kernal': kernal})
 
-    # ct_ekf = ft.GPFilter(f, L, h, M, Q, R, 200)
+    model_cls.append(ft.GPFilter)
+    model_types.append('ct2D')
+    init_args.append((f, L, h, M, Q, R, 200))
+    init_kwargs.append({})
 
     # number of models
     r = 3

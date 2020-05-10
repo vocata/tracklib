@@ -166,9 +166,9 @@ class GNNTracker():
             track_num = len(tracks)
             meas_num = len(detection)
             cost_main = np.zeros((track_num, meas_num))
-            virt_track = np.full((meas_num, meas_num), np.Inf)
+            virt_track = np.full((meas_num, meas_num), np.Inf, dtype=float)
             np.fill_diagonal(virt_track, self._thres / 2)
-            virt_det = np.full((track_num, track_num), np.Inf)
+            virt_det = np.full((track_num, track_num), np.Inf, dtype=float)
             np.fill_diagonal(virt_det, self._thres / 2)
             cost_zero = np.zeros((meas_num, track_num))
             for ti in range(track_num):
