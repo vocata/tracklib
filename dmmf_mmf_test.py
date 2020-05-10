@@ -35,6 +35,11 @@ def DMMF_MMF_test():
     traj_real, traj_meas = traj(R)
     N = len(traj)
 
+    model_cls1 = []
+    model_types1 = []
+    init_args1 = []
+    init_kwargs1 = []
+
     # CV
     cv_xdim, cv_zdim = 6, 3
     sigma_w = np.sqrt(1.0)
@@ -45,7 +50,10 @@ def DMMF_MMF_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    cv_kf = ft.KFilter(F, L, H, M, Q, R)
+    model_cls1.append(ft.KFilter)
+    model_types1.append('cv')
+    init_args1.append((F, L, H, M, Q, R))
+    init_kwargs1.append({})
 
     # CA
     ca_xdim, ca_zdim = 9, 3
@@ -57,13 +65,20 @@ def DMMF_MMF_test():
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
-    ca_kf = ft.KFilter(F, L, H, M, Q, R)
+    model_cls1.append(ft.KFilter)
+    model_types1.append('ca')
+    init_args1.append((F, L, H, M, Q, R))
+    init_kwargs1.append({})
 
-    # mmf including CV and CA
-    mmf_models = [cv_kf, ca_kf]
-    mmf_types = ['cv', 'ca']
-    mmf = ft.MMFilter()
-    mmf.add_models(mmf_models, mmf_types)
+    model_cls2 = []
+    model_types2 = []
+    init_args2 = []
+    init_kwargs2 = []
+
+    model_cls2.append(ft.MMFilter)
+    model_types2.append('cv')
+    init_args2.append((model_cls1, model_types1, init_args1, init_kwargs1))
+    init_kwargs2.append({})
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -77,15 +92,15 @@ def DMMF_MMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
-    ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
+    model_cls2.append(ft.EKFilterAN)
+    model_types2.append('ct2D')
+    init_args2.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
+    init_kwargs2.append({'fjac': fjac, 'hjac': hjac})
 
     # number of models
     r = 2
 
-    dmmf_models = [mmf, ct_ekf]
-    dmmf_types = ['cv', 'ct2D']
-    dmmf = ft.IMMFilter()
-    dmmf.add_models(dmmf_models, dmmf_types)
+    dmmf = ft.IMMFilter(model_cls2, model_types2, init_args2, init_kwargs2)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -93,18 +108,15 @@ def DMMF_MMF_test():
 
     post_state_arr = np.empty((cv_xdim, N))
     dmmf_prob_arr = np.empty((r, N))
-    mmf_prob_arr = np.empty((r, N))
 
     post_state_arr[:, 0] = dmmf.state
     dmmf_prob_arr[:, 0] = dmmf.probs()
-    mmf_prob_arr[:, 0] = mmf.probs()
     for n in range(1, N):
         dmmf.predict()
         dmmf.correct(traj_meas[:, n])
 
         post_state_arr[:, n] = dmmf.state
         dmmf_prob_arr[:, n] = dmmf.probs()
-        mmf_prob_arr[:, n] = mmf.probs()
 
     print(dmmf)
 
@@ -133,21 +145,7 @@ def DMMF_MMF_test():
     ax.set_xlim([0, 1200])
     ax.set_ylim([0, 1])
     ax.legend()
-    ax.set_title('models probability(dmmf)')
-    plt.show()
-
-    fig = plt.figure()
-    ax = fig.add_subplot()
-    n = np.arange(N)
-    labels = ['cv', 'ca']
-    for i in range(r):
-        ax.plot(n, mmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
-    ax.set_xlabel('time(s)')
-    ax.set_ylabel('probability')
-    ax.set_xlim([0, 1200])
-    ax.set_ylim([0, 1])
-    ax.legend()
-    ax.set_title('models probability(mmf)')
+    ax.set_title('models probability')
     plt.show()
 
 

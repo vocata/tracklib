@@ -20,15 +20,25 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, switch_fcn=model.model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model.model_switch):
         super().__init__()
-        self._switch_fcn = switch_fcn
 
-        self._models = []
-        self._model_types = []
-        self._probs = None
-        self._trans_mat = None
-        self._models_n = 0
+        self._models_n = len(model_cls)
+        self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
+        self._types = model_types
+        if model_probs is None:
+            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
+        else:
+            self._probs = model_probs
+        if self._models_n == 1:
+            self._trans_mat = np.eye(1)
+        elif isinstance(trans_mat, (int, float)):
+            other_probs = (1 - trans_mat) / (self._models_n - 1)
+            self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
+            np.fill_diagonal(self._trans_mat, trans_mat)
+        else:
+            self._trans_mat = trans_mat
+        self._switch_fcn = switch_fcn
 
     def __str__(self):
         msg = 'Interacting multiple model filter:\n{\n  '
@@ -58,7 +68,7 @@ class IMMFilter(FilterBase):
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
         cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._model_types[i] for i in range(self._models_n)]
+        types = [self._types[i] for i in range(self._models_n)]
 
         xtmp = 0
         for i in range(self._models_n):
@@ -94,8 +104,8 @@ class IMMFilter(FilterBase):
             raise RuntimeError('models must be added before calling init')
 
         for i in range(self._models_n):
-            x = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            P = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            x = self._switch_fcn(state, self._types[0], self._types[i])
+            P = self._switch_fcn(cov, self._types[0], self._types[i])
             self._models[i].init(x, P)
         self._state = state.copy()
         self._cov = cov.copy()
@@ -106,44 +116,9 @@ class IMMFilter(FilterBase):
             raise AttributeError("AttributeError: can't set attribute")
 
         for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            xi = self._switch_fcn(state, self._types[0], self._types[i])
+            Pi = self._switch_fcn(cov, self._types[0], self._types[i])
             self._models[i].reset(xi, Pi)
-
-    def add_models(self, models, model_types, probs=None, trans_mat=None):
-        '''
-        Add new model
-
-        Parameters
-        ----------
-        models : list, of length N
-            the list of Kalman filter
-        model_types : list, of length N
-            the types corresponding to models
-        probs : 1-D array_like, of length N, optional
-            model probability
-        trans_mat : 2-D array_like, of shape (N, N), optional
-            model transition matrix
-
-        Returns
-        -------
-            None
-        '''
-        self._models_n = len(models)
-        self._models.extend(models)
-        self._model_types.extend(model_types)
-        if probs is None:
-            self._probs = np.full(self._models_n, 1 / self._models_n)
-        else:
-            self._probs = np.copy(probs)
-        if trans_mat is None:
-            trans_prob = 0.999
-            self._trans_mat = np.zeros((self._models_n, self._models_n))
-            self._trans_mat += (1 - trans_prob) / 2
-            idx = np.arange(self._models_n)
-            self._trans_mat[idx, idx] = trans_prob
-        else:
-            self._trans_mat = np.copy(trans_mat)
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
@@ -159,7 +134,7 @@ class IMMFilter(FilterBase):
         # mixing
         state_org = [self._models[i].state for i in range(self._models_n)]
         cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._model_types[i] for i in range(self._models_n)]
+        types = [self._types[i] for i in range(self._models_n)]
 
         mixed_state = []
         for i in range(self._models_n):
