@@ -98,10 +98,10 @@ def DMMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
-    # model_cls.append(ft.EKFilterAN)
-    # model_types.append('ct2D')
-    # init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    # init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    model_cls.append(ft.EKFilterAN)
+    model_types.append('ct2D')
+    init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
     # pt_gen = ft.ScaledSigmaPoints()
     # model_cls.append(ft.UKFilterAN)
@@ -121,10 +121,10 @@ def DMMF_test():
     # init_args.append((f, L, h, M, Q, R, 200, 100))
     # init_kwargs.append({'kernal': kernal})
 
-    model_cls.append(ft.GPFilter)
-    model_types.append('ct2D')
-    init_args.append((f, L, h, M, Q, R, 200))
-    init_kwargs.append({})
+    # model_cls.append(ft.GPFilter)
+    # model_types.append('ct2D')
+    # init_args.append((f, L, h, M, Q, R, 200))
+    # init_kwargs.append({})
 
     # number of models
     r = 3

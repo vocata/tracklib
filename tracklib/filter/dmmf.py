@@ -30,15 +30,20 @@ class IMMFilter(FilterBase):
             self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
         else:
             self._probs = model_probs
-        if trans_mat is None:
-            if self._models_n == 1:
-                self._trans_mat = np.eye(1)
-            else:
-                trans_prob = 0.999
-                self._trans_mat = np.zeros((self._models_n, self._models_n))
-                self._trans_mat += (1 - trans_prob) / 2
-                idx = np.arange(self._models_n)
-                self._trans_mat[idx, idx] = trans_prob
+        if self._models_n == 1:
+            self._trans_mat = np.eye(1)
+        elif trans_mat is None:
+            trans_prob = 0.999
+            self._trans_mat = np.zeros((self._models_n, self._models_n))
+            self._trans_mat += (1 - trans_prob) / 2
+            idx = np.arange(self._models_n)
+            self._trans_mat[idx, idx] = trans_prob
+        elif isinstance(trans_mat, (int, float)):
+            trans_prob = trans_mat
+            self._trans_mat = np.zeros((self._models_n, self._models_n))
+            self._trans_mat += (1 - trans_prob) / 2
+            idx = np.arange(self._models_n)
+            self._trans_mat[idx, idx] = trans_prob
         else:
             self._trans_mat = trans_mat
         self._switch_fcn = switch_fcn
