@@ -67,21 +67,19 @@ def GNNTracker_test():
                 track_history[track.id].append(track.state)
         # print(tracker.current_tracks_num())
 
-    print(tracker.history_tracks_num())
+    print('total number of tracks: %d' % tracker.history_tracks_num())
 
     # plot
     xlim = (-1600, 2000)
     ylim = (-20100, -18100)
     fig = plt.figure()
     ax = fig.add_subplot()
-    ax.plot(true_pos[0][0, :], true_pos[0][1, :], '-.', color='gray', linewidth=0.6)
-    ax.plot(true_pos[1][0, :], true_pos[1][1, :], '-.', color='gray', linewidth=0.6, label='true')
-    for i in range(N):
-        for j in range(len(meas_pos[i])):
-            ax.scatter(meas_pos[i][j][0], meas_pos[i][j][1], s=5, c='orange')
-            ax.scatter(meas_pos[i][j][0], meas_pos[i][j][1], s=5, c='orange')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+    ax.plot(true_pos[0][0, :], true_pos[0][1, :], '-.', color='gray', linewidth=0.6, label='true 0')
+    ax.plot(true_pos[1][0, :], true_pos[1][1, :], '-.', color='lime', linewidth=0.6, label='true 1')
+    all_meas = np.array([m for i in range(N) for m in meas_pos[i]], dtype=float).T
+    ax.scatter(all_meas[0, :], all_meas[1, :], s=5, c='orange', label='meas')
+    ax.set_xlabel('x (m)')
+    ax.set_ylabel('y (m)')
     ax.axis('equal'), ax.grid(), ax.legend()
     ax.set_title('true trajectory and measurement')
     ax.set_xlim(xlim)
@@ -93,9 +91,9 @@ def GNNTracker_test():
     id = track_history.keys()
     for i in id:
         state = np.array(track_history[i], dtype=float).T
-        ax.plot(state[0, :], state[2, :], linewidth=0.8, label='id %d' % i)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+        ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
+    ax.set_xlabel('x (m)')
+    ax.set_ylabel('y (m)')
     ax.axis('equal'), ax.grid(), ax.legend()
     ax.set_title('estimation')
     ax.set_xlim(xlim)
