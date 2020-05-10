@@ -19,6 +19,11 @@ def MMFilter_test():
     axis = 2
     xdim, zdim = 4, 2
     
+    model_cls = []
+    model_types = []
+    init_args = []
+    init_kwargs = []
+
     # model 1
     sigma_w1 = np.sqrt(10 * np.random.rand())
     sigma_v1 = np.sqrt(10 * np.random.rand())
@@ -28,7 +33,10 @@ def MMFilter_test():
     M1 = np.eye(zdim)
     Q1 = model.Q_cv_dd(axis, T, sigma_w1)
     R1 = model.R_cv(axis, sigma_v1)
-    cv_kf1 = ft.KFilter(F1, L1, H1, M1, Q1, R1)
+    model_cls.append(ft.KFilter)
+    model_types.append('cv')
+    init_args.append((F1, L1, H1, M1, Q1, R1))
+    init_kwargs.append({})
 
     # model 2
     sigma_w2 = np.sqrt(10 * np.random.rand())
@@ -39,7 +47,10 @@ def MMFilter_test():
     M2 = np.eye(zdim)
     Q2 = model.Q_cv_dd(axis, T, sigma_w2)
     R2 = model.R_cv(axis, sigma_v2)
-    cv_kf2 = ft.KFilter(F2, L2, H2, M2, Q2, R2)
+    model_cls.append(ft.KFilter)
+    model_types.append('cv')
+    init_args.append((F2, L2, H2, M2, Q2, R2))
+    init_kwargs.append({})
 
     # model 3
     sigma_w3 = np.sqrt(10 * np.random.rand())
@@ -50,7 +61,10 @@ def MMFilter_test():
     M3 = np.eye(zdim)
     Q3 = model.Q_cv_dd(axis, T, sigma_w3)
     R3 = model.R_cv(axis, sigma_v3)
-    cv_kf3 = ft.KFilter(F3, L3, H3, M3, Q3, R3)
+    model_cls.append(ft.KFilter)
+    model_types.append('cv')
+    init_args.append((F3, L3, H3, M3, Q3, R3))
+    init_kwargs.append({})
 
     # initial state and error convariance
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
@@ -58,10 +72,7 @@ def MMFilter_test():
     # number of models
     r = 3
 
-    models = [cv_kf1, cv_kf2, cv_kf3]
-    types = ['cv', 'cv', 'cv']
-    mmf = ft.MMFilter()
-    mmf.add_models(models, types)
+    mmf = ft.MMFilter(model_cls, model_types, init_args, init_kwargs)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
