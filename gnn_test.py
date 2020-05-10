@@ -21,9 +21,14 @@ def GNNTracker_test():
     N, T = traj['len'], traj['T']
 
     axis = 3
-    cv_xdim, cv_zdim = 6, 3
+
+    models_cls = []
+    model_types = []
+    init_args = []
+    init_kwargs = []
 
     # filter, cv
+    cv_xdim, cv_zdim = 6, 3
     sigma_w = [30, 30, 1]     # Increase the filter process noise to account for unknown acceleration.
     sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
     F = model.F_cv(axis, T)
@@ -32,7 +37,13 @@ def GNNTracker_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
+    kf = ft.KFilter(F, L, H, M, Q, R)
+    models_cls.append(ft.KFilter)
+    model_types.append('cv')
+    init_args.append((F, L, H, M, Q, R))
+    init_kwargs.append({})
+    ft_gen = tk.GNNFilterGenerator(ft.IMMFilter, models_cls, model_types, init_args, init_kwargs)
+    # ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
     # initializer
     vmax = 1200e3/3600        # 1200km/h, vmax is used to initialize state covariance

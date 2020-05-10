@@ -20,24 +20,27 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, models, types, probs=None, trans_mat=None, switch_fcn=model.model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=None, switch_fcn=model.model_switch):
         super().__init__()
 
-        self._models_n = len(models)
-        self._models = models
-        self._types = types
-        if probs is None:
+        self._models_n = len(model_cls)
+        self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
+        self._types = model_types
+        if model_probs is None:
             self._probs = np.full(self._models_n, 1 / self._models_n)
         else:
-            self._probs = np.copy(probs)
+            self._probs = model_probs
         if trans_mat is None:
-            trans_prob = 0.999
-            self._trans_mat = np.zeros((self._models_n, self._models_n))
-            self._trans_mat += (1 - trans_prob) / 2
-            idx = np.arange(self._models_n)
-            self._trans_mat[idx, idx] = trans_prob
+            if self._models_n == 1:
+                self._trans_mat = np.eye(1)
+            else:
+                trans_prob = 0.999
+                self._trans_mat = np.zeros((self._models_n, self._models_n))
+                self._trans_mat += (1 - trans_prob) / 2
+                idx = np.arange(self._models_n)
+                self._trans_mat[idx, idx] = trans_prob
         else:
-            self._trans_mat = np.copy(trans_mat)
+            self._trans_mat = trans_mat
         self._switch_fcn = switch_fcn
 
     def __str__(self):

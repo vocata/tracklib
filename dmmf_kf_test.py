@@ -51,6 +51,11 @@ def DMMF_test():
     #     delimiter=',')
     # N = traj_meas.shape[1]
 
+    model_cls = []
+    model_types = []
+    init_args = []
+    init_kwargs = []
+
     # CV
     cv_xdim, cv_zdim = 6, 3
     sigma_w = np.sqrt(1.0)
@@ -61,7 +66,10 @@ def DMMF_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    cv_kf = ft.KFilter(F, L, H, M, Q, R)
+    model_cls.append(ft.KFilter)
+    model_types.append('cv')
+    init_args.append((F, L, H, M, Q, R))
+    init_kwargs.append({})
 
     # CA
     ca_xdim, ca_zdim = 9, 3
@@ -73,7 +81,10 @@ def DMMF_test():
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
-    ca_kf = ft.KFilter(F, L, H, M, Q, R)
+    model_cls.append(ft.KFilter)
+    model_types.append('ca')
+    init_args.append((F, L, H, M, Q, R))
+    init_kwargs.append({})
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -87,12 +98,15 @@ def DMMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct2D(axis, T, sigma_w)
     R = model.R_ct2D(axis, sigma_v)
-    ct_ekf = ft.EKFilterAN(f, L, h, M, Q, R, ct_xdim, ct_zdim, fjac=fjac, hjac=hjac)
+    model_cls.append(ft.EKFilterAN)
+    model_types.append('ct2D')
+    init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
     # pt_gen = ft.ScaledSigmaPoints()
-    # ct_ekf = ft.UKFilterAN(f, L, h, M, Q, R, pt_gen)
+    # init_args.append((f, L, h, M, Q, R, pt_gen))
 
-    # ct_ekf = ft.SIRPFilter(f, L, h, M, Q, R, 200, 100)
+    # init_args.append((f, L, h, M, Q, R, 200, 100))
 
     # kernal = ft.EpanechnikovKernal(ct_xdim, 200)
     # kernal = ft.GaussianKernal(ct_xdim, 200)
@@ -103,9 +117,7 @@ def DMMF_test():
     # number of models
     r = 3
 
-    models = [cv_kf, ca_kf, ct_ekf]
-    types = ['cv', 'ca', 'ct2D']
-    dmmf = ft.IMMFilter(models, types)
+    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs)
 
     x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -143,7 +155,7 @@ def DMMF_test():
     ax = fig.add_subplot()
     n = np.arange(N)
     for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=types[i])
+        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])

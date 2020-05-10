@@ -32,9 +32,11 @@ def GSEKFilter_test():
     h = lambda x: np.array([lg.norm(x[::2]), np.arctan2(x[2], x[0])], dtype=float)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    cv_ekf1 = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim)
-    cv_ekf2 = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim)
-    cv_ekf3 = ft.EKFilterAN(f, L, h, M, Q, R, xdim, zdim)
+
+    model_cls = [ft.EKFilterAN] * 3
+    model_types = ['cv'] * 3
+    init_args = [(f, L, h, M, Q, R, xdim, zdim)] * 3
+    init_kwargs = [{}] * 3
 
     # initial state and error convariance
     x = np.array([1, 0.2, 2, 0.3], dtype=float)
@@ -42,9 +44,7 @@ def GSEKFilter_test():
     # number of models
     r = 3
 
-    models = [cv_ekf1, cv_ekf2, cv_ekf3]
-    types = ['cv', 'cv', 'cv']
-    gsf = ft.MMFilter(models, types)
+    gsf = ft.MMFilter(model_cls, model_types, init_args, init_kwargs)
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
@@ -64,7 +64,7 @@ def GSEKFilter_test():
         if n == -1:
             x_init, P_init = [], []
             # use different initial state and covariance to initiate the filter
-            for i in range(len(models)):
+            for i in range(len(model_cls)):
                 x_i, P_i = init.cv_init(z, R, 1)
                 x_init.append(x_i + np.random.randn())
                 P_init.append(P_i)
