@@ -9,8 +9,8 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'F_poly', 'F_singer', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer', 'H_pos_only',
     'R_pos_only', 'F_cv', 'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'R_cv', 'F_ca',
-    'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'R_ca', 'F_ct2D', 'f_ct2D', 'f_ct2D_jac',
-    'Q_ct2D', 'h_ct2D', 'h_ct2D_jac', 'R_ct2D', 'model_switch', 'Trajectory2D'
+    'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'R_ca', 'F_ct', 'f_ct', 'f_ct_jac',
+    'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch', 'Trajectory'
 ]
 
 import numpy as np
@@ -332,7 +332,7 @@ def R_ca(axis, std):
     return R_pos_only(axis, std)
 
 
-def F_ct2D(axis, turn_rate, T):
+def F_ct(axis, turn_rate, T):
     assert (axis >= 2)
 
     omega = np.deg2rad(turn_rate)
@@ -354,7 +354,7 @@ def F_ct2D(axis, turn_rate, T):
     return F
 
 
-def f_ct2D(axis, T):
+def f_ct(axis, T):
     assert (axis >= 2)
 
     def f(x, u):
@@ -380,7 +380,7 @@ def f_ct2D(axis, T):
     return f
 
 
-def f_ct2D_jac(axis, T):
+def f_ct_jac(axis, T):
     assert (axis >= 2)
 
     def fjac(x, u):
@@ -418,7 +418,7 @@ def f_ct2D_jac(axis, T):
     return fjac
 
 
-def Q_ct2D(axis, T, std):
+def Q_ct(axis, T, std):
     assert (axis >= 2)
 
     if isinstance(std, (int, float)):
@@ -431,7 +431,7 @@ def Q_ct2D(axis, T, std):
     return L @ Q @ L.T
 
 
-def h_ct2D(axis):
+def h_ct(axis):
     assert (axis >= 2)
 
     def h(x):
@@ -444,7 +444,7 @@ def h_ct2D(axis):
     return h
 
 
-def h_ct2D_jac(axis):
+def h_ct_jac(axis):
     assert (axis >= 2)
 
     def hjac(x):
@@ -457,7 +457,7 @@ def h_ct2D_jac(axis):
     return hjac
 
 
-def R_ct2D(axis, std):
+def R_ct(axis, std):
     assert (axis >= 2)
 
     return R_pos_only(axis, std)
@@ -476,7 +476,7 @@ def state_switch(state, type_in, type_out):
             slct = np.delete(np.eye(ca_dim), sel, axis=1)
             stmp = np.dot(slct, state)
             return stmp
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             slct = np.eye(5, 4)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -494,13 +494,13 @@ def state_switch(state, type_in, type_out):
             return stmp
         elif type_out == 'ca':
             return state
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             # ca to cv
             ca_dim = 3 * axis
             sel = range(2, ca_dim, 3)
             slct = np.delete(np.eye(ca_dim), sel, axis=0)
             stmp = np.dot(slct, state)
-            # cv to ct2D
+            # cv to ct
             slct = np.eye(5, 4)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -508,7 +508,7 @@ def state_switch(state, type_in, type_out):
             return stmp
         else:
             raise ValueError('unknown output type: %s' % type_out)
-    elif type_in == 'ct2D':
+    elif type_in == 'ct':
         axis = dim // 2
         if type_out == 'cv':
             slct = np.eye(4, 5)
@@ -517,7 +517,7 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, state)
             return stmp
         elif type_out == 'ca':
-            # ct2D to cv
+            # ct to cv
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -528,7 +528,7 @@ def state_switch(state, type_in, type_out):
             slct = np.delete(np.eye(ca_dim), sel, axis=1)
             stmp = np.dot(slct, stmp)
             return stmp
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             return state
         else:
             raise ValueError('unknown output type: %s' % type_out)
@@ -551,7 +551,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp = slct @ cov @ slct.T
             ctmp[sel, sel] = uncertainty
             return ctmp
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             slct = np.eye(5, 4)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -570,13 +570,13 @@ def cov_switch(cov, type_in, type_out):
             return ctmp
         elif type_out == 'ca':
             return cov
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             # ca to cv
             ca_dim = 3 * axis
             sel = range(2, ca_dim, 3)
             slct = np.delete(np.eye(ca_dim), sel, axis=0)
             ctmp = slct @ cov @ slct.T
-            # cv to ct2D
+            # cv to ct
             slct = np.eye(5, 4)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -585,7 +585,7 @@ def cov_switch(cov, type_in, type_out):
             return ctmp
         else:
             raise ValueError('unknown output type: %s' % type_out)
-    elif type_in == 'ct2D':
+    elif type_in == 'ct':
         axis = dim // 2
         if type_out == 'cv':
             slct = np.eye(4, 5)
@@ -594,7 +594,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp = slct @ cov @ slct.T
             return ctmp
         elif type_out == 'ca':
-            # ct2D to cv
+            # ct to cv
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -606,7 +606,7 @@ def cov_switch(cov, type_in, type_out):
             ctmp = slct @ ctmp @ slct.T
             ctmp[sel, sel] = uncertainty
             return ctmp
-        elif type_out == 'ct2D':
+        elif type_out == 'ct':
             return cov
         else:
             raise ValueError('unknown output type: %s' % type_out)
@@ -633,7 +633,7 @@ def model_switch(x, type_in, type_out):
         raise ValueError('x must be list, tuple or ndarray')
 
 
-class Trajectory2D():
+class Trajectory():
     def __init__(self, T, start=np.zeros(9)):
         assert (len(start) == 9)
 
@@ -716,7 +716,7 @@ class Trajectory2D():
                     state[:, i] = self._head
             elif mdl == 'ct':
                 omega = stages[i]['omega']
-                F = F_ct2D(3, omega, self._T)
+                F = F_ct(3, omega, self._T)
 
                 sel = [0, 1, 3, 4, 6, 7]
                 for i in range(traj_len):
