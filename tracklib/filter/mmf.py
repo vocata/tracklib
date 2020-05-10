@@ -17,22 +17,25 @@ __all__ = ['MMFilter']
 
 import numpy as np
 import scipy.linalg as lg
-import tracklib.model as model
 from .base import FilterBase
+from tracklib.model import model_switch
 
 
 class MMFilter(FilterBase):
     '''
     Static multiple model filter
     '''
-    def __init__(self, switch_fcn=model.model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, switch_fcn=model_switch):
         super().__init__()
-        self._switch_fcn = switch_fcn
 
-        self._models = []
-        self._model_types = []
-        self._probs = None
-        self._models_n = 0
+        self._models_n = len(model_cls)
+        self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
+        self._types = model_types
+        if model_probs is None:
+            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
+        else:
+            self._probs = model_probs
+        self._switch_fcn = switch_fcn
 
     def __str__(self):
         msg = 'Static multiple model filter:\n{\n  '
@@ -62,7 +65,7 @@ class MMFilter(FilterBase):
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
         cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._model_types[i] for i in range(self._models_n)]
+        types = [self._types[i] for i in range(self._models_n)]
 
         xtmp = 0
         for i in range(self._models_n):
@@ -102,8 +105,8 @@ class MMFilter(FilterBase):
             cov = [cov] * self._models_n
 
         for i in range(self._models_n):
-            x = self._switch_fcn(state[i], self._model_types[0], self._model_types[i])
-            P = self._switch_fcn(cov[i], self._model_types[0], self._model_types[i])
+            x = self._switch_fcn(state[i], self._types[0], self._types[i])
+            P = self._switch_fcn(cov[i], self._types[0], self._types[i])
             self._models[i].init(x, P)
         self.__update()
         self._init = True
@@ -113,34 +116,9 @@ class MMFilter(FilterBase):
             raise AttributeError("AttributeError: can't set attribute")
 
         for i in range(self._models_n):
-            xi = self._switch_fcn(state, self._model_types[0], self._model_types[i])
-            Pi = self._switch_fcn(cov, self._model_types[0], self._model_types[i])
+            xi = self._switch_fcn(state, self._types[0], self._types[i])
+            Pi = self._switch_fcn(cov, self._types[0], self._types[i])
             self._models[i].reset(xi, Pi)
-
-    def add_models(self, models, model_types, probs=None):
-        '''
-        Add new model
-
-        Parameters
-        ----------
-        models : list, of length N
-            the list of Kalman filter
-        model_types : list, of length N
-            the types corresponding to models
-        probs : 1-D array_like, of length N
-            model probability
-
-        Returns
-        -------
-            None
-        '''
-        self._models_n = len(models)
-        self._models.extend(models)
-        self._model_types.extend(model_types)
-        if probs is None:
-            self._probs = np.full(self._models_n, 1 / self._models_n)
-        else:
-            self._probs = np.copy(probs)
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
