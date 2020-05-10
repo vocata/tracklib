@@ -221,4 +221,6 @@ def IMM_GNNTracker_test():
 
 if __name__ == '__main__':
     GNNTracker_test()
+    # reset id counter
+    tk.GNNTrack.track_id = 0
     IMM_GNNTracker_test()
