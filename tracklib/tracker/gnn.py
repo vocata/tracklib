@@ -129,6 +129,10 @@ class GNNTracker():
 
         self._len = 0
 
+    def __del__(self):
+        # reset the id counter
+        GNNTrack.track_id = 0
+
     def __len__(self):
         return self._len
 
