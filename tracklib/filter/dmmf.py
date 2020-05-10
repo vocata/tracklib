@@ -20,7 +20,7 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=None, switch_fcn=model.model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model.model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
@@ -32,18 +32,10 @@ class IMMFilter(FilterBase):
             self._probs = model_probs
         if self._models_n == 1:
             self._trans_mat = np.eye(1)
-        elif trans_mat is None:
-            trans_prob = 0.999
-            self._trans_mat = np.zeros((self._models_n, self._models_n))
-            self._trans_mat += (1 - trans_prob) / 2
-            idx = np.arange(self._models_n)
-            self._trans_mat[idx, idx] = trans_prob
         elif isinstance(trans_mat, (int, float)):
-            trans_prob = trans_mat
-            self._trans_mat = np.zeros((self._models_n, self._models_n))
-            self._trans_mat += (1 - trans_prob) / 2
-            idx = np.arange(self._models_n)
-            self._trans_mat[idx, idx] = trans_prob
+            other_probs = (1 - trans_mat) / (self._models_n - 1)
+            self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
+            np.fill_diagonal(self._trans_mat, trans_mat)
         else:
             self._trans_mat = trans_mat
         self._switch_fcn = switch_fcn

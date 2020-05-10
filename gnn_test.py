@@ -150,7 +150,7 @@ def IMM_GNNTracker_test():
     init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
     # generator
-    ft_gen = tk.GNNFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.97)
+    ft_gen = tk.GNNFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
 
     # initializer
     vmax = 1200e3/3600        # 1200km/h, vmax is used to initialize state covariance
@@ -221,4 +221,4 @@ def IMM_GNNTracker_test():
 
 if __name__ == '__main__':
     GNNTracker_test()
-    # IMM_GNNTracker_test()
+    IMM_GNNTracker_test()
