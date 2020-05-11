@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
+from tracklib import Scope, Pair
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -22,7 +22,7 @@ def DMMF_test():
     # generate trajectory
     np.random.seed(2020)
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start)
+    traj = model.Trajectory(T, start=start)
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
@@ -35,10 +35,10 @@ def DMMF_test():
     # stages.append({'model': 'cv', 'len': 200, 'vel': 50})
     # stages.append({'model': 'ca', 'len': 200, 'acc': 3})
 
-    traj.add_stage(stages)
-    traj.show_traj()
     R = np.eye(3)
-    traj_real, traj_meas = traj(R)
+    traj.add_stage(stages, R)
+    traj.show_traj()
+    traj_real, traj_meas = traj()
     N = len(traj)
 
     # traj_real = np.loadtxt(

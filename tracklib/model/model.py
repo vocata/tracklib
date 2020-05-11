@@ -8,9 +8,10 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'F_poly', 'F_singer', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer', 'H_pos_only',
-    'R_pos_only', 'F_cv', 'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'R_cv', 'F_ca',
-    'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'R_ca', 'F_ct', 'f_ct', 'f_ct_jac',
-    'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch', 'Trajectory'
+    'R_pos_only', 'F_cp', 'Q_cp_dc', 'Q_cp_dd', 'H_cp', 'R_cp', 'F_cv',
+    'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'R_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca',
+    'R_ca', 'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
+    'model_switch', 'Trajectory'
 ]
 
 import numpy as np
@@ -292,6 +293,26 @@ def R_pos_only(axis, std):
 
 
 # specific model
+def F_cp(axis, T):
+    return F_poly(1, axis, T)
+
+
+def Q_cp_dc(axis, T, std):
+    return Q_poly_dc(1, axis, T, std)
+
+
+def Q_cp_dd(axis, T, std):
+    return Q_poly_dd(1, axis, T, std, ht=2)
+
+
+def H_cp(axis):
+    return H_pos_only(1, axis)
+
+
+def R_cp(axis, std):
+    return R_pos_only(axis, std)
+
+
 def F_cv(axis, T):
     return F_poly(2, axis, T)
 
@@ -634,25 +655,42 @@ def model_switch(x, type_in, type_out):
 
 
 class Trajectory():
-    def __init__(self, T, start=np.zeros(9)):
+    def __init__(self, T, start=np.zeros(9), pd=None):
         assert (len(start) == 9)
 
         self._T = T
         self._head = start.copy()
+        if pd is None:
+            self._pd = ()
+        elif isinstance(pd, (tuple, list)):
+            self._pd = pd
+        else:
+            raise ValueError('pd must be a list of dict')
+
         self._traj = [start.copy().reshape(-1, 1)]
         self._stage = [{'model': 'start'}]
+        self._noise = None
         self._len = 1
         self._xdim = 9
 
     def __len__(self):
         return self._len
 
-    def __call__(self, R):
+    def __call__(self):
         H = H_ca(3)
         state = np.concatenate(self._traj, axis=1)
-        v = multi_normal(0, R, self._len, axis=1)
         traj_real = np.dot(H, state)
-        traj_meas = traj_real + v
+        traj_meas = traj_real + self._noise
+
+        for i in range(self._len):
+            for scope, pd in self._pd:
+                v = traj_real[0::3, i]      # velocity for each axis
+                v = lg.norm(v)              # speed of range
+                if scope.within(v):
+                    r = np.random.rand()
+                    if r > pd:
+                        traj_meas[:, i] = np.nan
+
         return traj_real, traj_meas
 
     def stage(self):
@@ -661,10 +699,11 @@ class Trajectory():
     def traj(self):
         return self._traj
 
-    def add_stage(self, stages):
+    def add_stage(self, stages, R):
         '''
         stage are list of dicts, for example:
         stage = [
+            {'model': 'cp', 'len': 100, 'pos': [100, 100, 10]}
             {'model': 'cv', 'len': 100, 'vel': [30, 20, 1]},
             {'model': 'cv', 'len': 100, 'vel': 7},
             {'model': 'ca', 'len': 100, 'acc': [10, 30, 1]},
@@ -679,7 +718,24 @@ class Trajectory():
             self._len += traj_len
 
             state = np.zeros((self._xdim, traj_len))
-            if mdl == 'cv':
+            if mdl == 'cp':
+                F = F_cp(3, self._T)
+                pos = stages[i]['pos']
+
+                sel = [0, 3, 6]
+                for j in range(traj_len):
+                    p = pos[j]
+                    if p[0] is not None:
+                        self._head[0] = p[0]
+                    if p[1] is not None:
+                        self._head[3] = p[1]
+                    if p[2] is not None:
+                        self._head[6] = p[2]
+                    tmp = np.zeros(self._xdim)
+                    tmp[sel] = np.dot(F, self._head[sel])
+                    self._head[:] = tmp
+                    state[:, j] = tmp
+            elif mdl == 'cv':
                 F = F_cv(3, self._T)
                 v = stages[i]['vel']
                 if isinstance(v, (int, float)):
@@ -694,9 +750,11 @@ class Trajectory():
                     self._head[7] = v[2]
 
                 sel = [0, 1, 3, 4, 6, 7]
-                for i in range(traj_len):
-                    self._head[sel] = np.dot(F, self._head[sel])
-                    state[sel, i] = self._head[sel]
+                for j in range(traj_len):
+                    tmp = np.zeros(self._xdim)
+                    tmp[sel] = np.dot(F, self._head[sel])
+                    self._head[:] = tmp
+                    state[:, j] = tmp
             elif mdl == 'ca':
                 F = F_ca(3, self._T)
                 a = stages[i]['acc']
@@ -711,27 +769,76 @@ class Trajectory():
                 if a[2] is not None:
                     self._head[8] = a[2]
 
-                for i in range(traj_len):
-                    self._head[:] = np.dot(F, self._head)
-                    state[:, i] = self._head
+                for j in range(traj_len):
+                    tmp = np.dot(F, self._head)
+                    self._head[:] = tmp
+                    state[:, j] = tmp
             elif mdl == 'ct':
                 omega = stages[i]['omega']
                 F = F_ct(3, omega, self._T)
 
                 sel = [0, 1, 3, 4, 6, 7]
-                for i in range(traj_len):
-                    self._head[sel] = np.dot(F, self._head[sel])
-                    state[sel, i] = self._head[sel]
+                for j in range(traj_len):
+                    tmp = np.zeros(self._xdim)
+                    tmp[sel] = np.dot(F, self._head[sel])
+                    self._head[:] = tmp
+                    state[:, j] = tmp
             else:
                 raise ValueError('invalid model')
-
             self._traj.append(state)
 
+        self._noise = multi_normal(0, R, self._len, axis=1)
+
     def show_traj(self):
+        traj_real, traj_meas = self()
         fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        ax.scatter(self._traj[0][0], self._traj[0][3], self._traj[0][6], s=50, c='r', marker='x', label=self._stage[0]['model'])
-        for i in range(1, len(self._traj)):
-            ax.plot(self._traj[i][0, :], self._traj[i][3, :], self._traj[i][6, :], '.-', linewidth=1, ms=3, label=self._stage[i]['model'])
+        ax = fig.add_subplot(211, projection='3d')
+        ax.scatter(traj_real[0, 0],
+                   traj_real[1, 0],
+                   traj_real[2, 0],
+                   s=50,
+                   c='r',
+                   marker='x',
+                   label=self._stage[0]['model'])
+        idx = 0
+        for i in range(1, len(self._stage)):
+            l = self._stage[i]['len']
+            ax.plot(traj_real[0, idx:idx + l],
+                    traj_real[1, idx:idx + l],
+                    traj_real[2, idx:idx + l],
+                    '.-',
+                    linewidth=0.6,
+                    ms=1,
+                    label=self._stage[i]['model'])
+            idx += l
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
         ax.legend()
+        ax.set_title('real trajectory')
+
+        ax = fig.add_subplot(212, projection='3d')
+        ax.scatter(traj_real[0, 0],
+                   traj_real[1, 0],
+                   traj_real[2, 0],
+                   s=50,
+                   c='r',
+                   marker='x',
+                   label=self._stage[0]['model'])
+        idx = 0
+        for i in range(1, len(self._stage)):
+            l = self._stage[i]['len']
+            ax.plot(traj_meas[0, idx:idx + l],
+                    traj_meas[1, idx:idx + l],
+                    traj_meas[2, idx:idx + l],
+                    '.',
+                    ms=1,
+                    label=self._stage[i]['model'])
+            idx += l
+        ax.legend()
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        ax.set_title('measured trajectory')
+
         plt.show()

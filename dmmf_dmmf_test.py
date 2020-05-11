@@ -29,10 +29,10 @@ def DMMF_DMMF_test():
     stages.append({'model': 'ct', 'len': 200, 'omega': 5})
     stages.append({'model': 'cv', 'len': 200, 'vel': 50})
     stages.append({'model': 'ca', 'len': 200, 'acc': 3})
-    traj.add_stage(stages)
-    traj.show_traj()
     R = np.eye(3)
-    traj_real, traj_meas = traj(R)
+    traj.add_stage(stages, R)
+    traj.show_traj()
+    traj_real, traj_meas = traj()
     N = len(traj)
 
     model_cls1 = []
