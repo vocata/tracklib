@@ -77,7 +77,7 @@ class SIRPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k-1)+w_k-1|z_1:k] = E[f(x_k-1)|z_1:k] = Σf(x_k-1^i)*w^i
+        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -224,7 +224,7 @@ class RPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k-1)+w_k-1|z_1:k] = E[f(x_k-1)|z_1:k] = Σf(x_k-1^i)*w^i
+        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0

@@ -20,7 +20,7 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, trans_mat=0.999, model_probs=None, switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)

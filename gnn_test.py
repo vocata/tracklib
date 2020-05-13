@@ -136,16 +136,16 @@ def IMM_GNNTracker_test():
     ct_xdim, ct_zdim = 7, 3
     sigma_w = [10, 10, 1, 1]
     sigma_v = np.sqrt(1000)
-    f = model.f_ct2D(axis, T)
-    fjac = model.f_ct2D_jac(axis, T)
+    f = model.f_ct(axis, T)
+    fjac = model.f_ct_jac(axis, T)
     L = np.eye(ct_xdim)
-    h = model.h_ct2D(axis)
-    hjac = model.h_ct2D_jac(axis)
+    h = model.h_ct(axis)
+    hjac = model.h_ct_jac(axis)
     M = np.eye(ct_zdim)
-    Q = model.Q_ct2D(axis, T, sigma_w)
-    R = model.R_ct2D(axis, sigma_v)
+    Q = model.Q_ct(axis, T, sigma_w)
+    R = model.R_ct(axis, sigma_v)
     model_cls.append(ft.EKFilterAN)
-    model_types.append('ct2D')
+    model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 

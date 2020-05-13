@@ -8,7 +8,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'two_point_diff_init', 'biased_three_point_diff_init',
-    'unbiased_three_point_diff_init', 'cv_init', 'ca_init'
+    'unbiased_three_point_diff_init', 'cp_init', 'cv_init', 'ca_init'
 ]
 
 import numpy as np
@@ -133,6 +133,9 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # T = 2
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)
 # print(state, cov, sep='\n\n')
+
+def cp_init(z, R):
+    return z, R
 
 
 def cv_init(z, R, vmax=100):
