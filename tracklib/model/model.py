@@ -8,10 +8,12 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'F_poly', 'F_singer', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer', 'H_pos_only',
-    'R_pos_only', 'F_cp', 'Q_cp_dc', 'Q_cp_dd', 'H_cp', 'R_cp', 'F_cv',
-    'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'R_cv', 'F_ca', 'Q_ca_dc', 'Q_ca_dd', 'H_ca',
-    'R_ca', 'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
-    'model_switch', 'Trajectory'
+    'R_pos_only', 'F_cp', 'f_cp', 'f_cp_jac', 'Q_cp_dc', 'Q_cp_dd', 'H_cp',
+    'h_cp', 'h_cp_jac', 'R_cp', 'F_cv', 'f_cv', 'f_cv_jac', 'Q_cv_dc',
+    'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca', 'f_ca_jac',
+    'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca', 'F_ct', 'f_ct',
+    'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch',
+    'Trajectory'
 ]
 
 import numpy as np
@@ -297,6 +299,20 @@ def F_cp(axis, T):
     return F_poly(1, axis, T)
 
 
+def f_cp(axis, T):
+    F = F_cp(axis, T)
+    def f(x, u):
+        return np.dot(F, x)
+    return f
+
+
+def f_cp_jac(axis, T):
+    F = F_cp(axis, T)
+    def fjac(x, u):
+        return F
+    return fjac
+
+
 def Q_cp_dc(axis, T, std):
     return Q_poly_dc(1, axis, T, std)
 
@@ -309,12 +325,40 @@ def H_cp(axis):
     return H_pos_only(1, axis)
 
 
+def h_cp(axis):
+    H = H_cp(axis)
+    def h(x):
+        return np.dot(H, x)
+    return h
+
+
+def h_cp_jac(axis):
+    H = H_cp(axis)
+    def hjac(x):
+        return H
+    return hjac
+
+
 def R_cp(axis, std):
     return R_pos_only(axis, std)
 
 
 def F_cv(axis, T):
     return F_poly(2, axis, T)
+
+
+def f_cv(axis, T):
+    F = F_cv(axis, T)
+    def f(x, u):
+        return np.dot(F, x)
+    return f
+
+
+def f_cv_jac(axis, T):
+    F = F_cv(axis, T)
+    def fjac(x, u):
+        return F
+    return fjac
 
 
 def Q_cv_dc(axis, T, std):
@@ -329,12 +373,40 @@ def H_cv(axis):
     return H_pos_only(2, axis)
 
 
+def h_cv(axis):
+    H = H_cv(axis)
+    def h(x):
+        return np.dot(H, x)
+    return h
+
+
+def h_cv_jac(axis):
+    H = H_cv(axis)
+    def hjac(x):
+        return H
+    return hjac
+
+
 def R_cv(axis, std):
     return R_pos_only(axis, std)
 
 
 def F_ca(axis, T):
     return F_poly(3, axis, T)
+
+
+def f_ca(axis, T):
+    F = F_ca(axis, T)
+    def f(x, u):
+        return np.dot(F, x)
+    return f
+
+
+def f_ca_jac(axis, T):
+    F = F_ca(axis, T)
+    def fjac(x, u):
+        return F
+    return fjac
 
 
 def Q_ca_dc(axis, T, std):
@@ -347,6 +419,20 @@ def Q_ca_dd(axis, T, std):
 
 def H_ca(axis):
     return H_pos_only(3, axis)
+
+
+def h_ca(axis):
+    H = H_ca(axis)
+    def h(x):
+        return np.dot(H, x)
+    return h
+
+
+def h_ca_jac(axis):
+    H = H_ca(axis)
+    def hjac(x):
+        return H
+    return hjac
 
 
 def R_ca(axis, std):

@@ -54,16 +54,18 @@ def test():
     cv_xdim, cv_zdim = 6, 3
     sigma_w = np.sqrt(1.0)
     sigma_v = np.sqrt(1.0)
-    F = model.F_cv(axis, T)
-    H = model.H_cv(axis)
+    f = model.f_cv(axis, T)
+    fjac = model.f_cv_jac(axis, T)
+    h = model.h_cv(axis)
+    hjac = model.h_cv_jac(axis)
     L = np.eye(cv_xdim)
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    model_cls.append(ft.KFilter)
+    model_cls.append(ft.EKFilterAN)
     model_types.append('cv')
-    init_args.append((F, L, H, M, Q, R))
-    init_kwargs.append({})
+    init_args.append((f, L, h, M, Q, R, cv_xdim, cv_zdim))
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
     # CA
     ca_xdim, ca_zdim = 9, 3
