@@ -22,7 +22,7 @@ def DMMF_DMMF_test():
 
     # generate trajectory
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0)])
+    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0.3)])
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
     stages.append({'model': 'ct', 'len': 200, 'omega': -8})
