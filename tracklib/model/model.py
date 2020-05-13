@@ -487,14 +487,50 @@ def R_ct(axis, std):
 def state_switch(state, type_in, type_out):
     dim = len(state)
     state = state.copy()
-    if type_in == 'cv':
+    if type_in == 'cp':
+        axis = dim // 1
+        if type_out == 'cp':
+            return state
+        elif type_out == 'cv':
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[:, sel]
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'ca':
+            ca_dim = 3 * axis
+            sel = range(0, ca_dim, 3)
+            slct = np.eye(ca_dim)[:, sel]
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'ct':
+            # cp to cv
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[:, sel]
+            stmp = np.dot(slct, state)
+            # cv to ct
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            stmp = np.dot(slct, stmp)
+            return stmp
+        else:
+            raise ValueError('unknown output type: %s' % type_out)
+    elif type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cv':
+        if type_out == 'cp':
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[sel]
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'cv':
             return state
         elif type_out == 'ca':
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[:, sel]
             stmp = np.dot(slct, state)
             return stmp
         elif type_out == 'ct':
@@ -507,10 +543,16 @@ def state_switch(state, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cv':
+        if type_out == 'cp':
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            sel = range(0, ca_dim, 3)
+            slct = np.eye(ca_dim)[sel]
+            stmp = np.dot(slct, state)
+            return stmp
+        elif type_out == 'cv':
+            ca_dim = 3 * axis
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[sel]
             stmp = np.dot(slct, state)
             return stmp
         elif type_out == 'ca':
@@ -518,8 +560,8 @@ def state_switch(state, type_in, type_out):
         elif type_out == 'ct':
             # ca to cv
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[sel]
             stmp = np.dot(slct, state)
             # cv to ct
             slct = np.eye(5, 4)
@@ -531,7 +573,19 @@ def state_switch(state, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct':
         axis = dim // 2
-        if type_out == 'cv':
+        if type_out == 'cp':
+            # ct to cv
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            stmp = np.dot(slct, state)
+            # cv to cp
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[sel]
+            stmp = np.dot(slct, stmp)
+            return stmp
+        elif type_out == 'cv':
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -545,8 +599,8 @@ def state_switch(state, type_in, type_out):
             stmp = np.dot(slct, state)
             # cv to ca
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[:, sel]
             stmp = np.dot(slct, stmp)
             return stmp
         elif type_out == 'ct':
@@ -561,16 +615,59 @@ def cov_switch(cov, type_in, type_out):
     dim = len(cov)
     cov = cov.copy()
     uncertainty = 100
-    if type_in == 'cv':
+    if type_in == 'cp':
+        axis = dim // 1
+        if type_out == 'cp':
+            return cov
+        elif type_out == 'cv':
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            sel_diff = np.setdiff1d(range(cv_dim), sel)
+            slct = np.eye(cv_dim)[:, sel]
+            ctmp = slct @ cov @ slct.T
+            ctmp[sel_diff, sel_diff] = uncertainty
+            return ctmp
+        elif type_out == 'ca':
+            ca_dim = 3 * axis
+            sel = range(0, ca_dim, 3)
+            sel_diff = np.setdiff1d(range(ca_dim), sel)
+            slct = np.eye(ca_dim)[:, sel]
+            ctmp = slct @ cov @ slct.T
+            ctmp[sel_diff, sel_diff] = uncertainty
+            return ctmp
+        elif type_out == 'ct':
+            # cp to cv
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            sel_diff = np.setdiff1d(range(cv_dim), sel)
+            slct = np.eye(cv_dim)[:, sel]
+            ctmp = slct @ cov @ slct.T
+            ctmp[sel_diff, sel_diff] = uncertainty
+            # cv to ct
+            slct = np.eye(5, 4)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ ctmp @ slct.T
+            ctmp[4, 4] = uncertainty
+        else:
+            raise ValueError('unknown output type: %s' % type_out)
+    elif type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cv':
+        if type_out == 'cp':
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[sel]
+            ctmp = slct @ cov @ slct.T
+            return ctmp
+        elif type_out == 'cv':
             return cov
         elif type_out == 'ca':
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            sel_diff = range(2, ca_dim, 3)
+            sel = np.setdiff1d(range(ca_dim), sel_diff)
+            slct = np.eye(ca_dim)[:, sel]
             ctmp = slct @ cov @ slct.T
-            ctmp[sel, sel] = uncertainty
+            ctmp[sel_diff, sel_diff] = uncertainty
             return ctmp
         elif type_out == 'ct':
             slct = np.eye(5, 4)
@@ -583,10 +680,16 @@ def cov_switch(cov, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cv':
+        if type_out == 'cp':
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            sel = range(0, ca_dim, 3)
+            slct = np.eye(ca_dim)[sel]
+            ctmp = slct @ cov @ slct.T
+            return ctmp
+        elif type_out == 'cv':
+            ca_dim = 3 * axis
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[sel]
             ctmp = slct @ cov @ slct.T
             return ctmp
         elif type_out == 'ca':
@@ -594,8 +697,8 @@ def cov_switch(cov, type_in, type_out):
         elif type_out == 'ct':
             # ca to cv
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=0)
+            sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
+            slct = np.eye(ca_dim)[sel]
             ctmp = slct @ cov @ slct.T
             # cv to ct
             slct = np.eye(5, 4)
@@ -608,7 +711,19 @@ def cov_switch(cov, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct':
         axis = dim // 2
-        if type_out == 'cv':
+        if type_out == 'cp':
+            # ct to cv
+            slct = np.eye(4, 5)
+            if axis == 3:
+                slct = lg.block_diag(slct, np.eye(2))
+            ctmp = slct @ cov @ slct.T
+            # cv to cp
+            cv_dim = 2 * axis
+            sel = range(0, cv_dim, 2)
+            slct = np.eye(cv_dim)[sel]
+            ctmp = slct @ ctmp @ slct.T
+            return ctmp
+        elif type_out == 'cv':
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -622,10 +737,11 @@ def cov_switch(cov, type_in, type_out):
             ctmp = slct @ cov @ slct.T
             # cv to ca
             ca_dim = 3 * axis
-            sel = range(2, ca_dim, 3)
-            slct = np.delete(np.eye(ca_dim), sel, axis=1)
+            sel_diff = range(2, ca_dim, 3)
+            sel = np.setdiff1d(range(ca_dim), sel_diff)
+            slct = np.eye(ca_dim)[:, sel]
             ctmp = slct @ ctmp @ slct.T
-            ctmp[sel, sel] = uncertainty
+            ctmp[sel_diff, sel_diff] = uncertainty
             return ctmp
         elif type_out == 'ct':
             return cov
@@ -682,11 +798,16 @@ class Trajectory():
         traj_real = np.dot(H, state)
         traj_meas = traj_real + self._noise
 
-        for i in range(self._len):
-            for scope, pd in self._pd:
-                v = traj_real[0::3, i]      # velocity for each axis
-                v = lg.norm(v)              # speed of range
-                if scope.within(v):
+        for scope, pd in self._pd:
+            for i in range(self._len):
+                p = state[0::3, i]      # position for each axis
+                v = state[1::3, i]      # velocity for each axis
+                d = lg.norm(p)
+                if d == 0:
+                    speed = lg.norm(v)
+                else:
+                    speed = np.dot(p, v) / d   # speed of range
+                if scope.within(speed):
                     r = np.random.rand()
                     if r > pd:
                         traj_meas[:, i] = np.nan
@@ -720,17 +841,16 @@ class Trajectory():
             state = np.zeros((self._xdim, traj_len))
             if mdl == 'cp':
                 F = F_cp(3, self._T)
-                pos = stages[i]['pos']
+                p = stages[i]['pos']
+                if p[0] is not None:
+                    self._head[0] = p[0]
+                if p[1] is not None:
+                    self._head[3] = p[1]
+                if p[2] is not None:
+                    self._head[6] = p[2]
 
                 sel = [0, 3, 6]
                 for j in range(traj_len):
-                    p = pos[j]
-                    if p[0] is not None:
-                        self._head[0] = p[0]
-                    if p[1] is not None:
-                        self._head[3] = p[1]
-                    if p[2] is not None:
-                        self._head[6] = p[2]
                     tmp = np.zeros(self._xdim)
                     tmp[sel] = np.dot(F, self._head[sel])
                     self._head[:] = tmp

@@ -22,7 +22,7 @@ def DMMF_test():
     # generate trajectory
     np.random.seed(2020)
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start)
+    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
@@ -142,7 +142,9 @@ def DMMF_test():
     prob_arr[:, 0] = dmmf.probs()
     for n in range(1, N):
         dmmf.predict()
-        dmmf.correct(traj_meas[:, n])
+        z = traj_meas[:, n]
+        if not np.any(np.isnan(z)):
+            dmmf.correct(z)
 
         post_state_arr[:, n] = dmmf.state
         prob_arr[:, n] = dmmf.probs()

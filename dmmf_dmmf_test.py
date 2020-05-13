@@ -7,6 +7,7 @@ import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
+from tracklib import Scope, Pair
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -21,7 +22,7 @@ def DMMF_DMMF_test():
 
     # generate trajectory
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start)
+    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0)])
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
     stages.append({'model': 'ct', 'len': 200, 'omega': -8})
@@ -113,7 +114,9 @@ def DMMF_DMMF_test():
     dmmf_prob_arr[:, 0] = dmmf.probs()
     for n in range(1, N):
         dmmf.predict()
-        dmmf.correct(traj_meas[:, n])
+        z = traj_meas[:, n]
+        if not np.any(np.isnan(z)):
+            dmmf.correct(z)
 
         post_state_arr[:, n] = dmmf.state
         dmmf_prob_arr[:, n] = dmmf.probs()
