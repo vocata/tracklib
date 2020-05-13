@@ -649,6 +649,7 @@ def cov_switch(cov, type_in, type_out):
                 slct = lg.block_diag(slct, np.eye(2))
             ctmp = slct @ ctmp @ slct.T
             ctmp[4, 4] = uncertainty
+            return ctmp
         else:
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'cv':
