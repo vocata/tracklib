@@ -126,7 +126,6 @@ def DMMF_MMF_test():
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    # ax.axis('equal')
     ax.scatter(traj_real[0, 0], traj_real[1, 0], traj_real[2, 0], s=50, c='r', marker='x', label='start')
     ax.plot(traj_real[0, :], traj_real[1, :], traj_real[2, :], linewidth=0.8, label='real')
     ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')

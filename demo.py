@@ -19,33 +19,16 @@ def test():
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
     traj = model.Trajectory(T, start=start, pd=[Pair(Scope(-30, 30), 0.3)])
     stages = []
-    stages.append({'model': 'cp', 'len': 333, 'pos': [0, 0, 0]})
-    stages.append({'model': 'cv', 'len': 333, 'vel': [20, 0, 1]})
-    stages.append({'model': 'ct', 'len': 333, 'omega': 10})
-    stages.append({'model': 'ca', 'len': 333, 'acc': 3})
-
-    # stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': -8})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': 5})
-    # stages.append({'model': 'cv', 'len': 200, 'vel': 50})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': 3})
+    stages.append({'model': 'cp', 'len': 300, 'pos': [0, 0, 0]})
+    stages.append({'model': 'cv', 'len': 300, 'vel': [20, 0, 1]})
+    stages.append({'model': 'ct', 'len': 300, 'omega': 10})
+    stages.append({'model': 'ca', 'len': 300, 'acc': 3})
 
     R = np.eye(3)
     traj.add_stage(stages, R)
     traj.show_traj()
     traj_real, traj_meas = traj()
     N = len(traj)
-
-    # traj_real = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\truePos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # traj_meas = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # N = traj_meas.shape[1]
 
     model_cls = []
     model_types = []
@@ -109,6 +92,7 @@ def test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct(axis, T, sigma_w)
     R = model.R_ct(axis, sigma_v)
+
     model_cls.append(ft.EKFilterAN)
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
@@ -165,7 +149,6 @@ def test():
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    # ax.axis('equal')
     ax.scatter(traj_real[0, 0],
                traj_real[1, 0],
                traj_real[2, 0],
@@ -202,8 +185,8 @@ def test():
         ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
-    # ax.set_xlim([0, 1200])
-    # ax.set_ylim([0, 1])
+    ax.set_xlim([0, 1300])
+    ax.set_ylim([0, 1])
     ax.legend()
     ax.set_title('models probability')
     plt.show()
