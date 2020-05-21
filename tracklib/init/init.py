@@ -11,6 +11,7 @@ __all__ = [
     'unbiased_three_point_diff_init', 'cp_init', 'cv_init', 'ca_init'
 ]
 
+import numbers
 import numpy as np
 
 
@@ -47,12 +48,12 @@ def two_point_diff_init(z1, z2, R1, R2, T, q=None):
     discretized continuous-time linear dynamic model
     '''
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
     if q is not None:
-        if isinstance(q, (int, float)):
+        if isinstance(q, numbers.Number):
             q = [q] * zdim
     else:
         q = [0] * zdim
@@ -70,11 +71,11 @@ def two_point_diff_init(z1, z2, R1, R2, T, q=None):
 
 def biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T):
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
-    if isinstance(R3, (int, float)):
+    if isinstance(R3, numbers.Number):
         R3 = np.diag([R3] * zdim)
 
     state = np.zeros(3 * zdim)
@@ -100,14 +101,14 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
     discretized continuous-time linear dynamic model
     '''
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
-    if isinstance(R3, (int, float)):
+    if isinstance(R3, numbers.Number):
         R3 = np.diag([R3] * zdim)
     if q is not None:
-        if isinstance(q, (int, float)):
+        if isinstance(q, numbers.Number):
             q = [q] * zdim
     else:
         q = [0] * zdim
@@ -140,7 +141,7 @@ def cp_init(z, R):
 
 def cv_init(z, R, vmax=100):
     dim = len(z)
-    if isinstance(vmax, (int, float)):
+    if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
     else:
         vvar = np.array(vmax, dtype=float)**2 / 3
@@ -159,11 +160,11 @@ def cv_init(z, R, vmax=100):
 
 def ca_init(z, R, vmax=100, amax=10):
     dim = len(z)
-    if isinstance(vmax, (int, float)):
+    if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
     else:
         vvar = np.array(vmax, dtype=float)**2 / 3
-    if isinstance(amax, (int, float)):
+    if isinstance(amax, numbers.Number):
         avar = np.full(dim, amax**2 / 3, dtype=float)
     else:
         avar = np.array(amax, dtype=float)**2 / 3

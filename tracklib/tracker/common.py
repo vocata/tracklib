@@ -7,6 +7,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['HistoryLogic', 'ScoreLogic', 'Detection']
 
+import numbers
 import numpy as np
 import tracklib as tlb
 
@@ -56,12 +57,16 @@ class ScoreLogic():
 
 class Detection():
     def __init__(self, meas, cov):
-        if not isinstance(meas, list):
-            raise ValueError('data must be a list')
-        if not isinstance(cov, list):
-            raise ValueError('covmust be a list')
-        self._meas = meas
-        self._cov = cov
+        if isinstance(meas, list):
+            self._meas = meas
+        else:
+            raise ValueError('meas must be a list')
+        if isinstance(cov, list):
+            self._cov = cov
+        else:
+            raise ValueError('cov must be a Iterable')
+        if len(meas) != len(cov):
+            raise ValueError('the lengths of meas and cov must be the same')
         self._len = len(meas)
 
     def __iter__(self):
@@ -69,9 +74,14 @@ class Detection():
         return it
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._len:
-            raise IndexError('index out of range')
-        return self._meas[n], self._cov[n]
+        if isinstance(n, numbers.Integral):
+            return self._meas[n], self._cov[n]
+        elif hasattr(n, '__getitem__'):
+            m = [self._meas[i] for i in n]
+            c = [self._cov[i] for i in n]
+            return m, c
+        else:
+            raise ValueError('index must be a integer, list or tuple')
 
     def __len__(self):
         return self._len

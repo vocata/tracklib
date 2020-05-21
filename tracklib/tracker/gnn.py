@@ -130,7 +130,7 @@ class GNNTracker():
         self._len = 0
 
     def __del__(self):
-        # reset the id counter
+        # reset the id counter when tracker is destroyed
         GNNTrack.track_id = 0
 
     def __len__(self):
@@ -179,10 +179,10 @@ class GNNTracker():
                 for di in range(meas_num):
                     z, R = detection[di]
                     cost_main[ti, di] = tracks[ti]._distance(z, R)
-            cost_matrix = np.block([[cost_main, virt_det], [virt_track, cost_zero]])
+            cost_mat = np.block([[cost_main, virt_det], [virt_track, cost_zero]])
 
-            # find best assignment,
-            row_idx, col_idx = self._asg_fcn(cost_matrix)
+            # find best assignment
+            row_idx, col_idx = self._asg_fcn(cost_mat)
             asg_idx = [i for i in range(track_num) if col_idx[i] < meas_num]
             asg_tk = row_idx[asg_idx]
             unasg_tk = np.setdiff1d(np.arange(track_num), asg_tk)
@@ -190,7 +190,7 @@ class GNNTracker():
             unasg_meas = np.setdiff1d(np.arange(meas_num), asg_meas)
 
             # update assigned tracks
-            for ti, mi in [(asg_tk[i], asg_meas[i]) for i in range(len(asg_idx))]:
+            for ti, mi in zip(asg_tk, asg_meas):
                 tracks[ti]._assign(*detection[mi])
 
             # coast unassigned tracks

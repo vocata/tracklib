@@ -8,6 +8,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
 
+import numbers
 import numpy as np
 
 
@@ -62,8 +63,8 @@ def num_diff(x, f, f_dim, order=1, epsilon=None):
     x = np.array(x, dtype=float)
     x_dim = len(x)
 
-    if isinstance(epsilon, (int, float)):
-        epsilon = epsilon * np.ones_like(x)
+    if isinstance(epsilon, numbers.Number):
+        epsilon = np.full(x.shape, epsilon)
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
@@ -134,8 +135,8 @@ def num_diff2(x, f, f_dim, order=1, epsilon=None):
     x = np.array(x, dtype=float)
     x_dim = len(x)
 
-    if isinstance(epsilon, (int, float)):
-        epsilon = epsilon * np.ones_like(x)
+    if isinstance(epsilon, numbers.Number):
+        epsilon = np.full(x.shape, epsilon)
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
@@ -188,8 +189,8 @@ def num_diff_hessian(x, f, f_dim, epsilon=None):
     x = np.array(x, dtype=float)
     x_dim = len(x)
 
-    if isinstance(epsilon, (int, float)):
-        epsilon = epsilon * np.ones_like(x)
+    if isinstance(epsilon, numbers.Number):
+        epsilon = np.full(x.shape, epsilon)
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:

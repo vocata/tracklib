@@ -118,15 +118,14 @@ class GPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.sum(h_map, axis=0) / self._Ns
         # this is the real innovation, and the covariance fo innovation is uitilized to calculate
-        # the likelihood fo measurement for predicted measurement
+        # the likelihood of measurement for predicted measurement
         innov = z - z_pred
         S = 0
         for i in range(self._Ns):
@@ -142,11 +141,10 @@ class GPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.sum(h_map, axis=0) / self._Ns
         innov = z - z_pred

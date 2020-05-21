@@ -148,9 +148,8 @@ class EKFilterAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         H = self._hjac(self._state)
         z_pred = self._h(self._state)
@@ -159,7 +158,7 @@ class EKFilterAN(FilterBase):
             quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
         innov = z - z_pred
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
@@ -170,9 +169,8 @@ class EKFilterAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         H = self._hjac(self._state)
         z_pred = self._h(self._state)
@@ -181,7 +179,7 @@ class EKFilterAN(FilterBase):
             quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
         innov = z - z_pred
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
@@ -319,7 +317,7 @@ class EKFilterNAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if 'R' in kwargs: self._R[:] = kwargs['R']
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         H, M = self._hjac(self._state, np.zeros(self._vdim))
         z_pred = self._h(self._state, np.zeros(self._vdim))
@@ -328,7 +326,7 @@ class EKFilterNAN(FilterBase):
             quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
         innov = z - z_pred
-        R_tilde = M @ self._R @ M.T
+        R_tilde = M @ R @ M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
@@ -339,7 +337,7 @@ class EKFilterNAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if 'R' in kwargs: self._R[:] = kwargs['R']
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         H, M = self._hjac(self._state, np.zeros(self._vdim))
         z_pred = self._h(self._state, np.zeros(self._vdim))
@@ -348,7 +346,7 @@ class EKFilterNAN(FilterBase):
             quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
         innov = z - z_pred
-        R_tilde = M @ self._R @ M.T
+        R_tilde = M @ R @ M.T
         S = H @ self._cov @ H.T + R_tilde
         S = (S + S.T) / 2
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))

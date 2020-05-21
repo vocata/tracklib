@@ -16,6 +16,7 @@ __all__ = [
     'Trajectory'
 ]
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
 import matplotlib.pyplot as plt
@@ -126,7 +127,7 @@ def Q_poly_dc(order, axis, T, std):
     assert (order >= 1)
     assert (axis >= 1)
 
-    if isinstance(std, (int, float)):
+    if isinstance(std, numbers.Number):
         std = [std] * axis
     sel = np.arange(order - 1, -1, -1)
     col, row = np.meshgrid(sel, sel)
@@ -175,7 +176,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     assert (order >= 1)
     assert (axis >= 1)
 
-    if isinstance(std, (int, float)):
+    if isinstance(std, numbers.Number):
         std = [std] * axis
     sel = np.arange(ht + order - 1, ht - 1, -1)
     L = T**sel / factorial(sel)
@@ -220,7 +221,7 @@ def Q_singer(axis, T, tau, std):
     '''
     assert (axis >= 1)
 
-    if isinstance(std, (int, float)):
+    if isinstance(std, numbers.Number):
         std = [std] * axis
     alpha = 1 / tau
     aT = alpha * T
@@ -287,7 +288,7 @@ def R_pos_only(axis, std):
     '''
     assert (axis >= 1)
 
-    if isinstance(std, (int, float)):
+    if isinstance(std, numbers.Number):
         std = [std] * axis
     R = np.diag(std)**2
 
@@ -528,7 +529,7 @@ def f_ct_jac(axis, T):
 def Q_ct(axis, T, std):
     assert (axis >= 2)
 
-    if isinstance(std, (int, float)):
+    if isinstance(std, numbers.Number):
         std = [std] * (axis + 1)    # omega
     block = np.array([T**2 / 2, T], dtype=float).reshape(-1, 1)
     L = lg.block_diag(block, block, T)
@@ -840,11 +841,7 @@ def cov_switch(cov, type_in, type_out):
 
 def model_switch(x, type_in, type_out):
     dim = len(x)
-    if isinstance(x, (list, tuple)):
-        state = state_switch(x[0], type_in, type_out)
-        cov = cov_switch(x[1], type_in, type_out)
-        return state, cov
-    elif isinstance(x, np.ndarray):
+    if isinstance(x, np.ndarray):
         if len(x.shape) == 1:
             state = state_switch(x, type_in, type_out)
             return state
@@ -853,6 +850,10 @@ def model_switch(x, type_in, type_out):
             return cov
         else:
             raise ValueError('x must be a 1-D array or 2-D array')
+    elif hasattr(x, '__getitem__'):
+        state = state_switch(x[0], type_in, type_out)
+        cov = cov_switch(x[1], type_in, type_out)
+        return state, cov
     else:
         raise ValueError('x must be list, tuple or ndarray')
 
@@ -865,7 +866,7 @@ class Trajectory():
         self._head = start.copy()
         if pd is None:
             self._pd = ()
-        elif isinstance(pd, (tuple, list)):
+        elif hasattr(pd, '__getitem__'):
             self._pd = pd
         else:
             raise ValueError('pd must be a list of dict')
@@ -945,7 +946,7 @@ class Trajectory():
             elif mdl == 'cv':
                 F = F_cv(3, self._T)
                 v = stages[i]['vel']
-                if isinstance(v, (int, float)):
+                if isinstance(v, numbers.Number):
                     cur_v = self._head[[1, 4, 7]]
                     unit_v = cur_v / lg.norm(cur_v)
                     v *= unit_v
@@ -965,7 +966,7 @@ class Trajectory():
             elif mdl == 'ca':
                 F = F_ca(3, self._T)
                 a = stages[i]['acc']
-                if isinstance(a, (int, float)):
+                if isinstance(a, numbers.Number):
                     cur_v = self._head[[1, 4, 7]]
                     unit_v = cur_v / lg.norm(cur_v)
                     a *= unit_v

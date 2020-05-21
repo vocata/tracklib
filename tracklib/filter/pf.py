@@ -127,11 +127,10 @@ class SIRPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -149,11 +148,10 @@ class SIRPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -274,11 +272,10 @@ class RPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -296,11 +293,10 @@ class RPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred

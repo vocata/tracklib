@@ -10,6 +10,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['IMMFilter']
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
 from .base import FilterBase
@@ -32,7 +33,7 @@ class IMMFilter(FilterBase):
             self._probs = model_probs
         if self._models_n == 1:
             self._trans_mat = np.eye(1)
-        elif isinstance(trans_mat, (int, float)):
+        elif isinstance(trans_mat, numbers.Number):
             other_probs = (1 - trans_mat) / (self._models_n - 1)
             self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
             np.fill_diagonal(self._trans_mat, trans_mat)
@@ -61,9 +62,14 @@ class IMMFilter(FilterBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._models_n:
-            raise IndexError('index out of range')
-        return self._models[n], self._probs[n]
+        if isinstance(n, numbers.Integral):
+            return self._models[n], self._probs[n]
+        elif hasattr(n, '__getitem__'):
+            m = [self._models[i] for i in n]
+            p = [self._probs[i] for i in n]
+            return m, p
+        else:
+            raise ValueError('index must be a integer, list or tuple')
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]

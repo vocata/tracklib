@@ -8,6 +8,7 @@ __all__ = [
     'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope', 'Pair'
 ]
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
 from collections.abc import Iterable, Iterator
@@ -42,7 +43,7 @@ def col(x, *args, dtype=float, **kw):
     Converts numbers or iterable objects to column vectors
     and sets the data type to 'float' default.
     '''
-    if isinstance(x, int) or isinstance(x, float):
+    if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((-1, 1))
     elif isinstance(x, Iterator):
         x = np.array(list(x), *args, dtype=dtype, **kw).reshape((-1, 1))
@@ -58,7 +59,7 @@ def row(x, *args, dtype=float, **kw):
     Converts numbers or iterable objects to row vectors
     and sets the data type to 'float' default.
     '''
-    if isinstance(x, int) or isinstance(x, float):
+    if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((1, -1))
     elif isinstance(x, Iterator):
         x = np.array(list(x), *args, dtype=dtype, **kw).reshape((1, -1))
@@ -167,7 +168,7 @@ def multi_normal(mean, cov, Ns=1, axis=0):
     '''
 
     dim = cov.shape[0]
-    if isinstance(mean, int):
+    if isinstance(mean, numbers.Number):
         mean = np.full(dim, mean, dtype=float)
     D = cholcov(cov, lower=True)
     if Ns == 1:
@@ -252,9 +253,6 @@ class Scope():
         return self._min <= value <= self._max
 
 
-class Pair():
-    def __init__(self, value1, value2):
-        self._pair = (value1, value2)
-    
-    def __iter__(self):
-        return iter(self._pair)
+class Pair(tuple):
+    def __new__(cls, value1, value2):
+        return super().__new__(cls, (value1, value2))

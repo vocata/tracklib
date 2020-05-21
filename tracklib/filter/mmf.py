@@ -15,6 +15,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['MMFilter']
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
 from .base import FilterBase
@@ -58,9 +59,14 @@ class MMFilter(FilterBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._models_n:
-            raise IndexError('index out of range')
-        return self._models[n], self._probs[n]
+        if isinstance(n, numbers.Integral):
+            return self._models[n], self._probs[n]
+        elif hasattr(n, '__getitem__'):
+            m = [self._models[i] for i in n]
+            p = [self._probs[i] for i in n]
+            return m, p
+        else:
+            raise ValueError('index must be a integer, list or tuple')
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]

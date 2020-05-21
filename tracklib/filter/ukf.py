@@ -130,9 +130,8 @@ class UKFilterAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         pts_num = self._pt_gen.points_num()
         w_mean, w_cov = self._pt_gen.weights()
@@ -149,7 +148,7 @@ class UKFilterAN(FilterBase):
         for i in range(pts_num):
             z_err = h_map[i] - z_pred
             S += w_cov[i] * np.outer(z_err, z_err)
-        S += self._M @ self._R @ self._M.T
+        S += M @ R @ M.T
         S = (S + S.T) / 2
         innov = z - z_pred
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
@@ -160,9 +159,8 @@ class UKFilterAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         pts_num = self._pt_gen.points_num()
         w_mean, w_cov = self._pt_gen.weights()
@@ -179,7 +177,7 @@ class UKFilterAN(FilterBase):
         for i in range(pts_num):
             z_err = h_map[i] - z_pred
             S += w_cov[i] * np.outer(z_err, z_err)
-        S += self._M @ self._R @ self._M.T
+        S += M @ R @ M.T
         S = (S + S.T) / 2
         innov = z - z_pred
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
@@ -298,13 +296,13 @@ class UKFilterNAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if 'R' in kwargs: self._R[:] = kwargs['R']
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         pts_num = self._pt_gen.points_num()
         w_mean, w_cov = self._pt_gen.weights()
 
-        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
-        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        cov_asm = lg.block_diag(self._cov, self._Q, R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(R.shape[0])))
         pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
         pts = pts_asm[:len(self._state)]
         v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
@@ -330,13 +328,13 @@ class UKFilterNAN(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if 'R' in kwargs: self._R[:] = kwargs['R']
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
         pts_num = self._pt_gen.points_num()
         w_mean, w_cov = self._pt_gen.weights()
 
-        cov_asm = lg.block_diag(self._cov, self._Q, self._R)
-        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(self._R.shape[0])))
+        cov_asm = lg.block_diag(self._cov, self._Q, R)
+        state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(R.shape[0])))
         pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
         pts = pts_asm[:len(self._state)]
         v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
