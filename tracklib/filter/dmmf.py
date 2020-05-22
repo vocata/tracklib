@@ -13,6 +13,7 @@ __all__ = ['IMMFilter']
 import numbers
 import numpy as np
 import scipy.linalg as lg
+from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch
 
@@ -64,12 +65,12 @@ class IMMFilter(FilterBase):
     def __getitem__(self, n):
         if isinstance(n, numbers.Integral):
             return self._models[n], self._probs[n]
-        elif hasattr(n, '__getitem__'):
+        elif isinstance(n, Iterable):
             m = [self._models[i] for i in n]
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise ValueError('index must be a integer, list or tuple')
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -165,6 +166,8 @@ class IMMFilter(FilterBase):
         # update prior state and covariance
         self.__update()
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -178,6 +181,8 @@ class IMMFilter(FilterBase):
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance
         self.__update()
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:

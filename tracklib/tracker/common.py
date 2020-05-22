@@ -10,20 +10,7 @@ __all__ = ['HistoryLogic', 'ScoreLogic', 'Detection']
 import numbers
 import numpy as np
 import tracklib as tlb
-
-
-def bin_count(x):
-    '''
-    hamming weight
-    '''
-    x = int(x)
-    if x < 0:
-        raise ValueError('x must be a positive integer')
-    sum = 0
-    while x > 0:
-        sum += x & 1
-        x = x >> 1
-    return sum
+from collections.abc import Iterable
 
 
 class HistoryLogic():
@@ -57,14 +44,18 @@ class ScoreLogic():
 
 class Detection():
     def __init__(self, meas, cov):
-        if isinstance(meas, list):
-            self._meas = meas
+        if isinstance(meas, np.ndarray):
+            self._meas = (meas,)
+        elif isinstance(meas, Iterable):
+            self._meas = tuple(meas)
         else:
-            raise ValueError('meas must be a list')
-        if isinstance(cov, list):
-            self._cov = cov
+            raise TypeError('meas can not be the type: `%s`' % meas.__class__.__name__)
+        if isinstance(cov, np.ndarray):
+            self._cov = (cov,)
+        elif isinstance(cov, Iterable):
+            self._cov = tuple(cov)
         else:
-            raise ValueError('cov must be a Iterable')
+            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
         if len(meas) != len(cov):
             raise ValueError('the lengths of meas and cov must be the same')
         self._len = len(meas)
@@ -76,12 +67,12 @@ class Detection():
     def __getitem__(self, n):
         if isinstance(n, numbers.Integral):
             return self._meas[n], self._cov[n]
-        elif hasattr(n, '__getitem__'):
+        elif isinstance(n, Iterable):
             m = [self._meas[i] for i in n]
             c = [self._cov[i] for i in n]
             return m, c
         else:
-            raise ValueError('index must be a integer, list or tuple')
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __len__(self):
         return self._len

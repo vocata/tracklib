@@ -11,7 +11,7 @@ __all__ = [
 import numbers
 import numpy as np
 import scipy.linalg as lg
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 
 
 def is_matrix(x):
@@ -45,12 +45,10 @@ def col(x, *args, dtype=float, **kw):
     '''
     if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((-1, 1))
-    elif isinstance(x, Iterator):
-        x = np.array(list(x), *args, dtype=dtype, **kw).reshape((-1, 1))
     elif isinstance(x, Iterable):
-        x = np.array(x, *args, dtype=dtype, **kw).reshape((-1, 1))
+        x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((-1, 1))
     else:
-        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
+        raise TypeError('x must be a real number or iterable, not `%s`' % x.__class__.__name__)
     return x
 
 
@@ -61,12 +59,10 @@ def row(x, *args, dtype=float, **kw):
     '''
     if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((1, -1))
-    elif isinstance(x, Iterator):
-        x = np.array(list(x), *args, dtype=dtype, **kw).reshape((1, -1))
     elif isinstance(x, Iterable):
-        x = np.array(x, *args, dtype=dtype, **kw).reshape((1, -1))
+        x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((1, -1))
     else:
-        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
+        raise TypeError('x must be real number or iterable, not `%s`' % x.__class__.__name__)
     return x
 
 

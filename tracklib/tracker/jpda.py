@@ -98,8 +98,8 @@ class JPDATrack():
     def _predict(self):
         self._ft.predict()
 
-    def _assign(self, zs, probs, Rs):
-        self._ft.correct_JPDA(zs, probs, R=Rs)
+    def _assign(self, probs, zs, Rs):
+        self._ft.correct_JPDA(probs, zs, R=Rs)
 
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
@@ -120,6 +120,9 @@ class JPDATrack():
             pass
         self._age += 1
 
+    def _distance(self, z, R):
+        return self._ft.distance(z, R=R)
+
     def _likelihood(self, z, R):
         return self._ft.likelihood(z, R=R)
 
@@ -127,7 +130,7 @@ class JPDATrack():
         return self._lgc.confirmed()
 
     def _detached(self):
-        return self._lgc._detached()
+        return self._lgc.detached()
 
     def filter(self):
         return self._ft
@@ -186,12 +189,12 @@ class JPDALogicMaintainer():
 
 class JPDATracker():
     def __init__(self, filter_generator, filter_initializer, logic_maintainer,
-                 threshold, clutter_density, detection_prob, init_threshold,
+                 gate, clutter_density, detection_prob, init_threshold,
                  hit_miss_threshold):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
-        self._thres = threshold
+        self._gate = gate
         self._clt_den = clutter_density
         self._det_prob = detection_prob
         self._init_thres = init_threshold
@@ -239,28 +242,28 @@ class JPDATracker():
             for di in range(meas_num):
                 for ti in range(track_num):
                     z, R = detection[di]
-                    if tracks[ti]._distance(z, R) <= self._thres:
+                    if tracks[ti]._distance(z, R) <= self._gate:
                         valid_mat[di, ti] = True
 
-            # divide into some clusters and coast the targets without corresponding measurement
+            # divide into some clusters and coast the targets without measurement
             unasg_meas = []
             tar_list, meas_list = JPDA_clusters(valid_mat)
-            for tar, meas in zip(tar_list, meas_list):
+            for tar, meas in zip(tar_list, meas_list):      # traverse the clusters
                 tmp_mat = valid_mat[meas][:, tar]
                 if tmp_mat.size > 0:
-                    sub_valid_mat = np.ones((len(meas), len(tar) + 1))
+                    sub_valid_mat = np.ones((len(meas), len(tar) + 1), dtype=bool)
                     sub_valid_mat[:, 1:] = tmp_mat
                     event_list = JPDA_events(sub_valid_mat)
 
                     # compute the association event probabilites for each events in event_list
                     event_probs = []
-                    item1, item2 = 1.0, 1.0
                     for event in event_list:
+                        item1, item2 = 1.0, 1.0
                         for j in range(event.shape[0]):
                             for i in range(1, event.shape[1]):
                                 if event[j, i]:
                                     z, R = detection[meas[j]]
-                                    pdf = tracks[tar[i]]._likelihood(z, R)
+                                    pdf = tracks[tar[i - 1]]._likelihood(z, R)
                                     item1 *= (pdf / self._clt_den)
                         for i in range(1, event.shape[1]):
                             for j in range(event.shape[0]):
@@ -270,7 +273,7 @@ class JPDATracker():
                             else:
                                 item2 *= (1 - self._det_prob)
                         event_probs.append(item1 * item2)
-                    event_probs = np.array(event_probs) / np.sum(event_probs)
+                    event_probs = event_probs / np.sum(event_probs)
 
                     # compute the marginal association probabilities
                     beta = np.zeros((len(meas), len(tar)))
@@ -279,21 +282,20 @@ class JPDATracker():
                             for event, prob in zip(event_list, event_probs):
                                 beta[j, i] += prob * event[j, i + 1]
 
-
-                    zs, Rs = detection[meas]
+                    # update assigned tracks and coast the unassigned tracks
                     for i in range(beta.shape[1]):
-                        probs = beta[:, i]
-                        if np.sum(probs) < self._hit_miss_thres:
+                        if np.sum(beta[:, i]) < self._hit_miss_thres:
                             tracks[tar[i]]._coast()
                         else:
-                            tracks[tar[i]]._assign(zs, probs, Rs)
+                            tracks[tar[i]]._assign(beta[:, i], *detection[meas])
 
                     # find the measurements that association probability lower than init_threshold
+                    # and initialize the track later using these measurements
                     for j in range(beta.shape[0]):
                         if np.all(beta[j] < self._init_thres):
                             unasg_meas.append(meas[j])
                 else:
-                    tracks[tar[0]]._coast()
+                    tracks[tar[0]]._coast()     # the cluster of tracks without measurement only has one track
 
             # update confirmed list and tentative list
             self._conf_tracks = [t for t in tracks if t._confirmed() and not t._detached()]

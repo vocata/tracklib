@@ -24,7 +24,7 @@ def GNNTracker_test():
 
     # CV
     cv_xdim, cv_zdim = 6, 3
-    sigma_w = [30, 30, 1]     # Increase the filter process noise to account for unknown acceleration.
+    sigma_w = [30, 30, 1]     # increase the filter process noise to account for unknown acceleration.
     sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
@@ -43,12 +43,12 @@ def GNNTracker_test():
     # logic
     lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    # The normalized Mahalanobis distance with penalty term is used,
-    # so the threshold is higher than that without penalty term
-    threshold = 45
+    # the normalized Mahalanobis distance with penalty term is used,
+    # so the gate is higher than that without penalty term
+    gate = 45
 
     # initialize the tracker
-    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
+    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
 
     state_history = {}
 
@@ -162,11 +162,11 @@ def IMM_GNNTracker_test():
     lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
     # The normalized Mahalanobis distance with penalty term is used,
-    # so the threshold is higher than that without penalty term
-    threshold = 45
+    # so the gate is higher than that without penalty term
+    gate = 45
 
     # initialize the tracker
-    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, threshold)
+    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
 
     state_history = {}
     prob_history = {}

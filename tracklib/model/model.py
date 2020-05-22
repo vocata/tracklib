@@ -20,6 +20,7 @@ import numbers
 import numpy as np
 import scipy.linalg as lg
 import matplotlib.pyplot as plt
+from collections.abc import Iterable
 from mpl_toolkits import mplot3d
 from tracklib.utils import multi_normal
 from scipy.special import factorial
@@ -855,7 +856,7 @@ def model_switch(x, type_in, type_out):
         cov = cov_switch(x[1], type_in, type_out)
         return state, cov
     else:
-        raise ValueError('x must be list, tuple or ndarray')
+        raise TypeError('x can not be the type: `%s`' % x.__class__.__name__)
 
 
 class Trajectory():
@@ -866,10 +867,10 @@ class Trajectory():
         self._head = start.copy()
         if pd is None:
             self._pd = ()
-        elif hasattr(pd, '__getitem__'):
-            self._pd = pd
+        elif isinstance(pd, Iterable):
+            self._pd = tuple(pd)
         else:
-            raise ValueError('pd must be a list of dict')
+            raise TypeError('pd can not be the type: `%s`' % pd.__class__.__name__)
 
         self._traj = [start.copy().reshape(-1, 1)]
         self._stage = [{'model': 'start'}]

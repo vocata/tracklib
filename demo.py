@@ -12,20 +12,22 @@ def main():
     #                       [1, 1, 1, 1, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 0],
     #                       [1, 1, 1, 1, 1, 1, 1, 0], [1, 1, 1, 1, 1, 1, 1, 1],
     #                       [1, 1, 1, 1, 0, 1, 1, 1]])
-    valid_mat = np.array([[1, 1, 0, 0, 0, 0], [0, 0, 0, 1, 1, 0],
-                          [0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1]])
+    # valid_mat = np.array([[1, 1, 0, 0, 0, 0], [0, 0, 0, 1, 1, 0],
+    #                       [0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1]])
+    valid_mat = np.array([[1, 1, 1], [1, 1, 1]], dtype=bool)
     start = time.time()
     events_set = JPDA_events(valid_mat)
     end = time.time()
-    print(end - start)
+    print('time: %f' % (end - start))
     print('the number of events %d' % len(events_set))
+    for e in events_set:
+        print(e, end='\n\n')
 
     start = time.time()
     clusters_set = JPDA_clusters(valid_mat)
     end = time.time()
-    print(end - start)
+    print('time: %f' % (end - start))
     print('the number of clusters %d' % len(clusters_set[0]))
-
     print(clusters_set)
 
 

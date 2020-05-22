@@ -18,6 +18,7 @@ __all__ = ['MMFilter']
 import numbers
 import numpy as np
 import scipy.linalg as lg
+from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch
 
@@ -61,12 +62,12 @@ class MMFilter(FilterBase):
     def __getitem__(self, n):
         if isinstance(n, numbers.Integral):
             return self._models[n], self._probs[n]
-        elif hasattr(n, '__getitem__'):
+        elif isinstance(n, Iterable):
             m = [self._models[i] for i in n]
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise ValueError('index must be a integer, list or tuple')
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -106,9 +107,17 @@ class MMFilter(FilterBase):
         if self._models_n == 0:
             raise RuntimeError('models must be added before calling init')
         if isinstance(state, np.ndarray):
-            state = [state] * self._models_n
+            state = (state,) * self._models_n
+        elif isinstance(state, Iterable):
+            state = tuple(state)
+        else:
+            raise TypeError('state can not be the type: `%s`' % state.__class__.__name__)
         if isinstance(cov, np.ndarray):
-            cov = [cov] * self._models_n
+            cov = (cov,) * self._models_n
+        elif isinstance(cov, Iterable):
+            cov = tuple(cov)
+        else:
+            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
 
         for i in range(self._models_n):
             x = self._switch_fcn(state[i], self._types[0], self._types[i])
@@ -135,6 +144,8 @@ class MMFilter(FilterBase):
         # update prior state and covariance
         self.__update()
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -149,6 +160,8 @@ class MMFilter(FilterBase):
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance
         self.__update()
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:

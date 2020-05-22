@@ -13,6 +13,7 @@ __all__ = [
 
 import numbers
 import numpy as np
+from collections.abc import Iterable
 
 
 def __swap(state, cov, order):
@@ -143,8 +144,10 @@ def cv_init(z, R, vmax=100):
     dim = len(z)
     if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
+    elif isinstance(vmax, Iterable):
+        vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        vvar = np.array(vmax, dtype=float)**2 / 3
+        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0]))
@@ -162,12 +165,16 @@ def ca_init(z, R, vmax=100, amax=10):
     dim = len(z)
     if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
+    elif isinstance(vmax, Iterable):
+        vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        vvar = np.array(vmax, dtype=float)**2 / 3
+        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
     if isinstance(amax, numbers.Number):
         avar = np.full(dim, amax**2 / 3, dtype=float)
+    elif isinstance(amax, Iterable):
+        avar = np.array(tuple(amax), dtype=float)**2 / 3
     else:
-        avar = np.array(amax, dtype=float)**2 / 3
+        raise TypeError('amax can not be the type: `%s`' % amax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))

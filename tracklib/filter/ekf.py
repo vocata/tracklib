@@ -100,6 +100,8 @@ class EKFilterAN(FilterBase):
             quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -143,6 +145,8 @@ class EKFilterAN(FilterBase):
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
             self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:
@@ -271,6 +275,8 @@ class EKFilterNAN(FilterBase):
             quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -312,6 +318,8 @@ class EKFilterNAN(FilterBase):
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
             self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:

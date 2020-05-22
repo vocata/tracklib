@@ -54,6 +54,9 @@ class GNNTrack():
     def _distance(self, z, R):
         return self._ft.distance(z, R=R)
 
+    def _likelihood(self, z, R):
+        return self._ft.likelihood(z, R=R)
+
     def _confirmed(self):
         return self._lgc.confirmed()
 
@@ -117,12 +120,12 @@ class GNNLogicMaintainer():
 
 
 class GNNTracker():
-    def __init__(self, filter_generator, filter_initializer, logic_maintainer, threshold, assignment=linear_sum_assignment):
+    def __init__(self, filter_generator, filter_initializer, logic_maintainer, gate, assignment=linear_sum_assignment):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
         self._asg_fcn = assignment
-        self._thres = threshold
+        self._gate = gate
 
         self._tent_tracks = []
         self._conf_tracks = []
@@ -171,9 +174,9 @@ class GNNTracker():
             meas_num = len(detection)
             cost_main = np.zeros((track_num, meas_num))
             virt_track = np.full((meas_num, meas_num), np.Inf, dtype=float)
-            np.fill_diagonal(virt_track, self._thres / 2)
+            np.fill_diagonal(virt_track, self._gate / 2)
             virt_det = np.full((track_num, track_num), np.Inf, dtype=float)
-            np.fill_diagonal(virt_det, self._thres / 2)
+            np.fill_diagonal(virt_det, self._gate / 2)
             cost_zero = np.zeros((meas_num, track_num))
             for ti in range(track_num):
                 for di in range(meas_num):

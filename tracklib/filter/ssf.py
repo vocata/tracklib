@@ -79,12 +79,16 @@ class AlphaFilter():
 
         self._state = self._F @ self._state
 
+        return self._state
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
+
+        return self._state
 
     @property
     def state(self):
@@ -156,12 +160,16 @@ class AlphaBetaFilter():
 
         self._state = self._F @ self._state
 
+        return self._state
+
     def correct(self, z):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
+
+        return self._state
 
     @property
     def state(self):
@@ -243,12 +251,16 @@ class AlphaBetaGammaFilter():
 
         self._state = self._F @ self._state
 
+        return self._state
+
     def correct(self, z):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
+
+        return self._state
 
     @property
     def state(self):
@@ -373,6 +385,8 @@ class SSFilter(FilterBase):
         self._state = self._F @ self._state + ctl
         self._cov = self._prior_cov
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -380,6 +394,8 @@ class SSFilter(FilterBase):
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
         self._cov = self._post_cov
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:

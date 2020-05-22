@@ -91,6 +91,8 @@ class UKFilterAN(FilterBase):
         self._cov += self._L @ self._Q @ self._L.T
         self._cov = (self._cov + self._cov.T) / 2
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -125,6 +127,8 @@ class UKFilterAN(FilterBase):
         self._state = self._state + K @ innov
         self._cov = self._cov - K @ S @ K.T
         self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:
@@ -254,6 +258,8 @@ class UKFilterNAN(FilterBase):
             self._cov += w_cov[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -291,6 +297,8 @@ class UKFilterNAN(FilterBase):
         self._state = self._state + K @ innov
         self._cov = self._cov - K @ S @ K.T
         self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:
