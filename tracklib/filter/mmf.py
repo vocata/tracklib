@@ -163,6 +163,30 @@ class MMFilter(FilterBase):
 
         return self._state, self._cov
 
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        kwargs_list = [{}] * z_len
+        # group the keyword arugments
+        for key, value in kwargs.items():
+            for vi in range(z_len):
+                kwargs_list[vi][key] = value[vi]
+
+        pdfs = np.zeros((self._models_n, z_len))
+        for i in range(self._models_n):
+            for j in range(z_len):
+                pdfs[i, j] = self._models[i].likelihood(zs[j], **kwargs_list[j])
+            self._models[i].correct_JPDA(zs, probs, **kwargs)
+
+        # posterior model probability P(M(k)|Z^k)
+        pdf = np.dot(pdfs, probs) + (1 - np.sum(probs))
+        self._probs *= pdf
+        self._probs /= np.sum(self._probs)
+        # update posterior state and covariance
+        self.__update()
+
     def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')

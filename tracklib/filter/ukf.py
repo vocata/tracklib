@@ -130,6 +130,52 @@ class UKFilterAN(FilterBase):
 
         return self._state, self._cov
 
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
+        Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+        pts = self._pt_gen.sigma_points(self._state, self._cov)
+
+        h_map = []
+        z_pred = 0
+        for i in range(pts_num):
+            tmp = self._h(pts[:, i])
+            h_map.append(tmp)
+            z_pred += w_mean[i] * tmp
+
+        S_base = 0
+        xz_cov = 0
+        for i in range(pts_num):
+            z_err = h_map[i] - z_pred
+            S_base += w_cov[i] * np.outer(z_err, z_err)
+            x_err = self.__f_map[i] - self._state
+            xz_cov += w_cov[i] * np.outer(x_err, z_err)
+        
+        state_item = 0
+        cov_item1 = cov_item2 = 0
+        for i in range(z_len):
+            S = S_base + Ms[i] @ Rs[i] @ Ms[i].T
+            S = (S + S.T) / 2
+            K = xz_cov @ lg.inv(S)
+
+            innov = zs[i] - z_pred
+            incre = np.dot(K, innov)
+            state_item += probs[i] * incre
+            cov_item1 += probs[i] * (self._cov - K @ S @ K.T)
+            cov_item2 += probs[i] * np.outer(incre, incre)
+
+        self._state = self._state + state_item
+        self._cov = (1 - np.sum(probs)) * self._cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
+        self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
+
     def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -296,6 +342,54 @@ class UKFilterNAN(FilterBase):
 
         self._state = self._state + K @ innov
         self._cov = self._cov - K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
+
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
+
+        pts_num = self._pt_gen.points_num()
+        w_mean, w_cov = self._pt_gen.weights()
+
+        state_item = 0
+        cov_item1 = cov_item2 = 0
+        for i in range(z_len):
+            cov_asm = lg.block_diag(self._cov, self._Q, Rs[i])
+            state_asm = np.concatenate((self._state, np.zeros(self._Q.shape[0]), np.zeros(Rs[i].shape[0])))
+            pts_asm = self._pt_gen.sigma_points(state_asm, cov_asm)
+            pts = pts_asm[:len(self._state)]
+            v_pts = pts_asm[len(self._state) + self._Q.shape[0]:]
+
+            h_map = []
+            z_pred = 0
+            for pi in range(pts_num):
+                tmp = self._h(pts[:, pi], v_pts[:, pi])
+                h_map.append(tmp)
+                z_pred += w_mean[pi] * tmp
+
+            S = 0
+            xz_cov = 0
+            for pi in range(pts_num):
+                z_err = h_map[pi] - z_pred
+                S += w_cov[pi] * np.outer(z_err, z_err)
+                x_err = self.__f_map[pi] - self._state
+                xz_cov += w_cov[i] * np.outer(x_err, z_err)
+            S = (S + S.T) / 2
+            K = xz_cov @ lg.inv(S)
+
+            innov = zs[i] - z_pred
+            incre = np.dot(K, innov)
+            state_item += probs[i] + incre
+            cov_item1 += probs[i] * (self._cov - K @ S @ K.T)
+            cov_item2 += probs[i] * np.outer(incre, incre)
+
+        self._state = self._state + state_item
+        self._cov = (1 - np.sum(probs)) * self._cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
         self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov

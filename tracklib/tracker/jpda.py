@@ -98,8 +98,8 @@ class JPDATrack():
     def _predict(self):
         self._ft.predict()
 
-    def _assign(self, probs, zs, Rs):
-        self._ft.correct_JPDA(probs, zs, R=Rs)
+    def _assign(self, zs, probs, Rs):
+        self._ft.correct_JPDA(zs, probs, R=Rs)
 
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
@@ -157,6 +157,8 @@ class JPDATrack():
 
 class JPDAFilterGenerator():
     def __init__(self, filter_cls, *args, **kwargs):
+        if not hasattr(filter_cls, 'correct_JPDA'):
+            raise TypeError('the %s cannot be used as underlying filter of JPDA')
         self._ft_cls = filter_cls
         self._args = args
         self._kwargs = kwargs
@@ -255,10 +257,10 @@ class JPDATracker():
                     sub_valid_mat[:, 1:] = tmp_mat
                     event_list = JPDA_events(sub_valid_mat)
 
-                    # compute the association event probabilites for each events in event_list
+                    # compute the probabilites of association events in event_list
                     event_probs = []
                     for event in event_list:
-                        item1, item2 = 1.0, 1.0
+                        item1 = item2 = 1
                         for j in range(event.shape[0]):
                             for i in range(1, event.shape[1]):
                                 if event[j, i]:
@@ -287,17 +289,19 @@ class JPDATracker():
                         if np.sum(beta[:, i]) < self._hit_miss_thres:
                             tracks[tar[i]]._coast()
                         else:
-                            tracks[tar[i]]._assign(beta[:, i], *detection[meas])
+                            zs, Rs = detection[meas]
+                            probs = beta[:, i]
+                            tracks[tar[i]]._assign(zs, probs, Rs)
 
                     # find the measurements that association probability lower than init_threshold
-                    # and initialize the track later using these measurements
+                    # and initialize the tracks respectively later using these measurements
                     for j in range(beta.shape[0]):
                         if np.all(beta[j] < self._init_thres):
                             unasg_meas.append(meas[j])
                 else:
                     tracks[tar[0]]._coast()     # the cluster of tracks without measurement only has one track
 
-            # update confirmed list and tentative list
+            # update confirmed and tentative list
             self._conf_tracks = [t for t in tracks if t._confirmed() and not t._detached()]
             self._tent_tracks = [t for t in tracks if not t._confirmed() and not t._detached()]
 

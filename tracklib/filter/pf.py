@@ -126,7 +126,7 @@ class SIRPFilter(FilterBase):
         self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov
-    
+
     def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')

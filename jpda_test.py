@@ -48,7 +48,7 @@ def JPDATracker_test():
     gate = 45
     lamb = 1e-6 / 1e9
     pd = 0.8
-    init_thres = 0.0
+    init_thres = 0.2
     his_miss_thres = 0.2
 
     # initialize the tracker
@@ -151,7 +151,7 @@ def IMM_JPDATracker_test():
     model_cls.append(ft.EKFilterAN)
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 1})       # do not use second-order EKF
 
     # generator
     ft_gen = tk.JPDAFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
@@ -170,7 +170,7 @@ def IMM_JPDATracker_test():
     gate = 45
     lamb = 1e-6 / 1e9
     pd = 0.8
-    init_thres = 0.0
+    init_thres = 0.2
     his_miss_thres = 0.2
 
     # initialize the tracker
@@ -247,4 +247,4 @@ def IMM_JPDATracker_test():
 
 if __name__ == '__main__':
     JPDATracker_test()
-    # IMM_JPDATracker_test()
+    IMM_JPDATracker_test()

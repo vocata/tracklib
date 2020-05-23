@@ -115,7 +115,7 @@ class EKFilterAN(FilterBase):
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
-        if self._order == 2:
+        if self._order == 2:    # not suitable for GNN
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
@@ -144,6 +144,68 @@ class EKFilterAN(FilterBase):
 
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
+            self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
+
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
+        Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
+
+        prior_state = self._state
+        prior_cov = self._cov
+
+        H = self._hjac(prior_state)
+        z_pred = self._h(prior_state)
+        if self._order == 2:    # not suitable for JPDA
+            HH = self._hhes(prior_state)
+            quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        
+        state_item = 0
+        cov_item1 = cov_item2 = 0
+        for i in range(z_len):
+            S = H @ prior_cov @ H.T + Ms[i] @ Rs[i] @ Ms[i].T
+            S = (S + S.T) / 2
+            K = prior_cov @ H.T @ lg.inv(S)
+
+            innov = zs[i] - z_pred
+            incre = np.dot(K, innov)
+            state_item += probs[i] * incre
+            cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
+            cov_item2 += probs[i] * np.outer(incre, incre)
+
+        self._state = prior_state + state_item
+        self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
+        self._cov = (self._cov + self._cov.T) / 2
+
+        for _ in range(self._it):
+            H = self._hjac(self._state)
+            z_pred = self._h(self._state) + H @ (prior_state - self._state)
+            if self._order == 2:
+                HH = self._hhes(self._state)
+                quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+                z_pred += quad / 2
+            
+            state_item = 0
+            cov_item1 = cov_item2 = 0
+            for i in range(z_len):
+                S = H @ prior_cov @ H.T + Ms[i] @ Rs[i] @ Ms[i].T
+                S = (S + S.T) / 2
+                K = prior_cov @ H.T @ lg.inv(S)
+
+                innov = zs[i] - z_pred
+                incre = np.dot(K, innov)
+                state_item += probs[i] * incre
+                cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
+                cov_item2 += probs[i] * np.outer(incre, incre)
+            
+            self._state = prior_state + state_item
+            self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov
@@ -317,6 +379,67 @@ class EKFilterNAN(FilterBase):
 
             self._state = prior_state + K @ innov
             self._cov = prior_cov - K @ S @ K.T
+            self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov
+
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
+
+        prior_state = self._state
+        prior_cov = self._cov
+
+        H, M = self._hjac(prior_state, np.zeros(self._vdim))
+        z_pred = self._h(prior_state, np.zeros(self._vdim))
+        if self._order == 2:    # not suitable for JPDA
+            HH = self._hhes(prior_state, np.zeros(self._vdim))
+            quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
+            z_pred += quad / 2
+        
+        state_item = 0
+        cov_item1 = cov_item2 = 0
+        for i in range(z_len):
+            S = H @ prior_cov @ H.T + M @ Rs[i] @ M.T
+            S = (S + S.T) / 2
+            K = prior_cov @ H.T @ lg.inv(S)
+
+            innov = zs[i] - z_pred
+            incre = np.dot(K, innov)
+            state_item += probs[i] * incre
+            cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
+            cov_item2 += probs[i] * np.outer(incre, incre)
+
+        self._state = prior_state + state_item
+        self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
+        self._cov = (self._cov + self._cov.T) / 2
+
+        for _ in range(self._it):
+            H, M = self._hjac(self._state, np.zeros(self._vdim))
+            z_pred = self._h(self._state, np.zeros(self._vdim)) + H @ (prior_state - self._state)
+            if self._order == 2:
+                HH = self._hhes(self._state, np.zeros(self._vdim))
+                quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
+                z_pred += quad / 2
+            
+            state_item = 0
+            cov_item1 = cov_item2 = 0
+            for i in range(z_len):
+                S = H @ prior_cov @ H.T + M @ Rs[i] @ M.T
+                S = (S + S.T) / 2
+                K = prior_cov @ H.T @ lg.inv(S)
+
+                innov = zs[i] - z_pred
+                incre = np.dot(K, innov)
+                state_item += probs[i] * incre
+                cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
+                cov_item2 += probs[i] * np.outer(incre, incre)
+            
+            self._state = prior_state + state_item
+            self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov

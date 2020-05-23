@@ -97,16 +97,17 @@ class KFilter(FilterBase):
 
         return self._state, self._cov
 
-    def correct_JPDA(self, probs, zs, **kwargs):
-        z_len = len(zs)
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
 
+        z_len = len(zs)
         Hs = kwargs['H'] if 'H' in kwargs else [self._H] * z_len
         Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
         Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
 
-        state_item = 0.0
-        cov_item1, cov_item2 = 0.0, 0.0
-        
+        state_item = 0
+        cov_item1 = cov_item2 = 0
         for i in range(z_len):
             S = Hs[i] @ self._cov @ Hs[i].T + Ms[i] @ Rs[i] @ Ms[i].T
             S = (S + S.T) / 2
@@ -115,11 +116,11 @@ class KFilter(FilterBase):
             innov = zs[i] - Hs[i] @ self._state
             incre = np.dot(K, innov)
             state_item += probs[i] * incre
-            cov_item1 += probs[i] * self._cov - K @ S @ K.T
+            cov_item1 += probs[i] * (self._cov - K @ S @ K.T)
             cov_item2 += probs[i] * np.outer(incre, incre)
 
         self._state = self._state + state_item
-        self._cov = (1 - np.sum(probs)) * self._cov + cov_item1 - (cov_item2 - np.outer(state_item, state_item))
+        self._cov = (1 - np.sum(probs)) * self._cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
         self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov

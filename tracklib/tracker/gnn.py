@@ -200,7 +200,7 @@ class GNNTracker():
             for ti in unasg_tk:
                 tracks[ti]._coast()
 
-            # update confirmed list and tentative list
+            # update confirmed and tentative list
             self._conf_tracks = [t for t in tracks if t._confirmed() and not t._detached()]
             self._tent_tracks = [t for t in tracks if not t._confirmed() and not t._detached()]
 
