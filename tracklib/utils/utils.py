@@ -5,12 +5,13 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'cholcov', 'multi_normal', 'disc_random'
+    'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope', 'Pair'
 ]
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 
 
 def is_matrix(x):
@@ -42,14 +43,12 @@ def col(x, *args, dtype=float, **kw):
     Converts numbers or iterable objects to column vectors
     and sets the data type to 'float' default.
     '''
-    if isinstance(x, int) or isinstance(x, float):
+    if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((-1, 1))
-    elif isinstance(x, Iterator):
-        x = np.array(list(x), *args, dtype=dtype, **kw).reshape((-1, 1))
     elif isinstance(x, Iterable):
-        x = np.array(x, *args, dtype=dtype, **kw).reshape((-1, 1))
+        x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((-1, 1))
     else:
-        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
+        raise TypeError('x must be a real number or iterable, not `%s`' % x.__class__.__name__)
     return x
 
 
@@ -58,14 +57,12 @@ def row(x, *args, dtype=float, **kw):
     Converts numbers or iterable objects to row vectors
     and sets the data type to 'float' default.
     '''
-    if isinstance(x, int) or isinstance(x, float):
+    if isinstance(x, numbers.Number):
         x = np.array([x], *args, dtype=dtype, **kw).reshape((1, -1))
-    elif isinstance(x, Iterator):
-        x = np.array(list(x), *args, dtype=dtype, **kw).reshape((1, -1))
     elif isinstance(x, Iterable):
-        x = np.array(x, *args, dtype=dtype, **kw).reshape((1, -1))
+        x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((1, -1))
     else:
-        raise TypeError('parametes must be real number or iterable, not %s', x.__class__.__name__)
+        raise TypeError('x must be real number or iterable, not `%s`' % x.__class__.__name__)
     return x
 
 
@@ -167,7 +164,7 @@ def multi_normal(mean, cov, Ns=1, axis=0):
     '''
 
     dim = cov.shape[0]
-    if isinstance(mean, int):
+    if isinstance(mean, numbers.Number):
         mean = np.full(dim, mean, dtype=float)
     D = cholcov(cov, lower=True)
     if Ns == 1:
@@ -240,3 +237,18 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
         raise ValueError('unknown algorithem: %s' % alg)
 
     return rv, index
+
+
+class Scope():
+    def __init__(self, value_min, value_max):
+        assert (value_min <= value_max)
+        self._min = value_min
+        self._max = value_max
+
+    def within(self, value):
+        return self._min <= value <= self._max
+
+
+class Pair(tuple):
+    def __new__(cls, value1, value2):
+        return super().__new__(cls, (value1, value2))

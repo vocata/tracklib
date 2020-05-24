@@ -8,10 +8,12 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'two_point_diff_init', 'biased_three_point_diff_init',
-    'unbiased_three_point_diff_init', 'cv_init', 'ca_init'
+    'unbiased_three_point_diff_init', 'cp_init', 'cv_init', 'ca_init'
 ]
 
+import numbers
 import numpy as np
+from collections.abc import Iterable
 
 
 def __swap(state, cov, order):
@@ -47,12 +49,12 @@ def two_point_diff_init(z1, z2, R1, R2, T, q=None):
     discretized continuous-time linear dynamic model
     '''
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
     if q is not None:
-        if isinstance(q, (int, float)):
+        if isinstance(q, numbers.Number):
             q = [q] * zdim
     else:
         q = [0] * zdim
@@ -70,11 +72,11 @@ def two_point_diff_init(z1, z2, R1, R2, T, q=None):
 
 def biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T):
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
-    if isinstance(R3, (int, float)):
+    if isinstance(R3, numbers.Number):
         R3 = np.diag([R3] * zdim)
 
     state = np.zeros(3 * zdim)
@@ -100,14 +102,14 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
     discretized continuous-time linear dynamic model
     '''
     zdim = len(z1)
-    if isinstance(R1, (int, float)):
+    if isinstance(R1, numbers.Number):
         R1 = np.diag([R1] * zdim)
-    if isinstance(R2, (int, float)):
+    if isinstance(R2, numbers.Number):
         R2 = np.diag([R2] * zdim)
-    if isinstance(R3, (int, float)):
+    if isinstance(R3, numbers.Number):
         R3 = np.diag([R3] * zdim)
     if q is not None:
-        if isinstance(q, (int, float)):
+        if isinstance(q, numbers.Number):
             q = [q] * zdim
     else:
         q = [0] * zdim
@@ -134,13 +136,18 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)
 # print(state, cov, sep='\n\n')
 
+def cp_init(z, R):
+    return z, R
+
 
 def cv_init(z, R, vmax=100):
     dim = len(z)
-    if isinstance(vmax, (int, float)):
+    if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
+    elif isinstance(vmax, Iterable):
+        vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        vvar = np.array(vmax, dtype=float)**2 / 3
+        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0]))
@@ -156,14 +163,18 @@ def cv_init(z, R, vmax=100):
 
 def ca_init(z, R, vmax=100, amax=10):
     dim = len(z)
-    if isinstance(vmax, (int, float)):
+    if isinstance(vmax, numbers.Number):
         vvar = np.full(dim, vmax**2 / 3, dtype=float)
+    elif isinstance(vmax, Iterable):
+        vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        vvar = np.array(vmax, dtype=float)**2 / 3
-    if isinstance(amax, (int, float)):
+        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
+    if isinstance(amax, numbers.Number):
         avar = np.full(dim, amax**2 / 3, dtype=float)
+    elif isinstance(amax, Iterable):
+        avar = np.array(tuple(amax), dtype=float)**2 / 3
     else:
-        avar = np.array(amax, dtype=float)**2 / 3
+        raise TypeError('amax can not be the type: `%s`' % amax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))

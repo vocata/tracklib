@@ -10,8 +10,10 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['IMMFilter']
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
+from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch
 
@@ -20,7 +22,7 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, trans_mat=0.999, switch_fcn=model_switch):
+    def __init__(self, model_cls, model_types, init_args, init_kwargs, trans_mat=0.999, model_probs=None, switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
@@ -32,7 +34,7 @@ class IMMFilter(FilterBase):
             self._probs = model_probs
         if self._models_n == 1:
             self._trans_mat = np.eye(1)
-        elif isinstance(trans_mat, (int, float)):
+        elif isinstance(trans_mat, numbers.Number):
             other_probs = (1 - trans_mat) / (self._models_n - 1)
             self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
             np.fill_diagonal(self._trans_mat, trans_mat)
@@ -61,9 +63,14 @@ class IMMFilter(FilterBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._models_n:
-            raise IndexError('index out of range')
-        return self._models[n], self._probs[n]
+        if isinstance(n, numbers.Integral):
+            return self._models[n], self._probs[n]
+        elif isinstance(n, Iterable):
+            m = [self._models[i] for i in n]
+            p = [self._probs[i] for i in n]
+            return m, p
+        else:
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -159,6 +166,8 @@ class IMMFilter(FilterBase):
         # update prior state and covariance
         self.__update()
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -172,6 +181,34 @@ class IMMFilter(FilterBase):
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance
         self.__update()
+
+        return self._state, self._cov
+
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        kwargs_list = [{}] * z_len
+        # group the keyword arguments
+        for key, value in kwargs.items():
+            for vi in range(z_len):
+                kwargs_list[vi][key] = value[vi]
+
+        pdfs = np.zeros((self._models_n, z_len))
+        for i in range(self._models_n):
+            for j in range(z_len):
+                pdfs[i, j] = self._models[i].likelihood(zs[j], **kwargs_list[j])
+            self._models[i].correct_JPDA(zs, probs, **kwargs)
+        
+        # posterior model probability P(M(k)|Z^k)
+        pdf = np.dot(pdfs, probs) + (1 - np.sum(probs))     # ??
+        self._probs *= pdf
+        self._probs /= np.sum(self._probs)
+        # update posterior state and covariance
+        self.__update()
+
+        return self._state, self._cov
 
     def distance(self, z, **kwargs):
         if self._init == False:

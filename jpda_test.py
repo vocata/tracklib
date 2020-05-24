@@ -11,7 +11,7 @@ import tracklib.tracker as tk
 import matplotlib.pyplot as plt
 
 
-def GNNTracker_test():
+def JPDATracker_test():
     # load data
     with open('traj.dat', 'rb') as f:
         traj = pic.load(f)
@@ -32,23 +32,27 @@ def GNNTracker_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
+    ft_gen = tk.JPDAFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
     # initializer
     vmax = 1200e3/3600        # 1200km/h, vmax is used to initialize state covariance
     vxmax = vymax = vmax
     vzmax = 10
-    ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
+    ft_init = tk.JPDAFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
 
     # logic
-    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
+    lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
     # the normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
+    # so the threshold is higher than that without penalty term
     gate = 45
+    lamb = 1e-6 / 1e9
+    pd = 0.8
+    init_thres = 0.2
+    his_miss_thres = 0.2
 
     # initialize the tracker
-    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, lamb, pd, init_thres, his_miss_thres)
 
     state_history = {}
 
@@ -95,13 +99,13 @@ def GNNTracker_test():
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
     ax.axis('equal'), ax.grid(), ax.legend()
-    ax.set_title('CV-GNN')
+    ax.set_title('CV-JPDA')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     plt.show()
 
 
-def IMM_GNNTracker_test():
+def IMM_JPDATracker_test():
     # load data
     with open('traj.dat', 'rb') as f:
         traj = pic.load(f)
@@ -147,26 +151,30 @@ def IMM_GNNTracker_test():
     model_cls.append(ft.EKFilterAN)
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 1})       # do not use second-order EKF
 
     # generator
-    ft_gen = tk.GNNFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
+    ft_gen = tk.JPDAFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
 
     # initializer
     vmax = 1200e3/3600        # 1200km/h, vmax is used to initialize state covariance
     vxmax = vymax = vmax
     vzmax = 10
-    ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
+    ft_init = tk.JPDAFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
 
     # logic
-    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
+    lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
     # The normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
+    # so the threshold is higher than that without penalty term
     gate = 45
+    lamb = 1e-6 / 1e9
+    pd = 0.8
+    init_thres = 0.2
+    his_miss_thres = 0.2
 
     # initialize the tracker
-    tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, lamb, pd, init_thres, his_miss_thres)
 
     state_history = {}
     prob_history = {}
@@ -216,7 +224,7 @@ def IMM_GNNTracker_test():
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
     ax.axis('equal'), ax.grid(), ax.legend()
-    ax.set_title('IMM-GNN')
+    ax.set_title('IMM-JPDA')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     plt.show()
@@ -238,5 +246,5 @@ def IMM_GNNTracker_test():
 
 
 if __name__ == '__main__':
-    GNNTracker_test()
-    IMM_GNNTracker_test()
+    JPDATracker_test()
+    IMM_JPDATracker_test()

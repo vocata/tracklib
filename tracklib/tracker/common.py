@@ -7,23 +7,10 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['HistoryLogic', 'ScoreLogic', 'Detection']
 
+import numbers
 import numpy as np
-import scipy.optimize as op
 import tracklib as tlb
-
-
-def bin_count(x):
-    '''
-    hamming weight
-    '''
-    x = int(x)
-    if x < 0:
-        raise ValueError('x must be a positive integer')
-    sum = 0
-    while x > 0:
-        sum += x & 1
-        x = x >> 1
-    return sum
+from collections.abc import Iterable
 
 
 class HistoryLogic():
@@ -57,12 +44,20 @@ class ScoreLogic():
 
 class Detection():
     def __init__(self, meas, cov):
-        if not isinstance(meas, list):
-            raise ValueError('data must be a list')
-        if not isinstance(cov, list):
-            raise ValueError('covmust be a list')
-        self._meas = meas
-        self._cov = cov
+        if isinstance(meas, np.ndarray):
+            self._meas = (meas,)
+        elif isinstance(meas, Iterable):
+            self._meas = tuple(meas)
+        else:
+            raise TypeError('meas can not be the type: `%s`' % meas.__class__.__name__)
+        if isinstance(cov, np.ndarray):
+            self._cov = (cov,)
+        elif isinstance(cov, Iterable):
+            self._cov = tuple(cov)
+        else:
+            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
+        if len(meas) != len(cov):
+            raise ValueError('the lengths of meas and cov must be the same')
         self._len = len(meas)
 
     def __iter__(self):
@@ -70,9 +65,14 @@ class Detection():
         return it
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._len:
-            raise IndexError('index out of range')
-        return self._meas[n], self._cov[n]
+        if isinstance(n, numbers.Integral):
+            return self._meas[n], self._cov[n]
+        elif isinstance(n, Iterable):
+            m = [self._meas[i] for i in n]
+            c = [self._cov[i] for i in n]
+            return m, c
+        else:
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __len__(self):
         return self._len

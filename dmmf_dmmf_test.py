@@ -7,6 +7,7 @@ import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
+from tracklib import Scope, Pair
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -21,7 +22,7 @@ def DMMF_DMMF_test():
 
     # generate trajectory
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory2D(T, start)
+    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0.3)])
     stages = []
     stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
     stages.append({'model': 'ct', 'len': 200, 'omega': -8})
@@ -29,10 +30,10 @@ def DMMF_DMMF_test():
     stages.append({'model': 'ct', 'len': 200, 'omega': 5})
     stages.append({'model': 'cv', 'len': 200, 'vel': 50})
     stages.append({'model': 'ca', 'len': 200, 'acc': 3})
-    traj.add_stage(stages)
-    traj.show_traj()
     R = np.eye(3)
-    traj_real, traj_meas = traj(R)
+    traj.add_stage(stages, R)
+    traj.show_traj()
+    traj_real, traj_meas = traj()
     N = len(traj)
 
     model_cls1 = []
@@ -84,16 +85,16 @@ def DMMF_DMMF_test():
     ct_xdim, ct_zdim = 7, 3
     sigma_w = np.sqrt(1.0)
     sigma_v = np.sqrt(1.0)
-    f = model.f_ct2D(axis, T)
-    fjac = model.f_ct2D_jac(axis, T)
+    f = model.f_ct(axis, T)
+    fjac = model.f_ct_jac(axis, T)
     L = np.eye(ct_xdim)
-    h = model.h_ct2D(axis)
-    hjac = model.h_ct2D_jac(axis)
+    h = model.h_ct(axis)
+    hjac = model.h_ct_jac(axis)
     M = np.eye(ct_zdim)
-    Q = model.Q_ct2D(axis, T, sigma_w)
-    R = model.R_ct2D(axis, sigma_v)
+    Q = model.Q_ct(axis, T, sigma_w)
+    R = model.R_ct(axis, sigma_v)
     model_cls2.append(ft.EKFilterAN)
-    model_types2.append('ct2D')
+    model_types2.append('ct')
     init_args2.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs2.append({'fjac': fjac, 'hjac': hjac})
 
@@ -113,7 +114,9 @@ def DMMF_DMMF_test():
     dmmf_prob_arr[:, 0] = dmmf.probs()
     for n in range(1, N):
         dmmf.predict()
-        dmmf.correct(traj_meas[:, n])
+        z = traj_meas[:, n]
+        if not np.any(np.isnan(z)):
+            dmmf.correct(z)
 
         post_state_arr[:, n] = dmmf.state
         dmmf_prob_arr[:, n] = dmmf.probs()
@@ -123,7 +126,6 @@ def DMMF_DMMF_test():
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    # ax.axis('equal')
     ax.scatter(traj_real[0, 0], traj_real[1, 0], traj_real[2, 0], s=50, c='r', marker='x', label='start')
     ax.plot(traj_real[0, :], traj_real[1, :], traj_real[2, :], linewidth=0.8, label='real')
     ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')
@@ -137,7 +139,7 @@ def DMMF_DMMF_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     n = np.arange(N)
-    labels = ['hybrid', 'ct2D']
+    labels = ['hybrid', 'ct']
     for i in range(r):
         ax.plot(n, dmmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')

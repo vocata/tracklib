@@ -15,8 +15,10 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = ['MMFilter']
 
+import numbers
 import numpy as np
 import scipy.linalg as lg
+from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch
 
@@ -58,9 +60,14 @@ class MMFilter(FilterBase):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if n < 0 or n >= self._models_n:
-            raise IndexError('index out of range')
-        return self._models[n], self._probs[n]
+        if isinstance(n, numbers.Integral):
+            return self._models[n], self._probs[n]
+        elif isinstance(n, Iterable):
+            m = [self._models[i] for i in n]
+            p = [self._probs[i] for i in n]
+            return m, p
+        else:
+            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -100,9 +107,17 @@ class MMFilter(FilterBase):
         if self._models_n == 0:
             raise RuntimeError('models must be added before calling init')
         if isinstance(state, np.ndarray):
-            state = [state] * self._models_n
+            state = (state,) * self._models_n
+        elif isinstance(state, Iterable):
+            state = tuple(state)
+        else:
+            raise TypeError('state can not be the type: `%s`' % state.__class__.__name__)
         if isinstance(cov, np.ndarray):
-            cov = [cov] * self._models_n
+            cov = (cov,) * self._models_n
+        elif isinstance(cov, Iterable):
+            cov = tuple(cov)
+        else:
+            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
 
         for i in range(self._models_n):
             x = self._switch_fcn(state[i], self._types[0], self._types[i])
@@ -129,6 +144,8 @@ class MMFilter(FilterBase):
         # update prior state and covariance
         self.__update()
 
+        return self._state, self._cov
+
     def correct(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
@@ -139,6 +156,32 @@ class MMFilter(FilterBase):
             pdf[i] = self._models[i].likelihood(z, **kwargs)
             self._models[i].correct(z, **kwargs)
         # update model probability
+        self._probs *= pdf
+        self._probs /= np.sum(self._probs)
+        # update posterior state and covariance
+        self.__update()
+
+        return self._state, self._cov
+
+    def correct_JPDA(self, zs, probs, **kwargs):
+        if self._init == False:
+            raise RuntimeError('the filter must be initialized with init() before use')
+
+        z_len = len(zs)
+        kwargs_list = [{}] * z_len
+        # group the keyword arugments
+        for key, value in kwargs.items():
+            for vi in range(z_len):
+                kwargs_list[vi][key] = value[vi]
+
+        pdfs = np.zeros((self._models_n, z_len))
+        for i in range(self._models_n):
+            for j in range(z_len):
+                pdfs[i, j] = self._models[i].likelihood(zs[j], **kwargs_list[j])
+            self._models[i].correct_JPDA(zs, probs, **kwargs)
+
+        # posterior model probability P(M(k)|Z^k)
+        pdf = np.dot(pdfs, probs) + (1 - np.sum(probs))
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
         # update posterior state and covariance

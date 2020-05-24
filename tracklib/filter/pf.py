@@ -77,7 +77,7 @@ class SIRPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k-1)+w_k-1|z_1:k] = E[f(x_k-1)|z_1:k] = Σf(x_k-1^i)*w^i
+        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -91,6 +91,8 @@ class SIRPFilter(FilterBase):
         proc_noi = multi_normal(0, Q_tilde, self._Ns, axis=0)
         for i in range(self._Ns):
             self._samples[i] = f_map[i] + proc_noi[i]
+
+        return self._state, self._cov
 
     def correct(self, z, **kwargs):
         if self._init == False:
@@ -122,16 +124,17 @@ class SIRPFilter(FilterBase):
             err = self._samples[i] - self._state
             self._cov += self._weights[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
-    
+
+        return self._state, self._cov
+
     def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -149,11 +152,10 @@ class SIRPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -224,7 +226,7 @@ class RPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k-1)+w_k-1|z_1:k] = E[f(x_k-1)|z_1:k] = Σf(x_k-1^i)*w^i
+        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -238,6 +240,8 @@ class RPFilter(FilterBase):
         proc_noi = multi_normal(0, Q_tilde, self._Ns, axis=0)
         for i in range(self._Ns):
             self._samples[i] = f_map[i] + proc_noi[i]
+
+        return self._state, self._cov
 
     def correct(self, z, **kwargs):
         if self._init == False:
@@ -270,15 +274,16 @@ class RPFilter(FilterBase):
             self._cov += self._weights[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
 
+        return self._state, self._cov
+
     def distance(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
@@ -296,11 +301,10 @@ class RPFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('the filter must be initialized with init() before use')
 
-        if len(kwargs) > 0:
-            if 'M' in kwargs: self._M[:] = kwargs['M']
-            if 'R' in kwargs: self._R[:] = kwargs['R']
+        M = kwargs['M'] if 'M' in kwargs else self._M
+        R = kwargs['R'] if 'R' in kwargs else self._R
 
-        R_tilde = self._M @ self._R @ self._M.T
+        R_tilde = M @ R @ M.T
         h_map = [self._h(self._samples[i]) for i in range(self._Ns)]
         z_pred = np.dot(self._weights, h_map)
         innov = z - z_pred
