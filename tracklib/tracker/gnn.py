@@ -149,7 +149,8 @@ class GNNTracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        if len(self._tent_tracks) + len(self._conf_tracks) == 0:
+        tracks = self._tent_tracks + self._conf_tracks
+        if len(tracks) == 0:
             for z, R in detection:
                 # generate new filter
                 ft = self._ft_gen()
@@ -162,9 +163,6 @@ class GNNTracker():
                 # add new track into tentative tracks list
                 self._tent_tracks.append(track)
         else:
-            # get all tracks
-            tracks = self._tent_tracks + self._conf_tracks
-
             # predict all tracks
             for track in tracks:
                 track._predict()
@@ -179,9 +177,9 @@ class GNNTracker():
             np.fill_diagonal(virt_det, self._gate / 2)
             cost_zero = np.zeros((meas_num, track_num))
             for ti in range(track_num):
-                for di in range(meas_num):
-                    z, R = detection[di]
-                    cost_main[ti, di] = tracks[ti]._distance(z, R)
+                for mi in range(meas_num):
+                    z, R = detection[mi]
+                    cost_main[ti, mi] = tracks[ti]._distance(z, R)
             cost_mat = np.block([[cost_main, virt_det], [virt_track, cost_zero]])
 
             # find best assignment
@@ -201,8 +199,17 @@ class GNNTracker():
                 tracks[ti]._coast()
 
             # update confirmed and tentative list
-            self._conf_tracks = [t for t in tracks if t._confirmed() and not t._detached()]
-            self._tent_tracks = [t for t in tracks if not t._confirmed() and not t._detached()]
+            conf_tracks = []
+            tent_tracks = []
+            for t in self._conf_tracks:
+                if not t._detached():
+                    conf_tracks.append(t)
+            for t in self._tent_tracks:
+                if not t._detached():
+                    if t._confirmed():
+                        conf_tracks.append(t)
+                    else:
+                        tent_tracks.append(t)
 
             # form new tentative tracks using unassigned measurements
             for mi in unasg_meas:
@@ -211,6 +218,8 @@ class GNNTracker():
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
                 track = GNNTrack(ft, lgc)
-                self._tent_tracks.append(track)
+                tent_tracks.append(track)
+            self._conf_tracks = conf_tracks
+            self._tent_tracks = tent_tracks
 
         self._len += 1

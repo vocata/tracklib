@@ -23,7 +23,7 @@ matplotlib
 
 - tracker
     1. GNN
-    2. JPDA
+    2. JPDA (only support KF, EKF, UKF, MMF and IMMF)
     3. CPDA
     4. JIPDA
     5. MHT

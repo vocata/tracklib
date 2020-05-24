@@ -69,8 +69,6 @@ def UKFilter_test():
         ukf.predict()
         prior_state_arr[:, n] = ukf.state
         prior_cov_arr[:, :, n] = ukf.cov
-        ukf.likelihood(z)
-        ukf.distance(z)
 
         ukf.correct(z)
         post_state_arr[:, n] = ukf.state

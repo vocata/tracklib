@@ -14,7 +14,7 @@ def main():
     #                       [1, 1, 1, 1, 0, 1, 1, 1]])
     # valid_mat = np.array([[1, 1, 0, 0, 0, 0], [0, 0, 0, 1, 1, 0],
     #                       [0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1]])
-    valid_mat = np.array([[1, 1, 1], [1, 1, 1]], dtype=bool)
+    valid_mat = np.array([[1, 1, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]], dtype=bool)
     start = time.time()
     events_set = JPDA_events(valid_mat)
     end = time.time()

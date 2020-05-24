@@ -224,7 +224,8 @@ class JPDATracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        if len(self._tent_tracks) + len(self._conf_tracks) == 0:
+        tracks = self._tent_tracks + self._conf_tracks
+        if len(tracks) == 0:
             for z, R in detection:
                 ft = self._ft_gen()
                 self._ft_init(ft, z, R)
@@ -232,23 +233,26 @@ class JPDATracker():
                 track = JPDATrack(ft, lgc)
                 self._tent_tracks.append(track)
         else:
-            tracks = self._tent_tracks + self._conf_tracks
-
+            # predict all tracks
             for track in tracks:
                 track._predict()
 
             # form the validation matrix, row means the target and column represents the measurement
+            unasg_meas = []
             track_num = len(tracks)
             meas_num = len(detection)
             valid_mat = np.zeros((meas_num, track_num), dtype=bool)
-            for di in range(meas_num):
+            for mi in range(meas_num):
+                all_zero = True
                 for ti in range(track_num):
-                    z, R = detection[di]
-                    if tracks[ti]._distance(z, R) <= self._gate:
-                        valid_mat[di, ti] = True
+                    z, R = detection[mi]
+                    if tracks[ti]._distance(z, R) < self._gate:
+                        valid_mat[mi, ti] = True
+                        all_zero = False
+                if all_zero:
+                    unasg_meas.append(mi)
 
             # divide into some clusters and coast the targets without measurement
-            unasg_meas = []
             tar_list, meas_list = JPDA_clusters(valid_mat)
             for tar, meas in zip(tar_list, meas_list):      # traverse the clusters
                 tmp_mat = valid_mat[meas][:, tar]
@@ -302,8 +306,17 @@ class JPDATracker():
                     tracks[tar[0]]._coast()     # the cluster of tracks without measurement only has one track
 
             # update confirmed and tentative list
-            self._conf_tracks = [t for t in tracks if t._confirmed() and not t._detached()]
-            self._tent_tracks = [t for t in tracks if not t._confirmed() and not t._detached()]
+            conf_tracks = []
+            tent_tracks = []
+            for t in self._conf_tracks:
+                if not t._detached():
+                    conf_tracks.append(t)
+            for t in self._tent_tracks:
+                if not t._detached():
+                    if t._confirmed():
+                        conf_tracks.append(t)
+                    else:
+                        tent_tracks.append(t)
 
             # form new tentative tracks using meas_init_flag
             for mi in unasg_meas:
@@ -312,4 +325,6 @@ class JPDATracker():
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
                 track = JPDATrack(ft, lgc)
-                self._tent_tracks.append(track)
+                tent_tracks.append(track)
+            self._conf_tracks = conf_tracks
+            self._tent_tracks = tent_tracks
