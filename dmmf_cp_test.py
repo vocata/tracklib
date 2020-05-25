@@ -17,7 +17,7 @@ def test():
     # generate trajectory
     np.random.seed(2020)
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd=[Pair(Scope(-30, 30), 0.3)])
+    traj = model.Trajectory(T, start=start, pd=[(Scope(-30, 30), 0.3)])
     stages = []
     stages.append({'model': 'cp', 'len': 300, 'pos': [0, 0, 0]})
     stages.append({'model': 'cv', 'len': 300, 'vel': [20, 0, 1]})

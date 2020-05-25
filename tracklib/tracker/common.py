@@ -5,7 +5,7 @@ REFERENCES:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['HistoryLogic', 'ScoreLogic', 'Detection']
+__all__ = ['HistoryLogic', 'ScoreLogic', 'Detection', 'TrackCounter']
 
 import numbers
 import numpy as np
@@ -20,26 +20,67 @@ class HistoryLogic():
         self._d_M = delete_M
         self._d_N = delete_N
         max_N = max(confirm_N, delete_N)
-        self._flag = np.zeros(max_N, dtype=np.bool)
-        self._flag[0] = True
+        self._history = np.zeros(max_N, dtype=np.bool)
+        self._history[0] = True
 
     def hit(self):
-        self._flag[1:] = self._flag[:-1]
-        self._flag[0] = True
+        self._history[1:] = self._history[:-1]
+        self._history[0] = True
 
     def miss(self):
-        self._flag[1:] = self._flag[:-1]
-        self._flag[0] = False
+        self._history[1:] = self._history[:-1]
+        self._history[0] = False
 
     def confirmed(self):
-        return np.sum(self._flag[:self._c_N] == True) >= self._c_M
+        return np.sum(self._history[:self._c_N] == True) >= self._c_M
 
-    def detached(self):
-        return np.sum(self._flag[:self._d_N] == False) >= self._d_M
+    def detached(self, has_confirmed, age):
+        if has_confirmed:
+            if age > self._d_N:
+                ret = np.sum(self._history[:self._d_N] == False) >= self._d_M
+            else:
+                ret = np.sum(self._history[:age] == False) >= self._d_M
+        else:       # delete the track can not be confirmed
+            left = self._c_N - age
+            need = self._c_M - np.sum(self._history[:self._c_N] == True)
+            ret = need > left
+        return ret
 
 
 class ScoreLogic():
-    pass
+    def __init__(self,
+                 confirm_score,
+                 delete_score,
+                 max_score,
+                 volume=1,
+                 beta=1,
+                 pd=0.9,
+                 pfa=1e-6):
+        '''
+        Parameters
+        ----------
+        confirm_score : number
+            Confirmation threshold, specified as a positive scalar. If the logic score is above
+            this threshold, then the track is confirmed.
+        delete_score : number
+            Deletion threshold, specified as a negative scalar. If the value of current Score minus
+            max_score is more negative than the deletion threshold, then the track is deleted.
+        max_score : number
+            Maximum track logic score.
+        volume : number
+            Volume of sensor detection bin or of resolution cell. For example, a 2-D radar will have
+            a sensor bin volume of (azimuth resolution in radians) * (range) * (range resolution).
+        beta : number
+            Rate of new targets in unit volume.
+        pd : number
+            Probability of detection.
+        pfa : number
+            Probability of false alarm for a detection bin.
+        
+        Note
+        ----
+        The clutter density = pfa / volume, so the default clutter density is equal to pfa
+        '''
 
 
 class Detection():
@@ -76,7 +117,7 @@ class Detection():
 
     def __len__(self):
         return self._len
-    
+
     @property
     def meas(self):
         return self._meas
@@ -84,3 +125,14 @@ class Detection():
     @property
     def cov(self):
         return self._cov
+
+
+class TrackCounter():
+    def __init__(self):
+        self._track_id = 0
+
+    def increase(self):
+        self._track_id += 1
+
+    def count(self):
+        return self._track_id

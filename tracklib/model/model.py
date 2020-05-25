@@ -22,8 +22,8 @@ import scipy.linalg as lg
 import matplotlib.pyplot as plt
 from collections.abc import Iterable
 from mpl_toolkits import mplot3d
-from tracklib.utils import multi_normal
 from scipy.special import factorial
+from tracklib.utils import multi_normal
 
 
 def F_poly(order, axis, T):

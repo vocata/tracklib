@@ -44,7 +44,7 @@ def GNNTracker_test():
     lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
     # the normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
+    # so the gate is greater than one without penalty term
     gate = 45
 
     # initialize the tracker
@@ -88,9 +88,8 @@ def GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
@@ -162,7 +161,7 @@ def IMM_GNNTracker_test():
     lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
     # The normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
+    # so the gate is greater than one without penalty term
     gate = 45
 
     # initialize the tracker
@@ -209,9 +208,8 @@ def IMM_GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')

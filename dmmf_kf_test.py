@@ -6,7 +6,7 @@ import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-from tracklib import Scope, Pair
+from tracklib import Scope
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -21,7 +21,7 @@ def DMMF_test():
 
     # generate trajectory
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0.3)])
+    traj = model.Trajectory(T, start=start, pd=[(Scope(-30, 30), 0.3)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})

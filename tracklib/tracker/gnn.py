@@ -13,10 +13,10 @@ from .common import *
 
 
 class GNNTrack():
-    track_id = 0
-    def __init__(self, filter, logic):
+    def __init__(self, filter, logic, counter):
         self._ft = filter
         self._lgc = logic
+        self._ctr = counter
 
         self._id = -1
         self._age = 1
@@ -37,8 +37,8 @@ class GNNTrack():
 
         if not self._has_confirmed:
             if self._lgc.confirmed():
-                self._id = GNNTrack.track_id
-                GNNTrack.track_id += 1
+                self._id = self._ctr.count()
+                self._ctr.increase()
                 self._has_confirmed = True
         self._age += 1
 
@@ -58,10 +58,18 @@ class GNNTrack():
         return self._ft.likelihood(z, R=R)
 
     def _confirmed(self):
-        return self._lgc.confirmed()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.confirmed()
+        else:
+            # TODO other logic, such as score logic
+            pass
 
     def _detached(self):
-        return self._lgc.detached()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.detached(self._has_confirmed, self._age)
+        else:
+            # TODO other logic, such as score logic
+            pass
 
     def filter(self):
         return self._ft
@@ -120,27 +128,29 @@ class GNNLogicMaintainer():
 
 
 class GNNTracker():
-    def __init__(self, filter_generator, filter_initializer, logic_maintainer, gate, assignment=linear_sum_assignment):
+    def __init__(self,
+                 filter_generator,
+                 filter_initializer,
+                 logic_maintainer,
+                 gate=30,
+                 assignment=linear_sum_assignment):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
         self._asg_fcn = assignment
         self._gate = gate
 
+        self._ctr = TrackCounter()
         self._tent_tracks = []
         self._conf_tracks = []
 
         self._len = 0
 
-    def __del__(self):
-        # reset the id counter when tracker is destroyed
-        GNNTrack.track_id = 0
-
     def __len__(self):
         return self._len
 
     def history_tracks_num(self):
-        return GNNTrack.track_id
+        return self._ctr.count()
 
     def current_tracks_num(self):
         return len(self._conf_tracks)
@@ -159,7 +169,7 @@ class GNNTracker():
                 # obtain a new logic maintainer
                 lgc = self._lgc_main()
                 # form a new tentative track
-                track = GNNTrack(ft, lgc)
+                track = GNNTrack(ft, lgc, self._ctr)
                 # add new track into tentative tracks list
                 self._tent_tracks.append(track)
         else:
@@ -217,7 +227,7 @@ class GNNTracker():
                 z, R = detection[mi]
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
-                track = GNNTrack(ft, lgc)
+                track = GNNTrack(ft, lgc, self._ctr)
                 tent_tracks.append(track)
             self._conf_tracks = conf_tracks
             self._tent_tracks = tent_tracks
