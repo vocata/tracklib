@@ -17,15 +17,17 @@ def test():
     # generate trajectory
     np.random.seed(2020)
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd=[(Scope(-30, 30), 0.3)])
+    traj = model.Trajectory(T,
+                            np.eye(axis),
+                            start=start,
+                            pd=[(Scope(0, 30), 0.3), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cp', 'len': 300, 'pos': [0, 0, 0]})
     stages.append({'model': 'cv', 'len': 300, 'vel': [20, 0, 1]})
     stages.append({'model': 'ct', 'len': 300, 'omega': 10})
     stages.append({'model': 'ca', 'len': 300, 'acc': 3})
 
-    R = np.eye(3)
-    traj.add_stage(stages, R)
+    traj.add_stage(stages)
     traj.show_traj()
     traj_real, traj_meas = traj()
     N = len(traj)

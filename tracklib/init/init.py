@@ -147,7 +147,7 @@ def cv_init(z, R, vmax=100):
     elif isinstance(vmax, Iterable):
         vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
+        raise TypeError("error 'vmax' type: '%s'" % vmax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0]))
@@ -168,13 +168,13 @@ def ca_init(z, R, vmax=100, amax=10):
     elif isinstance(vmax, Iterable):
         vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
+        raise TypeError("error 'vmax' type: '%s'" % vmax.__class__.__name__)
     if isinstance(amax, numbers.Number):
         avar = np.full(dim, amax**2 / 3, dtype=float)
     elif isinstance(amax, Iterable):
         avar = np.array(tuple(amax), dtype=float)**2 / 3
     else:
-        raise TypeError('amax can not be the type: `%s`' % amax.__class__.__name__)
+        raise TypeError("error 'amax' type: '%s'" % amax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))

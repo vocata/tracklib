@@ -70,7 +70,7 @@ class IMMFilter(FilterBase):
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
+            raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -108,7 +108,7 @@ class IMMFilter(FilterBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('models must be added before calling init')
+            raise RuntimeError('no models')
 
         for i in range(self._models_n):
             x = self._switch_fcn(state, self._types[0], self._types[i])
@@ -120,7 +120,7 @@ class IMMFilter(FilterBase):
 
     def reset(self, state, cov):
         if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
+            raise RuntimeError('no models')
 
         for i in range(self._models_n):
             xi = self._switch_fcn(state, self._types[0], self._types[i])
@@ -129,7 +129,7 @@ class IMMFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         # mixing/interaction, the difference from the GPB1 and GPB2 is that merging
         # process (called mixing here) is carried out at the beginning of cycle.
@@ -170,7 +170,7 @@ class IMMFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
@@ -186,7 +186,7 @@ class IMMFilter(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         kwargs_list = [{}] * z_len
@@ -212,7 +212,7 @@ class IMMFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         d = 0
         for i in range(self._models_n):
@@ -222,7 +222,7 @@ class IMMFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         pdf = 0
         for i in range(self._models_n):

@@ -21,21 +21,16 @@ def DMMF_test():
 
     # generate trajectory
     start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd=[(Scope(-30, 30), 0.3)])
+    traj = model.Trajectory(T,
+                            np.eye(axis),
+                            start=start,
+                            pd=[(Scope(0, 30), 0.3), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
     stages.append({'model': 'ca', 'len': 333, 'acc': 3})
 
-    # stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': -8})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': 5})
-    # stages.append({'model': 'cv', 'len': 200, 'vel': 50})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': 3})
-
-    R = np.eye(3)
-    traj.add_stage(stages, R)
+    traj.add_stage(stages)
     traj.show_traj()
     traj_real, traj_meas = traj()
     N = len(traj)

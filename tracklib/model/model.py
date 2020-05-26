@@ -850,27 +850,28 @@ def model_switch(x, type_in, type_out):
             cov = cov_switch(x, type_in, type_out)
             return cov
         else:
-            raise ValueError('x must be a 1-D array or 2-D array')
+            raise ValueError("shape of 'x' must be 1 or 2")
     elif hasattr(x, '__getitem__'):
         state = state_switch(x[0], type_in, type_out)
         cov = cov_switch(x[1], type_in, type_out)
         return state, cov
     else:
-        raise TypeError('x can not be the type: `%s`' % x.__class__.__name__)
+        raise TypeError("error 'x' type: '%s'" % x.__class__.__name__)
 
 
 class Trajectory():
-    def __init__(self, T, start=np.zeros(9), pd=None):
+    def __init__(self, T, R, start=np.zeros(9), pd=None):
         assert (len(start) == 9)
 
         self._T = T
+        self._R = R
         self._head = start.copy()
         if pd is None:
             self._pd = ()
         elif isinstance(pd, Iterable):
             self._pd = tuple(pd)
         else:
-            raise TypeError('pd can not be the type: `%s`' % pd.__class__.__name__)
+            raise TypeError("error 'pd' type: '%s'" % pd.__class__.__name__)
 
         self._traj = [start.copy().reshape(-1, 1)]
         self._stage = [{'model': 'start'}]
@@ -887,18 +888,19 @@ class Trajectory():
         traj_real = np.dot(H, state)
         traj_meas = traj_real + self._noise
 
-        for scope, pd in self._pd:
-            for i in range(self._len):
-                p = state[0::3, i]      # position for each axis
-                v = state[1::3, i]      # velocity for each axis
-                d = lg.norm(p)
-                if d == 0:
-                    speed = lg.norm(v)
-                else:
-                    speed = np.dot(p, v) / d   # speed of range
-                if scope.within(speed):
+        for i in range(self._len):
+            p = state[0::3, i]      # position for each axis
+            v = state[1::3, i]      # velocity for each axis
+            d = lg.norm(p)
+            if d == 0:
+                speed = lg.norm(v)
+            else:
+                speed = np.dot(p, v) / d   # speed of range
+
+            for scope, pd in self._pd:
+                if scope.within(np.abs(speed)):
                     r = np.random.rand()
-                    if r > pd:
+                    if r < 1 - pd:
                         traj_meas[:, i] = np.nan
 
         return traj_real, traj_meas
@@ -909,7 +911,7 @@ class Trajectory():
     def traj(self):
         return self._traj
 
-    def add_stage(self, stages, R):
+    def add_stage(self, stages):
         '''
         stage are list of dicts, for example:
         stage = [
@@ -993,10 +995,10 @@ class Trajectory():
                     self._head[:] = tmp
                     state[:, j] = tmp
             else:
-                raise ValueError('invalid model')
+                raise ValueError('unknown model')
             self._traj.append(state)
 
-        self._noise = multi_normal(0, R, self._len, axis=1)
+        self._noise = multi_normal(0, self._R, self._len, axis=1)
 
     def show_traj(self):
         traj_real, traj_meas = self()

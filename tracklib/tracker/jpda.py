@@ -155,7 +155,9 @@ class JPDATrack():
 class JPDAFilterGenerator():
     def __init__(self, filter_cls, *args, **kwargs):
         if not hasattr(filter_cls, 'correct_JPDA'):
-            raise TypeError('the %s cannot be used as underlying filter of JPDA')
+            raise TypeError(
+                "'%s' cannot be used as underlying filter of JPDA" %
+                filter_cls.__name__)
         self._ft_cls = filter_cls
         self._args = args
         self._kwargs = kwargs

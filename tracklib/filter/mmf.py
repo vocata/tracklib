@@ -67,7 +67,7 @@ class MMFilter(FilterBase):
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
+            raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
 
     def __update(self):
         state_org = [self._models[i].state for i in range(self._models_n)]
@@ -105,19 +105,20 @@ class MMFilter(FilterBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('models must be added before calling init')
+            raise RuntimeError('no models')
+
         if isinstance(state, np.ndarray):
             state = (state,) * self._models_n
         elif isinstance(state, Iterable):
             state = tuple(state)
         else:
-            raise TypeError('state can not be the type: `%s`' % state.__class__.__name__)
+            raise TypeError("error 'state' type: '%s'" % state.__class__.__name__)
         if isinstance(cov, np.ndarray):
             cov = (cov,) * self._models_n
         elif isinstance(cov, Iterable):
             cov = tuple(cov)
         else:
-            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
+            raise TypeError("error 'cov' type: '%s'" % cov.__class__.__name__)
 
         for i in range(self._models_n):
             x = self._switch_fcn(state[i], self._types[0], self._types[i])
@@ -128,7 +129,7 @@ class MMFilter(FilterBase):
 
     def reset(self, state, cov):
         if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
+            raise RuntimeError('no models')
 
         for i in range(self._models_n):
             xi = self._switch_fcn(state, self._types[0], self._types[i])
@@ -137,7 +138,7 @@ class MMFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         for i in range(self._models_n):
             self._models[i].predict(u, **kwargs)
@@ -148,7 +149,7 @@ class MMFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         # update probability
         pdf = np.zeros(self._models_n)
@@ -165,7 +166,7 @@ class MMFilter(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         kwargs_list = [{}] * z_len
@@ -189,7 +190,7 @@ class MMFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         d = 0
         for i in range(self._models_n):
@@ -199,7 +200,7 @@ class MMFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         pdf = 0
         for i in range(self._models_n):

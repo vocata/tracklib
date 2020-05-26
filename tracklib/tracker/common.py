@@ -114,13 +114,13 @@ class Detection():
         elif isinstance(meas, Iterable):
             self._meas = tuple(meas)
         else:
-            raise TypeError('meas can not be the type: `%s`' % meas.__class__.__name__)
+            raise TypeError("error 'meas' type: '%s'" % meas.__class__.__name__)
         if isinstance(cov, np.ndarray):
             self._cov = (cov,)
         elif isinstance(cov, Iterable):
             self._cov = tuple(cov)
         else:
-            raise TypeError('cov can not be the type: `%s`' % cov.__class__.__name__)
+            raise TypeError("error 'cov' type: '%s'" % cov.__class__.__name__)
         if len(meas) != len(cov):
             raise ValueError('the lengths of meas and cov must be the same')
         self._len = len(meas)
@@ -137,7 +137,7 @@ class Detection():
             c = [self._cov[i] for i in n]
             return m, c
         else:
-            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
+            raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
 
     def __len__(self):
         return self._len

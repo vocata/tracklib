@@ -60,7 +60,7 @@ class KFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'F' in kwargs: self._F[:] = kwargs['F']
@@ -78,7 +78,7 @@ class KFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'H' in kwargs: self._H[:] = kwargs['H']
@@ -99,7 +99,7 @@ class KFilter(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         Hs = kwargs['H'] if 'H' in kwargs else [self._H] * z_len
@@ -127,7 +127,7 @@ class KFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         H = kwargs['H'] if 'H' in kwargs else self._H
         M = kwargs['M'] if 'M' in kwargs else self._M
@@ -144,7 +144,7 @@ class KFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         H = kwargs['H'] if 'H' in kwargs else self._H
         M = kwargs['M'] if 'M' in kwargs else self._M
