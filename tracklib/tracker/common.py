@@ -49,13 +49,12 @@ class HistoryLogic():
 
 class ScoreLogic():
     def __init__(self,
-                 confirm_score,
-                 delete_score,
-                 max_score,
-                 volume=1,
-                 beta=1,
+                 confirm_score=20,
+                 delete_score=-5,
                  pd=0.9,
-                 pfa=1e-6):
+                 pfa=1e-6,
+                 volume=1,
+                 beta=1e-5):
         '''
         Parameters
         ----------
@@ -65,13 +64,11 @@ class ScoreLogic():
         delete_score : number
             Deletion threshold, specified as a negative scalar. If the value of current Score minus
             max_score is more negative than the deletion threshold, then the track is deleted.
-        max_score : number
-            Maximum track logic score.
         volume : number
             Volume of sensor detection bin or of resolution cell. For example, a 2-D radar will have
             a sensor bin volume of (azimuth resolution in radians) * (range) * (range resolution).
         beta : number
-            Rate of new targets in unit volume.
+            Rate of new targets in unit volume. Note that beta >= pfa / volume
         pd : number
             Probability of detection.
         pfa : number
@@ -81,6 +78,33 @@ class ScoreLogic():
         ----
         The clutter density = pfa / volume, so the default clutter density is equal to pfa
         '''
+        self._c_score = confirm_score
+        self._d_score = delete_score
+        self._pd = pd
+        self._pfa = pfa
+        self._vol = volume
+        self._beta = beta
+
+        lamb = pfa / volume     # clutter density, rate of false target in unit volume
+        self._score = np.log(pd * beta / lamb)
+        self._max_score = self._score
+
+    def hit(self, likelihood):
+        self._score += np.log(self._vol * likelihood)
+        self._score += np.log(self._pd / self._pfa)
+        if self._score >= self._max_score:
+            self._max_score = self._score
+
+    def miss(self):
+        self._score += np.log((1 - self._pd) / (1 - self._pfa))
+        if self._score >= self._max_score:
+            self._max_score = self._score
+
+    def confirmed(self):
+        return self._score >= self._c_score
+
+    def detached(self):
+        return (self._score - self._max_score) < self._d_score
 
 
 class Detection():

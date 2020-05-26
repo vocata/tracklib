@@ -32,6 +32,18 @@ def JPDATracker_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
+
+    # the normalized Mahalanobis distance with penalty term is used,
+    # so the gate is higher than that without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+    init_thres = 0.2
+    his_miss_thres = 0.2
+
+    # generator
     ft_gen = tk.JPDAFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
     # initializer
@@ -43,18 +55,8 @@ def JPDATracker_test():
     # logic
     lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    # the normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
-    gate = 45
-    pfa = 1e-6          # false alarm probability for a detection bin
-    vol = 1e9           # volume of sensor detection bin or of resolution cell
-    # lamb = pfa / vol    # clutter density
-    pd = 0.8            # detection probability
-    init_thres = 0.2
-    his_miss_thres = 0.2
-
     # initialize the tracker
-    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, vol, pd, pfa, init_thres, his_miss_thres)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, pd, pfa, vol, init_thres, his_miss_thres)
 
     state_history = {}
 
@@ -154,6 +156,16 @@ def IMM_JPDATracker_test():
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 1})       # do not use second-order EKF
 
+    # The normalized Mahalanobis distance with penalty term is used,
+    # so the gate is greater than one without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+    init_thres = 0.2
+    his_miss_thres = 0.2
+
     # generator
     ft_gen = tk.JPDAFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
 
@@ -166,18 +178,8 @@ def IMM_JPDATracker_test():
     # logic
     lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    # The normalized Mahalanobis distance with penalty term is used,
-    # so the gate is greater than one without penalty term
-    gate = 45
-    pfa = 1e-6          # false alarm probability for a detection bin
-    vol = 1e9           # volume of sensor detection bin
-    # lamb = pfa / vol    # clutter density
-    pd = 0.8            # detection probability
-    init_thres = 0.2
-    his_miss_thres = 0.2
-
     # initialize the tracker
-    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, vol, pd, pfa, init_thres, his_miss_thres)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, pd, pfa, vol, init_thres, his_miss_thres)
 
     state_history = {}
     prob_history = {}

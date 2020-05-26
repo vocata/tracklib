@@ -99,12 +99,9 @@ class JPDATrack():
         self._ft.predict()
 
     def _assign(self, zs, probs, Rs):
-        self._ft.correct_JPDA(zs, probs, R=Rs)
-
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
-        else:
-            pass
+        self._ft.correct_JPDA(zs, probs, R=Rs)
 
         if not self._has_confirmed:
             if self._lgc.confirmed():
@@ -116,8 +113,6 @@ class JPDATrack():
     def _coast(self):
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.miss()
-        else:
-            pass
         self._age += 1
 
     def _distance(self, z, R):
@@ -129,14 +124,10 @@ class JPDATrack():
     def _confirmed(self):
         if isinstance(self._lgc, HistoryLogic):
             return self._lgc.confirmed()
-        else:
-            pass
 
     def _detached(self):
         if isinstance(self._lgc, HistoryLogic):
             return self._lgc.detached(self._has_confirmed, self._age)
-        else:
-            pass
 
     def filter(self):
         return self._ft
@@ -201,19 +192,19 @@ class JPDATracker():
                  filter_initializer,
                  logic_maintainer,
                  gate=30,
-                 volume=1,
                  pd=0.9,
                  pfa=1e-6,
+                 volume=1,
                  init_threshold=0.1,
                  hit_miss_threshold=0.2):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
         self._gate = gate
+        self._pd = pd
         self._pfa = pfa
         self._vol = volume
-        self._den = pfa / volume     # clutter_density, default equivalent to the false alarm probability
-        self._pd = pd
+        self._den = pfa / volume     # clutter density, rate of false target in unit volume
         self._init_thres = init_threshold
         self._hit_miss_thres = hit_miss_threshold
 

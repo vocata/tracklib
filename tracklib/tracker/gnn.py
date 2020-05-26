@@ -26,14 +26,12 @@ class GNNTrack():
         self._ft.predict()
 
     def _assign(self, z, R):
-        self._ft.correct(z, R=R)
-
         # update logic
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            self._lgc.hit(self._ft.likelihood(z, R=R))
+        self._ft.correct(z, R=R)
 
         if not self._has_confirmed:
             if self._lgc.confirmed():
@@ -46,9 +44,8 @@ class GNNTrack():
         # update logic
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.miss()
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            self._lgc.miss()
         self._age += 1
 
     def _distance(self, z, R):
@@ -60,16 +57,14 @@ class GNNTrack():
     def _confirmed(self):
         if isinstance(self._lgc, HistoryLogic):
             return self._lgc.confirmed()
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            return self._lgc.confirmed()
 
     def _detached(self):
         if isinstance(self._lgc, HistoryLogic):
             return self._lgc.detached(self._has_confirmed, self._age)
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            return self._lgc.detached()
 
     def filter(self):
         return self._ft
