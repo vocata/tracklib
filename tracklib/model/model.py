@@ -863,9 +863,12 @@ class Trajectory():
     def __init__(self, T, R, start=np.zeros(9), pd=None):
         assert (len(start) == 9)
 
-        self._T = T
-        self._R = R
-        self._head = start.copy()
+        if R.shape == (3, 3):
+            self._doppler = False
+        elif R.shape == (4, 4):
+            self._doppler = True
+        else:
+            raise ValueError('the shape of R must be (3, 3) or (4, 4)')
         if pd is None:
             self._pd = ()
         elif isinstance(pd, Iterable):
@@ -873,32 +876,38 @@ class Trajectory():
         else:
             raise TypeError("error 'pd' type: '%s'" % pd.__class__.__name__)
 
-        self._traj = [start.copy().reshape(-1, 1)]
-        self._stage = [{'model': 'start'}]
+        self._T = T
+        self._R = R
+        self._head = start.copy()
+        self._traj = []
+        self._stage = []
         self._noise = None
-        self._len = 1
+        self._len = 0
         self._xdim = 9
 
     def __len__(self):
         return self._len
 
     def __call__(self):
-        H = H_ca(3)
         state = np.concatenate(self._traj, axis=1)
+        speed = np.empty(self._len)
+        for i in range(self._len):
+            p = state[0::3, i]
+            v = state[1::3, i]
+            d = lg.norm(p)
+            if d == 0:
+                speed[i] = lg.norm(v)
+            else:
+                speed[i] = np.dot(p, v) / d
+        H = H_ca(3)
         traj_real = np.dot(H, state)
+        if self._doppler:
+            traj_real = np.vstack((traj_real, speed))
         traj_meas = traj_real + self._noise
 
         for i in range(self._len):
-            p = state[0::3, i]      # position for each axis
-            v = state[1::3, i]      # velocity for each axis
-            d = lg.norm(p)
-            if d == 0:
-                speed = lg.norm(v)
-            else:
-                speed = np.dot(p, v) / d   # speed of range
-
             for scope, pd in self._pd:
-                if scope.within(np.abs(speed)):
+                if scope.within(np.abs(speed[i])):
                     r = np.random.rand()
                     if r < 1 - pd:
                         traj_meas[:, i] = np.nan
@@ -1010,9 +1019,9 @@ class Trajectory():
                    s=50,
                    c='r',
                    marker='x',
-                   label=self._stage[0]['model'])
+                   label='start')
         idx = 0
-        for i in range(1, len(self._stage)):
+        for i in range(len(self._stage)):
             l = self._stage[i]['len']
             ax.plot(traj_real[0, idx:idx + l],
                     traj_real[1, idx:idx + l],
@@ -1035,9 +1044,9 @@ class Trajectory():
                    s=50,
                    c='r',
                    marker='x',
-                   label=self._stage[0]['model'])
+                   label='start')
         idx = 0
-        for i in range(1, len(self._stage)):
+        for i in range(len(self._stage)):
             l = self._stage[i]['len']
             ax.plot(traj_meas[0, idx:idx + l],
                     traj_meas[1, idx:idx + l],
@@ -1051,5 +1060,16 @@ class Trajectory():
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         ax.set_title('measured trajectory')
-
         plt.show()
+
+        if self._doppler:
+            fig = plt.figure()
+            ax = fig.add_subplot()
+            t = self._T * np.arange(self._len)
+            ax.plot(t, traj_real[3, :], '.-', linewidth=0.6, ms=1, label='true')
+            ax.plot(t, traj_meas[3, :], '.', ms=1, label='meas')
+            ax.legend()
+            ax.set_xlabel('s')
+            ax.set_ylabel('m/s')
+            ax.set_title('range speed')
+            plt.show()

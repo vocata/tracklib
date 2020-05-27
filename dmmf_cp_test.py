@@ -16,7 +16,7 @@ def test():
 
     # generate trajectory
     np.random.seed(2020)
-    start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
     traj = model.Trajectory(T,
                             np.eye(axis),
                             start=start,

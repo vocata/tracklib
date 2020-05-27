@@ -21,7 +21,7 @@ def DMMF_MMF_test():
     axis = 3
 
     # generate trajectory
-    start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
     traj = model.Trajectory(T,
                             np.eye(axis),
                             start=start,
