@@ -20,6 +20,7 @@ import numbers
 import numpy as np
 import scipy.linalg as lg
 import matplotlib.pyplot as plt
+import tracklib as tlb
 from collections.abc import Iterable
 from mpl_toolkits import mplot3d
 from scipy.special import factorial
@@ -888,22 +889,30 @@ class Trajectory():
     def __len__(self):
         return self._len
 
-    def __call__(self):
+    def __call__(self, coordinate='xyz'):
         state = np.concatenate(self._traj, axis=1)
+
+        H = H_ca(3)
+        traj_real = np.dot(H, state)
+
         speed = np.empty(self._len)
         for i in range(self._len):
             p = state[0::3, i]
             v = state[1::3, i]
             d = lg.norm(p)
-            if d == 0:
-                speed[i] = lg.norm(v)
-            else:
-                speed[i] = np.dot(p, v) / d
-        H = H_ca(3)
-        traj_real = np.dot(H, state)
+            speed[i] = np.dot(p, v) / d
+
+        if coordinate == 'rae':
+            meas = np.array(tlb.cart2sph(*state[::3]), dtype=float)
+        elif coordinate == 'xyz':
+            meas = traj_real
+        else:
+            raise ValueError("unknown coordinate: '%s'" % coordinate)
+
         if self._doppler:
             traj_real = np.vstack((traj_real, speed))
-        traj_meas = traj_real + self._noise
+            meas = np.vstack((meas, speed))
+        traj_meas = meas + self._noise
 
         for i in range(self._len):
             for scope, pd in self._pd:

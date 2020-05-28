@@ -92,7 +92,7 @@ def pol2cart(r, az, z=None):
 
 def cart2sph(x, y, z):
     proj = np.sqrt(x**2 + y**2)
-    r = np.sqrt(proj + z**2)
+    r = np.sqrt(proj**2 + z**2)
     az = np.arctan2(y, x)
     elev = np.arctan2(z, proj)
 

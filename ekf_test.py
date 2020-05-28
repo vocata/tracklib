@@ -21,7 +21,7 @@ def EKFilter_test():
     axis = 2
     xdim, zdim = 4, 2
     sigma_w = [np.sqrt(0.01), np.sqrt(0.01)]
-    sigma_v = [np.sqrt(0.1), np.sqrt(0.01)]
+    sigma_v = [np.sqrt(1), np.sqrt(1)]
 
     F = model.F_cv(axis, T)
     L = np.eye(xdim)

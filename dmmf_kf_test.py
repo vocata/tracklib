@@ -126,7 +126,7 @@ def DMMF_test():
 
     dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs)
 
-    x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
+    x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     dmmf.init(x_init, P_init)
 
