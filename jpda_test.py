@@ -154,7 +154,7 @@ def IMM_JPDATracker_test():
     model_cls.append(ft.EKFilterAN)
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 2, 'order': 1})       # do not use second-order EKF
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 2, 'order': 1})       # do not use second-order EKF due to calculation accuracy
 
     # The normalized Mahalanobis distance with penalty term is used,
     # so the gate is greater than one without penalty term
@@ -199,7 +199,7 @@ def IMM_JPDATracker_test():
             else:
                 state_history[track.id].append(track.state)
                 prob_history[track.id].append(track.filter().probs())
-        print(tracker.current_tracks_num())
+        # print(tracker.current_tracks_num())
 
     print('total number of tracks: %d' % tracker.history_tracks_num())
 
@@ -250,5 +250,5 @@ def IMM_JPDATracker_test():
 
 
 if __name__ == '__main__':
-    # JPDATracker_test()
+    JPDATracker_test()
     IMM_JPDATracker_test()
