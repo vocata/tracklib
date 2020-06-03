@@ -96,6 +96,7 @@ def DMMF_test():
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    # init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'order': 2})
 
     # pt_gen = ft.ScaledSigmaPoints()
     # model_cls.append(ft.UKFilterAN)

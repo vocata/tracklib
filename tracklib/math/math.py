@@ -10,6 +10,7 @@ __all__ = ['lagrange_interp_poly', 'num_diff', 'num_diff2', 'num_diff_hessian']
 
 import numbers
 import numpy as np
+from tracklib.utils import Eps
 
 
 def lagrange_interp_poly(x, y=None):
@@ -68,9 +69,9 @@ def num_diff(x, f, f_dim, order=1, epsilon=None):
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in epsilon], dtype=float)
 
     # 2*order+1 points fomula, error term is O(eps^(2*order))
     if order == 1:
@@ -140,9 +141,9 @@ def num_diff2(x, f, f_dim, order=1, epsilon=None):
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in epsilon], dtype=float)
 
     # 2*N+1 points fomula, error term is O(eps^(2*N))
     if order == 1:
@@ -194,9 +195,9 @@ def num_diff_hessian(x, f, f_dim, epsilon=None):
 
     # If epsilon is not specified, then use some ad-hoc default value
     if epsilon is None:
-        epsilon = np.array([max(eps, 1e-7) for eps in 1e-5 * np.abs(x)], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in 1e-5 * np.abs(x)], dtype=float)
     else:
-        epsilon = np.array([max(eps, 1e-7) for eps in epsilon], dtype=float)
+        epsilon = np.array([max(eps, np.sqrt(Eps)) for eps in epsilon], dtype=float)
 
     hess = np.zeros((x_dim, x_dim, f_dim))
     e1 = np.zeros(x_dim)

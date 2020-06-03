@@ -24,7 +24,7 @@ import tracklib as tlb
 from collections.abc import Iterable
 from mpl_toolkits import mplot3d
 from scipy.special import factorial
-from tracklib.utils import multi_normal
+from tracklib.utils import multi_normal, Eps
 
 
 def F_poly(order, axis, T):
@@ -449,7 +449,7 @@ def F_ct(axis, turn_rate, T):
     wt = omega * T
     sin_wt = np.sin(wt)
     cos_wt = np.cos(wt)
-    if omega != 0:
+    if np.fabs(omega) >= np.sqrt(Eps):
         sin_div = sin_wt / omega
         cos_div = (cos_wt - 1) / omega
     else:
@@ -472,7 +472,7 @@ def f_ct(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if omega != 0:
+        if np.fabs(omega) >= np.sqrt(Eps):
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
         else:
@@ -498,7 +498,7 @@ def f_ct_jac(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if omega != 0:
+        if np.fabs(omega) >= np.sqrt(Eps):
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
             f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)

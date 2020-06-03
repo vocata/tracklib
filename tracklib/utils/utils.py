@@ -3,15 +3,18 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
-    'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope', 'Pair'
+    'Eps', 'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag',
+    'is_symmetirc', 'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart',
+    'cart2sph', 'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope',
+    'Pair'
 ]
 
 import numbers
 import numpy as np
 import scipy.linalg as lg
 from collections.abc import Iterable
+
+Eps = 2**(-52)
 
 
 def is_matrix(x):
