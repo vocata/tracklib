@@ -17,7 +17,7 @@ __all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GaussianKernal']
 import numpy as np
 import scipy.linalg as lg
 from .base import FilterBase
-from tracklib.utils import multi_normal, disc_random
+from tracklib.utils import multi_normal, disc_random, cholcov
 
 
 class SIRPFilter(FilterBase):
@@ -335,8 +335,7 @@ class EpanechnikovKernal():
             err = samples[i] - emp_mean
             emp_cov += weights[i] * np.outer(err, err)
         emp_cov = (emp_cov + emp_cov.T) / 2
-        U, S, V = lg.svd(emp_cov)
-        D = U @ np.diag(np.sqrt(S)) @ V.T
+        D = cholcov(emp_cov, lower=True)
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)
@@ -387,8 +386,7 @@ class GaussianKernal():
             err = samples[i] - emp_mean
             emp_cov += weights[i] * np.outer(err, err)
         emp_cov = (emp_cov + emp_cov.T) / 2
-        U, S, V = lg.svd(emp_cov)
-        D = U @ np.diag(np.sqrt(S)) @ V.T
+        D = cholcov(emp_cov, lower=True)
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)

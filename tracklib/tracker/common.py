@@ -68,7 +68,7 @@ class ScoreLogic():
             Volume of sensor detection bin or of resolution cell. For example, a 2-D radar will have
             a sensor bin volume of (azimuth resolution in radians) * (range) * (range resolution).
         beta : number
-            Rate of new targets in unit volume. Note that beta >= pfa / volume
+            Rate of new targets in unit volume.
         pd : number
             Probability of detection.
         pfa : number
@@ -122,7 +122,7 @@ class Detection():
         else:
             raise TypeError("error 'cov' type: '%s'" % cov.__class__.__name__)
         if len(meas) != len(cov):
-            raise ValueError('the lengths of meas and cov must be the same')
+            raise ValueError("the lengths of 'meas' and 'cov' must be the same")
         self._len = len(meas)
 
     def __iter__(self):

@@ -177,6 +177,7 @@ class JPDAFilterInitializer():
         state, cov = self._init_fcn(z, R, *self._args, **self._kwargs)
         filter.init(state, cov)
 
+
 class JPDALogicMaintainer():
     def __init__(self, logic_cls, *args, **kwargs):
         self._lgc_cls = logic_cls

@@ -29,7 +29,6 @@ def test():
     stages.append({'model': 'ca', 'len': 300, 'acc': 3})
 
     traj.add_stage(stages)
-    traj.show_traj()
     traj_real, traj_meas = traj()
     N = len(traj)
 

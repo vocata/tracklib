@@ -90,14 +90,18 @@ class EKFilterAN(FilterBase):
             if 'L' in kwargs: self._L[:] = kwargs['L']
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F = self._fjac(self._state, u)
+        post_state, post_cov = self.state, self._cov
+
+        F = self._fjac(post_state, u)
         Q_tilde = self._L @ self._Q @ self._L.T
-        self._state = self._f(self._state, u)
-        self._cov = F @ self._cov @ F.T + Q_tilde
+
+        self._state = self._f(post_state, u)
+        self._cov = F @ post_cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
+
         if self._order == 2:
-            FH = self._fhes(self._state, u)
-            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            FH = self._fhes(post_state, u)
+            quad = np.array([np.trace(FH[:, :, i] @ post_cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
         return self._state, self._cov
@@ -115,7 +119,7 @@ class EKFilterAN(FilterBase):
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
-        if self._order == 2:    # not suitable for GNN
+        if self._order == 2:
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
@@ -161,7 +165,7 @@ class EKFilterAN(FilterBase):
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
-        if self._order == 2:    # not suitable for JPDA
+        if self._order == 2:
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
@@ -327,14 +331,18 @@ class EKFilterNAN(FilterBase):
 
         if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F, L = self._fjac(self._state, u, np.zeros(self._wdim))
+        post_state, post_cov = self.state, self._cov
+
+        F, L = self._fjac(post_state, u, np.zeros(self._wdim))
         Q_tilde = L @ self._Q @ L.T
-        self._state = self._f(self._state, u, np.zeros(self._wdim))
-        self._cov = F @ self._cov @ F.T + Q_tilde
+
+        self._state = self._f(post_state, u, np.zeros(self._wdim))
+        self._cov = F @ post_cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
+
         if self._order == 2:
-            FH = self._fhes(self._state, u, np.zeros(self._wdim))
-            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            FH = self._fhes(post_state, u, np.zeros(self._wdim))
+            quad = np.array([np.trace(FH[:, :, i] @ post_cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
         return self._state, self._cov
@@ -345,8 +353,7 @@ class EKFilterNAN(FilterBase):
 
         if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self.state, self._cov
 
         H, M = self._hjac(prior_state, np.zeros(self._vdim))
         z_pred = self._h(prior_state, np.zeros(self._vdim))
