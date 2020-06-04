@@ -255,7 +255,7 @@ class EKFilterAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return max(pdf, np.finfo(pdf).min)     # prevent likelihood from being too small
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small
 
 
 class EKFilterNAN(FilterBase):
@@ -490,4 +490,4 @@ class EKFilterNAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return max(pdf, np.finfo(pdf).min)     # prevent likelihood from being too small
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small

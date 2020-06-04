@@ -108,7 +108,7 @@ class SIRPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] *= max(pdf, np.finfo(pdf).min)
+            self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)
 
         # resample
@@ -168,7 +168,7 @@ class SIRPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return max(pdf, np.finfo(pdf).min)
+        return max(pdf, np.finfo(pdf).tiny)
 
 class RPFilter(FilterBase):
     '''
@@ -257,7 +257,7 @@ class RPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] *= max(pdf, np.finfo(pdf).min)
+            self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)
 
         # resample and regularize
@@ -317,7 +317,7 @@ class RPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return max(pdf, np.finfo(pdf).min)
+        return max(pdf, np.finfo(pdf).tiny)
 
 
 class EpanechnikovKernal():
