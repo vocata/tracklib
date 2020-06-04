@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+'''
+Linear Kalman filter
+
+REFERENCE:
+[1]. Y. Bar-Shalom and X. R. Li, "Multitarget-Multisensor Tracking: Principles and Techniques," Storrs, CT: YBS Publishing, 1995.
+[2]. B. Zhou and N. K. Bose, "Multitarget tracking in clutter: fast algorithms for data association," in IEEE Transactions on Aerospace and Electronic Systems, vol. 29, no. 2, pp. 352-363, April 1993.
+[3]. T. Fortmann, Y. Bar-Shalom and M. Scheffe, "Sonar tracking of multiple targets using joint probabilistic data association," in IEEE Journal of Oceanic Engineering, vol. 8, no. 3, pp. 173-184, July 1983.
+'''
 from __future__ import division, absolute_import, print_function
 
 
@@ -234,7 +242,7 @@ class JPDATracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        tracks = self._tent_tracks + self._conf_tracks
+        tracks = self._conf_tracks + self._tent_tracks
         if len(tracks) == 0:
             for z, R in detection:
                 ft = self._ft_gen()
@@ -265,8 +273,8 @@ class JPDATracker():
             # divide into some clusters and coast the targets without measurement
             clusters = JPDA_clusters(valid_mat)
             for tar, meas in clusters:      # traverse all clusters
-                tmp_mat = valid_mat[meas][:, tar]
-                if tmp_mat.size > 0:
+                if len(meas) > 0:
+                    tmp_mat = valid_mat[meas][:, tar]
                     sub_valid_mat = np.ones((len(meas), len(tar) + 1), dtype=bool)
                     sub_valid_mat[:, 1:] = tmp_mat
                     event_list = JPDA_events(sub_valid_mat)

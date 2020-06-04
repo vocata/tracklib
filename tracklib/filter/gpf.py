@@ -105,7 +105,7 @@ class GPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] = pdf
+            self._weights[i] = max(pdf, np.finfo(pdf).min)
         self._weights /= np.sum(self._weights)    # normalize
 
         # compute post_state and post_cov and the samples have been drawn in predict step
@@ -161,4 +161,4 @@ class GPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).min)     # prevent likelihood from being too small

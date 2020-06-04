@@ -36,7 +36,7 @@ class IMMFilter(FilterBase):
             self._trans_mat = np.eye(1)
         elif isinstance(trans_mat, numbers.Number):
             other_probs = (1 - trans_mat) / (self._models_n - 1)
-            self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
+            self._trans_mat = np.full((self._models_n, self._models_n), other_probs, dtype=float)
             np.fill_diagonal(self._trans_mat, trans_mat)
         else:
             self._trans_mat = trans_mat

@@ -414,4 +414,4 @@ class SSFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * self._S))
         pdf *= np.exp(-innov @ lg.inv(self._S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).min)

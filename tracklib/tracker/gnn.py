@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+'''
+Global nearest neighbor
+'''
 from __future__ import division, absolute_import, print_function
 
 
@@ -154,7 +157,7 @@ class GNNTracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        tracks = self._tent_tracks + self._conf_tracks
+        tracks = self._conf_tracks + self._tent_tracks
         if len(tracks) == 0:
             for z, R in detection:
                 # generate new filter

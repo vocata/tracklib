@@ -233,7 +233,7 @@ class UKFilterAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).min)
 
 
 class UKFilterNAN(FilterBase):
@@ -411,7 +411,7 @@ class UKFilterNAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).min)
 
 
 class SimplexSigmaPoints():

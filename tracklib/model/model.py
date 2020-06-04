@@ -2,6 +2,8 @@
 '''
 REFERENCES:
 [1] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation," New York: John Wiley and Sons, Inc, 2001.
+[2] R. A. Singer, "Estimating Optimal Tracking Filter Performance for Manned Maneuvering Targets," in IEEE Transactions on Aerospace and Electronic Systems, vol. AES-6, no. 4, pp. 473-483, July 1970.
+[3] X. Rong Li and V. P. Jilkov, "Survey of maneuvering target tracking. Part I. Dynamic models," in IEEE Transactions on Aerospace and Electronic Systems, vol. 39, no. 4, pp. 1333-1364, Oct. 2003.
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -19,12 +21,9 @@ __all__ = [
 import numbers
 import numpy as np
 import scipy.linalg as lg
-import matplotlib.pyplot as plt
-import tracklib as tlb
 from collections.abc import Iterable
-from mpl_toolkits import mplot3d
 from scipy.special import factorial
-from tracklib.utils import multi_normal, Eps
+from tracklib.utils import multi_normal, cart2sph
 
 
 def F_poly(order, axis, T):
@@ -449,7 +448,7 @@ def F_ct(axis, turn_rate, T):
     wt = omega * T
     sin_wt = np.sin(wt)
     cos_wt = np.cos(wt)
-    if np.fabs(omega) >= np.sqrt(Eps):
+    if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
         sin_div = sin_wt / omega
         cos_div = (cos_wt - 1) / omega
     else:
@@ -472,7 +471,7 @@ def f_ct(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if np.fabs(omega) >= np.sqrt(Eps):
+        if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
         else:
@@ -498,7 +497,7 @@ def f_ct_jac(axis, T):
         wt = omega * T
         sin_wt = np.sin(wt)
         cos_wt = np.cos(wt)
-        if np.fabs(omega) >= np.sqrt(Eps):
+        if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
             f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)
@@ -903,7 +902,7 @@ class Trajectory():
             speed[i] = np.dot(p, v) / d
 
         if coordinate == 'rae':
-            meas = np.array(tlb.cart2sph(*state[::3]), dtype=float)
+            meas = np.array(cart2sph(*state[::3]), dtype=float)
         elif coordinate == 'xyz':
             meas = traj_real
         else:
