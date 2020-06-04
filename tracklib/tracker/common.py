@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-REFERENCES:
+REFERENCES: B.-N. Vo, M. Mallick, Y. Bar-shalom, S. Coraluppi, R. Osborne, R. Mahler, et al., "Multitarget tracking", Wiley Encyclopedia of Electrical and Electronics Engineering, pp. 01-15, 2015.
 '''
 from __future__ import division, absolute_import, print_function
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Linear Kalman filter
+Joint probability data association
 
 REFERENCE:
 [1]. Y. Bar-Shalom and X. R. Li, "Multitarget-Multisensor Tracking: Principles and Techniques," Storrs, CT: YBS Publishing, 1995.
@@ -215,7 +215,7 @@ class JPDATracker():
         self._pd = pd
         self._pfa = pfa
         self._vol = volume
-        self._den = pfa / volume     # clutter density, rate of false target in unit volume
+        self._lamb = pfa / volume     # clutter density, rate of false target in unit volume
         self._init_thres = init_threshold
         self._hit_miss_thres = hit_miss_threshold
 
@@ -288,7 +288,8 @@ class JPDATracker():
                                 if event[j, i]:
                                     z, R = detection[meas[j]]
                                     pdf = tracks[tar[i - 1]]._likelihood(z, R)
-                                    item1 *= (pdf / self._den)
+                                    item1 *= (pdf / self._lamb)
+                                    break
                         for i in range(1, event.shape[1]):
                             for j in range(event.shape[0]):
                                 if event[j, i]:
