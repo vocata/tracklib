@@ -21,7 +21,10 @@ def HMMF_test():
 
     # generate trajectory
     start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
-    traj = model.Trajectory(T, np.eye(axis), start=start)
+    traj = model.Trajectory(T,
+                            np.eye(axis),
+                            start=start,
+                            pd=[(Scope(0, 30), 0.0), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
@@ -118,17 +121,13 @@ def HMMF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    # number of models
-    r = 3
-
-    dmmf = ft.HMMFilter(model_cls, model_types, init_args, init_kwargs)
+    dmmf = ft.HMMFilter(model_cls, model_types, init_args, init_kwargs, depth=2, left=3)
 
     x_init = np.array([120, 0, 100, 0, 100, 0], dtype=float)
-    P_init = np.diag([10.0, 1e4, 10.0, 1e4, 10.0, 1e4])
+    P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     dmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    prob_arr = np.empty((r, N))
 
     post_state_arr[:, 0] = dmmf.state
     for n in range(1, N):
@@ -138,6 +137,7 @@ def HMMF_test():
             dmmf.correct(z)
 
         post_state_arr[:, n] = dmmf.state
+        # print(n)
 
     print(dmmf)
 
@@ -155,5 +155,9 @@ def HMMF_test():
     plt.show()
 
 
+import time
 if __name__ == '__main__':
+    start = time.time()
     HMMF_test()
+    end = time.time()
+    print(end - start)

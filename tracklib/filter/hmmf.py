@@ -18,17 +18,26 @@ class HMMFilter(FilterBase):
     '''
     Hypothesis multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99, history_probs=None, depth=3, left=3, switch_fcn=model_switch):
+    def __init__(self,
+                 model_cls,
+                 model_types,
+                 init_args,
+                 init_kwargs,
+                 trans_mat=0.99,
+                 history_probs=None,
+                 depth=3,
+                 left=3,
+                 switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
         self._cls = model_cls
         self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
-        self._last = np.arange(self._models_n)
+        self._idx = np.arange(self._models_n)
         self._llds = np.zeros(self._models_n)
-        self._t = model_types
         self._types = model_types
         self._type = model_types[0]
+        self._cur_types = model_types
         self._args = init_args
         self._kwargs = init_kwargs
         if self._models_n == 1:
@@ -48,49 +57,10 @@ class HMMFilter(FilterBase):
         self._left = left
         self._switch_fcn = switch_fcn
 
-    def __advance(self):
-        models = []
-        probs = []
-        last = []
-        types = []
-        for i in range(len(self._last)):
-            state, cov = self._models[i].state, self._models[i].cov
-            for j in range(len(self._cls)):
-                x = self._switch_fcn(state, self._types[i], self._t[j])
-                P = self._switch_fcn(state, self._types[i], self._t[j])
-                model = self._cls[j](*self._args[j], **self._kwargs[j])
-                model.init(x, P)
-                models.append(model)
-
-                prob = self._trans_mat[j, self._last[i]] * self._probs[i]
-                probs.append(prob)
-
-                last.append(j)
-            types.extend(self._t)
-        self._models = models
-        self._types = types
-        self._probs = np.array(probs, dtype=float) / np.sum(probs)
-        self._last = np.array(last, dtype=int)
-        self._models_n = len(self._models)
-        self._depth += 1
-
-    def __pruning(self):
-        if self._depth == self._max_depth:
-            max_idx = np.argsort(self._llds)[-self._left:]
-            self._llds = self._llds[max_idx]
-            self._llds -= np.min(self._llds)        # avoid overflow
-            self._models = [self._models[i] for i in max_idx]
-            self._types = [self._types[i] for i in max_idx]
-            self._probs = self._probs[max_idx]
-            self._probs /= np.sum(self._probs)
-            self._last = max_idx % len(self._cls)
-            self._models_n = len(self._models)
-            self._depth = 0
-
     def __update(self):
         state_org = [m.state for m in self._models]
         cov_org = [m.cov for m in self._models]
-        types = [t for t in self._types]
+        types = [t for t in self._cur_types]
 
         xtmp = 0
         xi_list = []
@@ -114,19 +84,60 @@ class HMMFilter(FilterBase):
             raise RuntimeError('no models')
 
         for i in range(self._models_n):
-            x = self._switch_fcn(state, self._type, self._types[i])
-            P = self._switch_fcn(cov, self._type, self._types[i])
+            x = self._switch_fcn(state, self._type, self._cur_types[i])
+            P = self._switch_fcn(cov, self._type, self._cur_types[i])
             self._models[i].init(x, P)
         self._state = state.copy()
         self._cov = cov.copy()
         self._init = True
+
     def reset(self, state, cov):
         pass
+
+    def __pruning(self):
+        if self._depth >= self._max_depth:
+            max_idx = np.argsort(self._llds)[-self._left:]
+            self._llds = self._llds[max_idx]
+            self._llds -= np.min(self._llds)        # avoid overflow
+            self._models = [self._models[i] for i in max_idx]
+            self._cur_types = [self._cur_types[i] for i in max_idx]
+            self._probs = self._probs[max_idx]
+            self._probs /= np.sum(self._probs)
+            self._idx = max_idx % len(self._cls)
+            self._models_n = len(self._models)
+            self._depth = 0
+
+    def __advance(self):
+        models = []
+        types = []
+        probs = []
+        idx = []
+        for i in range(self._models_n):
+            state, cov = self._models[i].state, self._models[i].cov
+            for j in range(len(self._cls)):
+                x = self._switch_fcn(state, self._cur_types[i], self._types[j])
+                P = self._switch_fcn(cov, self._cur_types[i], self._types[j])
+                model = self._cls[j](*self._args[j], **self._kwargs[j])
+                model.init(x, P)
+                models.append(model)
+
+                prob = self._trans_mat[j, self._idx[i]] * self._probs[i]
+                probs.append(prob)
+
+                idx.append(j)
+            types.extend(self._types)
+        self._models = models
+        self._cur_types = types
+        self._probs = probs / np.sum(probs)
+        self._idx = np.array(idx, dtype=int)
+        self._models_n = len(self._models)
+        self._depth += 1
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 
+        self.__pruning()
         self.__advance()
 
         for m in self._models:
@@ -151,7 +162,6 @@ class HMMFilter(FilterBase):
         self._probs /= np.sum(self._probs)
 
         self.__update()
-        self.__pruning()
 
         return self._state, self._cov
 
