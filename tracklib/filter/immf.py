@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Dynamic multiple model filter
+Interacting multiple model filter
 
 REFERENCE:
 [1]. Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation: Theory, Algorithms and Software," New York: Wiley, 2001
@@ -28,10 +28,6 @@ class IMMFilter(FilterBase):
         self._models_n = len(model_cls)
         self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
         self._types = model_types
-        if model_probs is None:
-            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
-        else:
-            self._probs = model_probs
         if self._models_n == 1:
             self._trans_mat = np.eye(1)
         elif isinstance(trans_mat, numbers.Number):
@@ -40,6 +36,10 @@ class IMMFilter(FilterBase):
             np.fill_diagonal(self._trans_mat, trans_mat)
         else:
             self._trans_mat = trans_mat
+        if model_probs is None:
+            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
+        else:
+            self._probs = model_probs
         self._switch_fcn = switch_fcn
 
     def __str__(self):
@@ -73,22 +73,24 @@ class IMMFilter(FilterBase):
             raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
 
     def __update(self):
-        state_org = [self._models[i].state for i in range(self._models_n)]
-        cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._types[i] for i in range(self._models_n)]
+        state_org = [m.state for m in self._models]
+        cov_org = [m.cov for m in self._models]
+        types = [t for t in self._types]
 
         xtmp = 0
+        xi_list = []
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
+            xi_list.append(xi)
             xtmp += self._probs[i] * xi
         self._state = xtmp
 
         Ptmp = 0
         for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            pi = self._switch_fcn(cov_org[i], types[i], types[0])
+            xi = xi_list[i]
+            Pi = self._switch_fcn(cov_org[i], types[i], types[0])
             err = xi - xtmp
-            Ptmp += self._probs[i] * (pi + np.outer(err, err))
+            Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._cov = Ptmp
 

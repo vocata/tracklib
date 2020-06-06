@@ -7,5 +7,6 @@ from .ukf import *
 from .ssf import *
 from .mmf import *
 from .immf import *
+from .hmmf import *
 from .pf import *
 from .gpf import *

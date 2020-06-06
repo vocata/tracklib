@@ -70,9 +70,9 @@ class MMFilter(FilterBase):
             raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
 
     def __update(self):
-        state_org = [self._models[i].state for i in range(self._models_n)]
-        cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._types[i] for i in range(self._models_n)]
+        state_org = [m.state for m in self._models]
+        cov_org = [m.cov for m in self._models]
+        types = [t for t in self._types]
 
         xtmp = 0
         for i in range(self._models_n):
