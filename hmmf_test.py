@@ -121,25 +121,25 @@ def HMMF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    dmmf = ft.HMMFilter(model_cls, model_types, init_args, init_kwargs, depth=2, left=3)
+    hmmf = ft.HMMFilter(model_cls, model_types, init_args, init_kwargs, depth=3, left=3)
 
     x_init = np.array([120, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    dmmf.init(x_init, P_init)
+    hmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
 
-    post_state_arr[:, 0] = dmmf.state
+    post_state_arr[:, 0] = hmmf.state
     for n in range(1, N):
-        dmmf.predict()
+        hmmf.predict()
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            dmmf.correct(z)
+            hmmf.correct(z)
 
-        post_state_arr[:, n] = dmmf.state
+        post_state_arr[:, n] = hmmf.state
         # print(n)
 
-    print(dmmf)
+    print(hmmf)
 
     # trajectory
     fig = plt.figure()

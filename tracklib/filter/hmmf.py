@@ -27,6 +27,7 @@ class HMMFilter(FilterBase):
                  history_probs=None,
                  depth=3,
                  left=3,
+                 pruning=1e-3,
                  switch_fcn=model_switch):
         super().__init__()
 
@@ -34,9 +35,7 @@ class HMMFilter(FilterBase):
         self._cls = model_cls
         self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
         self._idx = np.arange(self._models_n)
-        self._llds = np.zeros(self._models_n)
         self._types = model_types
-        self._type = model_types[0]
         self._cur_types = model_types
         self._args = init_args
         self._kwargs = init_kwargs
@@ -55,7 +54,9 @@ class HMMFilter(FilterBase):
         self._max_depth = depth
         self._depth = 0
         self._left = left
+        self._pruning = pruning
         self._switch_fcn = switch_fcn
+        self._coast = False
 
     def __update(self):
         state_org = [m.state for m in self._models]
@@ -65,7 +66,7 @@ class HMMFilter(FilterBase):
         xtmp = 0
         xi_list = []
         for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], self._type)
+            xi = self._switch_fcn(state_org[i], types[i], self._types[0])
             xi_list.append(xi)
             xtmp += self._probs[i] * xi
         self._state = xtmp
@@ -73,7 +74,7 @@ class HMMFilter(FilterBase):
         Ptmp = 0
         for i in range(self._models_n):
             xi = xi_list[i]
-            Pi = self._switch_fcn(cov_org[i], types[i], self._type)
+            Pi = self._switch_fcn(cov_org[i], types[i], self._types[0])
             err = xi - xtmp
             Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
@@ -84,8 +85,8 @@ class HMMFilter(FilterBase):
             raise RuntimeError('no models')
 
         for i in range(self._models_n):
-            x = self._switch_fcn(state, self._type, self._cur_types[i])
-            P = self._switch_fcn(cov, self._type, self._cur_types[i])
+            x = self._switch_fcn(state, self._types[0], self._cur_types[i])
+            P = self._switch_fcn(cov, self._types[0], self._cur_types[i])
             self._models[i].init(x, P)
         self._state = state.copy()
         self._cov = cov.copy()
@@ -95,17 +96,39 @@ class HMMFilter(FilterBase):
         pass
 
     def __pruning(self):
-        if self._depth >= self._max_depth:
-            max_idx = np.argsort(self._llds)[-self._left:]
-            self._llds = self._llds[max_idx]
-            self._llds -= np.min(self._llds)        # avoid overflow
-            self._models = [self._models[i] for i in max_idx]
-            self._cur_types = [self._cur_types[i] for i in max_idx]
-            self._probs = self._probs[max_idx]
-            self._probs /= np.sum(self._probs)
-            self._idx = max_idx % len(self._cls)
-            self._models_n = len(self._models)
-            self._depth = 0
+        if self._depth < self._max_depth:
+            if not self._coast:
+                max_idx = list(range(self._models_n))
+                for i in range(self._models_n):
+                    if self._probs[i] < self._pruning:
+                        max_idx.remove(i)
+
+                # idx = np.argsort(-self._probs)
+                # max_idx = []
+                # total = 0
+                # for i in idx:
+                #     total += self._probs[i]
+                #     max_idx.append(i)
+                #     if total >= self._pruning:
+                #         break
+                if len(max_idx) < self._models_n:
+                    max_idx = np.array(max_idx, dtype=int)
+                    self._models = [self._models[i] for i in max_idx]
+                    self._cur_types = [self._cur_types[i] for i in max_idx]
+                    self._probs = self._probs[max_idx]
+                    self._probs /= np.sum(self._probs)
+                    self._idx = max_idx % len(self._cls)
+                    self._models_n = len(self._models)
+        else:
+            if self._left < self._models_n:
+                max_idx = np.argsort(self._probs)[-self._left:]
+                self._models = [self._models[i] for i in max_idx]
+                self._cur_types = [self._cur_types[i] for i in max_idx]
+                self._probs = self._probs[max_idx]
+                self._probs /= np.sum(self._probs)
+                self._idx = max_idx % len(self._cls)
+                self._models_n = len(self._models)
+                self._depth = 1
 
     def __advance(self):
         models = []
@@ -137,13 +160,17 @@ class HMMFilter(FilterBase):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 
-        self.__pruning()
-        self.__advance()
+        if self._depth == 0:    # do not prune and advance at the first prediction
+            self._depth += 1
+        else:
+            self.__pruning()
+            self.__advance()
 
         for m in self._models:
             m.predict(u, **kwargs)
 
         self.__update()
+        self._coast = True
 
         return self._state, self._cov
 
@@ -155,13 +182,13 @@ class HMMFilter(FilterBase):
         for i in range(self._models_n):
             pdf[i] = self._models[i].likelihood(z, **kwargs)
             self._models[i].correct(z, **kwargs)
-        self._llds = np.log(np.reshape(pdf, (len(self._llds), -1))) + np.reshape(self._llds, (-1, 1))
-        self._llds = np.reshape(self._llds, -1)
 
+        # update the probabilities of history
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
 
         self.__update()
+        self._coast = False
 
         return self._state, self._cov
 
