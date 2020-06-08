@@ -24,7 +24,7 @@ def DMMF_test():
     traj = model.Trajectory(T,
                             np.eye(axis),
                             start=start,
-                            pd=[(Scope(0, 30), 0.3), (Scope(30, np.inf), 0.8)])
+                            pd=[(Scope(0, 30), 0.), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
@@ -173,5 +173,9 @@ def DMMF_test():
     plt.show()
 
 
+import time
 if __name__ == '__main__':
+    start = time.time()
     DMMF_test()
+    end = time.time()
+    print(end - start)

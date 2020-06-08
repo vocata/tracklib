@@ -15,7 +15,7 @@ the program may yield uncertain result.
 '''
 
 
-def HMMF_test():
+def MMMHF_test():
     T = 0.1
     axis = 3
 
@@ -121,25 +121,25 @@ def HMMF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    hmmf = ft.HMMFilter(model_cls, model_types, init_args, init_kwargs, depth=3, left=3)
+    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, depth=3, keep=3, trans_mat=0.99)
 
     x_init = np.array([120, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    hmmf.init(x_init, P_init)
+    mmmhf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
 
-    post_state_arr[:, 0] = hmmf.state
+    post_state_arr[:, 0] = mmmhf.state
     for n in range(1, N):
-        hmmf.predict()
+        mmmhf.predict()
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            hmmf.correct(z)
+            mmmhf.correct(z)
 
-        post_state_arr[:, n] = hmmf.state
+        post_state_arr[:, n] = mmmhf.state
         # print(n)
 
-    print(hmmf)
+    print(mmmhf)
 
     # trajectory
     fig = plt.figure()
@@ -158,6 +158,6 @@ def HMMF_test():
 import time
 if __name__ == '__main__':
     start = time.time()
-    HMMF_test()
+    MMMHF_test()
     end = time.time()
     print(end - start)
