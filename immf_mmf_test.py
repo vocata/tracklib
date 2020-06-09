@@ -34,7 +34,7 @@ def DMMF_MMF_test():
     stages.append({'model': 'cv', 'len': 200, 'vel': 50})
     stages.append({'model': 'ca', 'len': 200, 'acc': 3})
     traj.add_stage(stages)
-    traj_real, traj_meas = traj()
+    traj_real, traj_meas, state_real = traj()
     N = len(traj)
 
     model_cls1 = []

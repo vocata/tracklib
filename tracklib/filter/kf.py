@@ -140,7 +140,7 @@ class KFilter(FilterBase):
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
         return d
-        
+
 
     def likelihood(self, z, **kwargs):
         if self._init == False:

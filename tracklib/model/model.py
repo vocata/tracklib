@@ -10,12 +10,10 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'F_poly', 'F_singer', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer', 'H_pos_only',
-    'R_pos_only', 'F_cp', 'f_cp', 'f_cp_jac', 'Q_cp_dc', 'Q_cp_dd', 'H_cp',
-    'h_cp', 'h_cp_jac', 'R_cp', 'F_cv', 'f_cv', 'f_cv_jac', 'Q_cv_dc',
-    'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca', 'f_ca_jac',
-    'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca', 'F_ct', 'f_ct',
-    'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch',
-    'Trajectory'
+    'R_pos_only', 'F_cv', 'f_cv', 'f_cv_jac', 'Q_cv_dc', 'Q_cv_dd', 'H_cv',
+    'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca', 'f_ca_jac', 'Q_ca_dc',
+    'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca', 'F_ct', 'f_ct', 'f_ct_jac',
+    'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch', 'Trajectory'
 ]
 
 import numbers
@@ -296,55 +294,6 @@ def R_pos_only(axis, std):
     return R
 
 
-# specific model
-def F_cp(axis, T):
-    return F_poly(1, axis, T)
-
-
-def f_cp(axis, T):
-    F = F_cp(axis, T)
-    def f(x, u):
-        return np.dot(F, x)
-    return f
-
-
-def f_cp_jac(axis, T):
-    F = F_cp(axis, T)
-    def fjac(x, u):
-        return F
-    return fjac
-
-
-def Q_cp_dc(axis, T, std):
-    return Q_poly_dc(1, axis, T, std)
-
-
-def Q_cp_dd(axis, T, std):
-    return Q_poly_dd(1, axis, T, std, ht=2)
-
-
-def H_cp(axis):
-    return H_pos_only(1, axis)
-
-
-def h_cp(axis):
-    H = H_cp(axis)
-    def h(x):
-        return np.dot(H, x)
-    return h
-
-
-def h_cp_jac(axis):
-    H = H_cp(axis)
-    def hjac(x):
-        return H
-    return hjac
-
-
-def R_cp(axis, std):
-    return R_pos_only(axis, std)
-
-
 def F_cv(axis, T):
     return F_poly(2, axis, T)
 
@@ -575,45 +524,9 @@ def R_ct(axis, std):
 def state_switch(state, type_in, type_out):
     dim = len(state)
     state = state.copy()
-    if type_in == 'cp':
-        axis = dim // 1
-        if type_out == 'cp':
-            return state
-        elif type_out == 'cv':
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[:, sel]
-            stmp = np.dot(slct, state)
-            return stmp
-        elif type_out == 'ca':
-            ca_dim = 3 * axis
-            sel = range(0, ca_dim, 3)
-            slct = np.eye(ca_dim)[:, sel]
-            stmp = np.dot(slct, state)
-            return stmp
-        elif type_out == 'ct':
-            # cp to cv
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[:, sel]
-            stmp = np.dot(slct, state)
-            # cv to ct
-            slct = np.eye(5, 4)
-            if axis == 3:
-                slct = lg.block_diag(slct, np.eye(2))
-            stmp = np.dot(slct, stmp)
-            return stmp
-        else:
-            raise ValueError('unknown output type: %s' % type_out)
-    elif type_in == 'cv':
+    if type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cp':
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[sel]
-            stmp = np.dot(slct, state)
-            return stmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             return state
         elif type_out == 'ca':
             ca_dim = 3 * axis
@@ -631,13 +544,7 @@ def state_switch(state, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cp':
-            ca_dim = 3 * axis
-            sel = range(0, ca_dim, 3)
-            slct = np.eye(ca_dim)[sel]
-            stmp = np.dot(slct, state)
-            return stmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             ca_dim = 3 * axis
             sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
             slct = np.eye(ca_dim)[sel]
@@ -661,19 +568,7 @@ def state_switch(state, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct':
         axis = dim // 2
-        if type_out == 'cp':
-            # ct to cv
-            slct = np.eye(4, 5)
-            if axis == 3:
-                slct = lg.block_diag(slct, np.eye(2))
-            stmp = np.dot(slct, state)
-            # cv to cp
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[sel]
-            stmp = np.dot(slct, stmp)
-            return stmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -703,52 +598,9 @@ def cov_switch(cov, type_in, type_out):
     dim = len(cov)
     cov = cov.copy()
     uncertainty = 100
-    if type_in == 'cp':
-        axis = dim // 1
-        if type_out == 'cp':
-            return cov
-        elif type_out == 'cv':
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            sel_diff = np.setdiff1d(range(cv_dim), sel)
-            slct = np.eye(cv_dim)[:, sel]
-            ctmp = slct @ cov @ slct.T
-            ctmp[sel_diff, sel_diff] = uncertainty
-            return ctmp
-        elif type_out == 'ca':
-            ca_dim = 3 * axis
-            sel = range(0, ca_dim, 3)
-            sel_diff = np.setdiff1d(range(ca_dim), sel)
-            slct = np.eye(ca_dim)[:, sel]
-            ctmp = slct @ cov @ slct.T
-            ctmp[sel_diff, sel_diff] = uncertainty
-            return ctmp
-        elif type_out == 'ct':
-            # cp to cv
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            sel_diff = np.setdiff1d(range(cv_dim), sel)
-            slct = np.eye(cv_dim)[:, sel]
-            ctmp = slct @ cov @ slct.T
-            ctmp[sel_diff, sel_diff] = uncertainty
-            # cv to ct
-            slct = np.eye(5, 4)
-            if axis == 3:
-                slct = lg.block_diag(slct, np.eye(2))
-            ctmp = slct @ ctmp @ slct.T
-            ctmp[4, 4] = uncertainty
-            return ctmp
-        else:
-            raise ValueError('unknown output type: %s' % type_out)
-    elif type_in == 'cv':
+    if type_in == 'cv':
         axis = dim // 2
-        if type_out == 'cp':
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[sel]
-            ctmp = slct @ cov @ slct.T
-            return ctmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             return cov
         elif type_out == 'ca':
             ca_dim = 3 * axis
@@ -769,13 +621,7 @@ def cov_switch(cov, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ca':
         axis = dim // 3
-        if type_out == 'cp':
-            ca_dim = 3 * axis
-            sel = range(0, ca_dim, 3)
-            slct = np.eye(ca_dim)[sel]
-            ctmp = slct @ cov @ slct.T
-            return ctmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             ca_dim = 3 * axis
             sel = np.setdiff1d(range(ca_dim), range(2, ca_dim, 3))
             slct = np.eye(ca_dim)[sel]
@@ -800,19 +646,7 @@ def cov_switch(cov, type_in, type_out):
             raise ValueError('unknown output type: %s' % type_out)
     elif type_in == 'ct':
         axis = dim // 2
-        if type_out == 'cp':
-            # ct to cv
-            slct = np.eye(4, 5)
-            if axis == 3:
-                slct = lg.block_diag(slct, np.eye(2))
-            ctmp = slct @ cov @ slct.T
-            # cv to cp
-            cv_dim = 2 * axis
-            sel = range(0, cv_dim, 2)
-            slct = np.eye(cv_dim)[sel]
-            ctmp = slct @ ctmp @ slct.T
-            return ctmp
-        elif type_out == 'cv':
+        if type_out == 'cv':
             slct = np.eye(4, 5)
             if axis == 3:
                 slct = lg.block_diag(slct, np.eye(2))
@@ -920,7 +754,7 @@ class Trajectory():
                     if r < 1 - pd:
                         traj_meas[:, i] = np.nan
 
-        return traj_real, traj_meas
+        return traj_real, traj_meas, state
 
     def stage(self):
         return self._stage
@@ -932,7 +766,6 @@ class Trajectory():
         '''
         stage are list of dicts, for example:
         stage = [
-            {'model': 'cp', 'len': 100, 'pos': [100, 100, 10]}
             {'model': 'cv', 'len': 100, 'vel': [30, 20, 1]},
             {'model': 'cv', 'len': 100, 'vel': 7},
             {'model': 'ca', 'len': 100, 'acc': [10, 30, 1]},
@@ -947,23 +780,7 @@ class Trajectory():
             self._len += traj_len
 
             state = np.zeros((self._xdim, traj_len))
-            if mdl == 'cp':
-                F = F_cp(3, self._T)
-                p = stages[i]['pos']
-                if p[0] is not None:
-                    self._head[0] = p[0]
-                if p[1] is not None:
-                    self._head[3] = p[1]
-                if p[2] is not None:
-                    self._head[6] = p[2]
-
-                sel = [0, 3, 6]
-                for j in range(traj_len):
-                    tmp = np.zeros(self._xdim)
-                    tmp[sel] = np.dot(F, self._head[sel])
-                    self._head[:] = tmp
-                    state[:, j] = tmp
-            elif mdl == 'cv':
+            if mdl == 'cv':
                 F = F_cv(3, self._T)
                 v = stages[i]['vel']
                 if isinstance(v, numbers.Number):
@@ -979,6 +796,9 @@ class Trajectory():
 
                 sel = [0, 1, 3, 4, 6, 7]
                 for j in range(traj_len):
+                    if i == 0 and j == 0:
+                        state[:, j] = self._head
+                        continue
                     tmp = np.zeros(self._xdim)
                     tmp[sel] = np.dot(F, self._head[sel])
                     self._head[:] = tmp
@@ -998,6 +818,9 @@ class Trajectory():
                     self._head[8] = a[2]
 
                 for j in range(traj_len):
+                    if i == 0 and j == 0:
+                        state[:, j] = self._head
+                        continue
                     tmp = np.dot(F, self._head)
                     self._head[:] = tmp
                     state[:, j] = tmp
@@ -1007,6 +830,9 @@ class Trajectory():
 
                 sel = [0, 1, 3, 4, 6, 7]
                 for j in range(traj_len):
+                    if i == 0 and j == 0:
+                        state[:, j] = self._head
+                        continue
                     tmp = np.zeros(self._xdim)
                     tmp[sel] = np.dot(F, self._head[sel])
                     self._head[:] = tmp
@@ -1016,4 +842,3 @@ class Trajectory():
             self._traj.append(state)
 
         self._noise = multi_normal(0, self._R, self._len, axis=1)
-

@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-from tracklib import Scope
+from tracklib import Scope, Pair
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -15,7 +16,7 @@ the program may yield uncertain result.
 '''
 
 
-def DMMF_test():
+def DMMF_DMMF_test():
     T = 0.1
     axis = 3
 
@@ -24,30 +25,22 @@ def DMMF_test():
     traj = model.Trajectory(T,
                             np.eye(axis),
                             start=start,
-                            pd=[(Scope(0, 30), 0.), (Scope(30, np.inf), 0.8)])
+                            pd=[(Scope(0, 30), 0.3), (Scope(30, np.inf), 0.8)])
     stages = []
-    stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
-    stages.append({'model': 'ct', 'len': 333, 'omega': 10})
-    stages.append({'model': 'ca', 'len': 333, 'acc': 3})
-
+    stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
+    stages.append({'model': 'ct', 'len': 200, 'omega': -8})
+    stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
+    stages.append({'model': 'ct', 'len': 200, 'omega': 5})
+    stages.append({'model': 'cv', 'len': 200, 'vel': 50})
+    stages.append({'model': 'ca', 'len': 200, 'acc': 3})
     traj.add_stage(stages)
-    traj_real, traj_meas = traj()
+    traj_real, traj_meas, state_real = traj()
     N = len(traj)
 
-    # traj_real = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\truePos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # traj_meas = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # N = traj_meas.shape[1]
-
-    model_cls = []
-    model_types = []
-    init_args = []
-    init_kwargs = []
+    model_cls1 = []
+    model_types1 = []
+    init_args1 = []
+    init_kwargs1 = []
 
     # CV
     cv_xdim, cv_zdim = 6, 3
@@ -59,10 +52,10 @@ def DMMF_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
-    model_cls.append(ft.KFilter)
-    model_types.append('cv')
-    init_args.append((F, L, H, M, Q, R))
-    init_kwargs.append({})
+    model_cls1.append(ft.KFilter)
+    model_types1.append('cv')
+    init_args1.append((F, L, H, M, Q, R))
+    init_kwargs1.append({})
 
     # CA
     ca_xdim, ca_zdim = 9, 3
@@ -74,10 +67,20 @@ def DMMF_test():
     M = np.eye(ca_zdim)
     Q = model.Q_ca_dd(axis, T, sigma_w)
     R = model.R_ca(axis, sigma_v)
-    model_cls.append(ft.KFilter)
-    model_types.append('ca')
-    init_args.append((F, L, H, M, Q, R))
-    init_kwargs.append({})
+    model_cls1.append(ft.KFilter)
+    model_types1.append('ca')
+    init_args1.append((F, L, H, M, Q, R))
+    init_kwargs1.append({})
+
+    model_cls2 = []
+    model_types2 = []
+    init_args2 = []
+    init_kwargs2 = []
+
+    model_cls2.append(ft.IMMFilter)
+    model_types2.append('cv')
+    init_args2.append((model_cls1, model_types1, init_args1, init_kwargs1))
+    init_kwargs2.append({})
 
     # CT
     ct_xdim, ct_zdim = 7, 3
@@ -91,58 +94,33 @@ def DMMF_test():
     M = np.eye(ct_zdim)
     Q = model.Q_ct(axis, T, sigma_w)
     R = model.R_ct(axis, sigma_v)
-
-    model_cls.append(ft.EKFilterAN)
-    model_types.append('ct')
-    init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac})
-    # init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'order': 2})
-
-    # pt_gen = ft.ScaledSigmaPoints()
-    # model_cls.append(ft.UKFilterAN)
-    # model_types.append('ct')
-    # init_args.append((f, L, h, M, Q, R, pt_gen))
-    # init_kwargs.append({})
-
-    # model_cls.append(ft.SIRPFilter)
-    # model_types.append('ct')
-    # init_args.append((f, L, h, M, Q, R, 200, 100))
-    # init_kwargs.append({})
-
-    # kernal = ft.EpanechnikovKernal(ct_xdim, 200)
-    # kernal = ft.GaussianKernal(ct_xdim, 200)
-    # model_cls.append(ft.RPFilter)
-    # model_types.append('ct')
-    # init_args.append((f, L, h, M, Q, R, 200, 100))
-    # init_kwargs.append({'kernal': kernal})
-
-    # model_cls.append(ft.GPFilter)
-    # model_types.append('ct')
-    # init_args.append((f, L, h, M, Q, R, 200))
-    # init_kwargs.append({})
+    model_cls2.append(ft.EKFilterAN)
+    model_types2.append('ct')
+    init_args2.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
+    init_kwargs2.append({'fjac': fjac, 'hjac': hjac})
 
     # number of models
-    r = 3
+    r = 2
 
-    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs)
+    dmmf = ft.IMMFilter(model_cls2, model_types2, init_args2, init_kwargs2)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     dmmf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    prob_arr = np.empty((r, N))
+    dmmf_prob_arr = np.empty((r, N))
 
     post_state_arr[:, 0] = dmmf.state
-    prob_arr[:, 0] = dmmf.probs()
+    dmmf_prob_arr[:, 0] = dmmf.probs()
     for n in range(1, N):
         dmmf.predict()
         z = traj_meas[:, n]
-        if not np.any(np.isnan(z)):     # skip the empty detections
+        if not np.any(np.isnan(z)):
             dmmf.correct(z)
 
         post_state_arr[:, n] = dmmf.state
-        prob_arr[:, n] = dmmf.probs()
+        dmmf_prob_arr[:, n] = dmmf.probs()
 
     print(dmmf)
 
@@ -162,8 +140,9 @@ def DMMF_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     n = np.arange(N)
+    labels = ['hybrid', 'ct']
     for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
+        ax.plot(n, dmmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
@@ -172,10 +151,5 @@ def DMMF_test():
     ax.set_title('models probability')
     plt.show()
 
-
-import time
 if __name__ == '__main__':
-    start = time.time()
-    DMMF_test()
-    end = time.time()
-    print(end - start)
+    DMMF_DMMF_test()

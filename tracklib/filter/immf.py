@@ -22,7 +22,14 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, trans_mat=0.999, model_probs=None, switch_fcn=model_switch):
+    def __init__(self,
+                 model_cls,
+                 model_types,
+                 init_args,
+                 init_kwargs,
+                 trans_mat=0.99,
+                 model_probs=None,
+                 switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
@@ -202,7 +209,7 @@ class IMMFilter(FilterBase):
             for j in range(z_len):
                 pdfs[i, j] = self._models[i].likelihood(zs[j], **kwargs_list[j])
             self._models[i].correct_JPDA(zs, probs, **kwargs)
-        
+
         # posterior model probability P(M(k)|Z^k)
         pdf = np.dot(pdfs, probs) + (1 - np.sum(probs))     # ??
         self._probs *= pdf

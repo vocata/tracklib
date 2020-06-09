@@ -156,7 +156,7 @@ class UKFilterAN(FilterBase):
             S_base += w_cov[pi] * np.outer(z_err, z_err)
             x_err = self.__f_map[pi] - self._state
             xz_cov += w_cov[pi] * np.outer(x_err, z_err)
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):

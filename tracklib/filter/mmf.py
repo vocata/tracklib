@@ -27,7 +27,13 @@ class MMFilter(FilterBase):
     '''
     Static multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, model_probs=None, switch_fcn=model_switch):
+    def __init__(self,
+                 model_cls,
+                 model_types,
+                 init_args,
+                 init_kwargs,
+                 model_probs=None,
+                 switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
@@ -88,7 +94,7 @@ class MMFilter(FilterBase):
             Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._cov = Ptmp
-    
+
     def init(self, state, cov):
         '''
         Initial filter
@@ -195,7 +201,7 @@ class MMFilter(FilterBase):
         d = 0
         for i in range(self._models_n):
             d += self._probs[i] * self._models[i].distance(z, **kwargs)
-        
+
         return d
 
     def likelihood(self, z, **kwargs):
@@ -205,7 +211,7 @@ class MMFilter(FilterBase):
         pdf = 0
         for i in range(self._models_n):
             pdf += self._probs[i] * self._models[i].likelihood(z, **kwargs)
-        
+
         return pdf
 
     def models(self):

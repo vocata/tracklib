@@ -18,7 +18,8 @@ the program may yield uncertain result.
 def MMMHF_test():
     T = 0.1
     axis = 3
-
+    
+    np.random.seed(2021)
     # generate trajectory
     start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
     traj = model.Trajectory(T,
@@ -31,7 +32,7 @@ def MMMHF_test():
     stages.append({'model': 'ca', 'len': 333, 'acc': 3})
 
     traj.add_stage(stages)
-    traj_real, traj_meas = traj()
+    traj_real, traj_meas, state_real = traj()
     N = len(traj)
 
     # traj_real = np.loadtxt(
@@ -121,9 +122,9 @@ def MMMHF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, depth=3, keep=3, trans_mat=0.99)
+    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, keep=6, trans_mat=0.99)
 
-    x_init = np.array([120, 0, 100, 0, 100, 0], dtype=float)
+    x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     mmmhf.init(x_init, P_init)
 
@@ -134,12 +135,16 @@ def MMMHF_test():
         mmmhf.predict()
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            mmmhf.correct(z)
+            mmmhf.correct(z, n=n)
 
         post_state_arr[:, n] = mmmhf.state
         # print(n)
 
     print(mmmhf)
+
+    state_real = np.delete(state_real, np.s_[2::3], axis=0)
+    state_err = state_real - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # trajectory
     fig = plt.figure()

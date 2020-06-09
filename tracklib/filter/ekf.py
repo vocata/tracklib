@@ -29,7 +29,21 @@ class EKFilterAN(FilterBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, xdim, zdim, fjac=None, hjac=None, fhes=None, hhes=None, order=1, it=0):
+    def __init__(self,
+                 f,
+                 L,
+                 h,
+                 M,
+                 Q,
+                 R,
+                 xdim,
+                 zdim,
+                 fjac=None,
+                 hjac=None,
+                 fhes=None,
+                 hhes=None,
+                 order=1,
+                 it=0):
         super().__init__()
 
         self._f = lambda x, u: f(x, u)
@@ -169,7 +183,7 @@ class EKFilterAN(FilterBase):
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):
@@ -194,7 +208,7 @@ class EKFilterAN(FilterBase):
                 HH = self._hhes(self._state)
                 quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
                 z_pred += quad / 2
-            
+
             state_item = 0
             cov_item1 = cov_item2 = 0
             for i in range(z_len):
@@ -207,7 +221,7 @@ class EKFilterAN(FilterBase):
                 state_item += probs[i] * incre
                 cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
                 cov_item2 += probs[i] * np.outer(incre, incre)
-            
+
             self._state = prior_state + state_item
             self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2
@@ -234,7 +248,7 @@ class EKFilterAN(FilterBase):
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
         return d
-    
+
     def likelihood(self, z, **kwargs):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
@@ -270,7 +284,19 @@ class EKFilterNAN(FilterBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, xdim, zdim, fjac=None, hjac=None, fhes=None, hhes=None, order=1, it=0):
+    def __init__(self,
+                 f,
+                 h,
+                 Q,
+                 R,
+                 xdim,
+                 zdim,
+                 fjac=None,
+                 hjac=None,
+                 fhes=None,
+                 hhes=None,
+                 order=1,
+                 it=0):
         super().__init__()
 
         self._f = lambda x, u, w: f(x, u, w)
@@ -406,7 +432,7 @@ class EKFilterNAN(FilterBase):
             HH = self._hhes(prior_state, np.zeros(self._vdim))
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):
@@ -431,7 +457,7 @@ class EKFilterNAN(FilterBase):
                 HH = self._hhes(self._state, np.zeros(self._vdim))
                 quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
                 z_pred += quad / 2
-            
+
             state_item = 0
             cov_item1 = cov_item2 = 0
             for i in range(z_len):
@@ -444,7 +470,7 @@ class EKFilterNAN(FilterBase):
                 state_item += probs[i] * incre
                 cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
                 cov_item2 += probs[i] * np.outer(incre, incre)
-            
+
             self._state = prior_state + state_item
             self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2

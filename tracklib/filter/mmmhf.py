@@ -25,10 +25,8 @@ class MMMHFilter(FilterBase):
                  init_kwargs,
                  trans_mat=0.99,
                  history_probs=None,
-                 depth=3,
-                 keep=3,
-                 pruning=0.0,
-                 steady_prob=0.95,
+                 keep=6,
+                 pruning=0,
                  switch_fcn=model_switch):
         super().__init__()
 
@@ -52,13 +50,10 @@ class MMMHFilter(FilterBase):
             self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
         else:
             self._probs = history_probs
-        self._depth = depth
-        self._max_depth = depth
-        self._cur_depth = 0
         self._keep = keep
         self._pruning = pruning
         self._switch_fcn = switch_fcn
-        self._steady_prob = steady_prob
+        self._is_first = True
         self._coast = False
 
     def __update(self):
@@ -99,39 +94,37 @@ class MMMHFilter(FilterBase):
         pass
 
     def __pruning(self):
-        if self._cur_depth < self._max_depth:
-            if not self._coast:
-                max_idx = list(range(self._models_n))
-                for i in range(self._models_n):
-                    if self._probs[i] < self._pruning:
-                        max_idx.remove(i)
+        if not self._coast:
+            max_idx = list(range(self._models_n))
+            for i in range(self._models_n):
+                if self._probs[i] < self._pruning:
+                    max_idx.remove(i)
 
-                # idx = np.argsort(-self._probs)
-                # max_idx = []
-                # total = 0
-                # for i in idx:
-                #     total += self._probs[i]
-                #     max_idx.append(i)
-                #     if total >= self._pruning:
-                #         break
-                if len(max_idx) < self._models_n:
-                    max_idx = np.array(max_idx, dtype=int)
-                    self._models = [self._models[i] for i in max_idx]
-                    self._cur_types = [self._cur_types[i] for i in max_idx]
-                    self._probs = self._probs[max_idx]
-                    self._probs /= np.sum(self._probs)
-                    self._idx = max_idx % len(self._cls)
-                    self._models_n = len(self._models)
-        else:
-            if self._keep < self._models_n:
-                max_idx = np.argsort(self._probs)[-self._keep:]
+            # idx = np.argsort(-self._probs)
+            # max_idx = []
+            # total = 0
+            # for i in idx:
+            #     total += self._probs[i]
+            #     max_idx.append(i)
+            #     if total >= self._pruning:
+            #         break
+            if len(max_idx) < self._models_n:
+                max_idx = np.array(max_idx, dtype=int)
                 self._models = [self._models[i] for i in max_idx]
                 self._cur_types = [self._cur_types[i] for i in max_idx]
                 self._probs = self._probs[max_idx]
                 self._probs /= np.sum(self._probs)
                 self._idx = max_idx % len(self._cls)
                 self._models_n = len(self._models)
-                self._cur_depth = 1
+
+        if self._keep < self._models_n:
+            max_idx = np.argsort(self._probs)[-self._keep:]
+            self._models = [self._models[i] for i in max_idx]
+            self._cur_types = [self._cur_types[i] for i in max_idx]
+            self._probs = self._probs[max_idx]
+            self._probs /= np.sum(self._probs)
+            self._idx = max_idx % len(self._cls)
+            self._models_n = len(self._models)
 
     def __advance(self):
         models = []
@@ -157,14 +150,13 @@ class MMMHFilter(FilterBase):
         self._probs = probs / np.sum(probs)
         self._idx = np.array(idx, dtype=int)
         self._models_n = len(self._models)
-        self._cur_depth += 1
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 
-        if self._cur_depth == 0:    # do not prune and advance at the first prediction
-            self._cur_depth += 1
+        if self._is_first:    # do not prune and advance at the first prediction
+            self._is_first = False
         else:
             self.__pruning()
             self.__advance()
@@ -190,13 +182,7 @@ class MMMHFilter(FilterBase):
         self._probs *= pdf
         self._probs /= np.sum(self._probs)
 
-        # dynamic adjust the maximum depth
-        if np.max(self._probs) < self._steady_prob:
-            self._max_depth = self._depth
-        else:
-            self._max_depth = 2
-
-        # print(self._cur_types[np.argmax(self._probs)], np.max(self._probs))
+        # print(kwargs['n'], self._cur_types[np.argmax(self._probs)], np.max(self._probs))
         self.__update()
         self._coast = False
 
