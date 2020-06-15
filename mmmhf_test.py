@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 import tracklib.filter as ft
 import tracklib.init as init
@@ -19,13 +20,13 @@ def MMMHF_test():
     T = 0.1
     axis = 3
     
-    np.random.seed(2021)
+    np.random.seed(202)
     # generate trajectory
     start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
     traj = model.Trajectory(T,
                             np.eye(axis),
                             start=start,
-                            pd=[(Scope(0, 30), 0.0), (Scope(30, np.inf), 0.8)])
+                            pd=[(Scope(0, 30), 0.), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
@@ -122,7 +123,7 @@ def MMMHF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, keep=6, trans_mat=0.99)
+    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, keep=3, depth=1, pruning=0.0, trans_mat=0.99)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -131,16 +132,19 @@ def MMMHF_test():
     post_state_arr = np.empty((cv_xdim, N))
 
     post_state_arr[:, 0] = mmmhf.state
+
+    start = time.time()
     for n in range(1, N):
-        mmmhf.predict()
+        mmmhf.predict(n=n)
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            mmmhf.correct(z, n=n)
+            mmmhf.correct(z)
 
         post_state_arr[:, n] = mmmhf.state
         # print(n)
+    end = time.time()
 
-    print(mmmhf)
+    print(mmmhf, end - start)
 
     state_real = np.delete(state_real, np.s_[2::3], axis=0)
     state_err = state_real - post_state_arr
@@ -160,9 +164,5 @@ def MMMHF_test():
     plt.show()
 
 
-import time
 if __name__ == '__main__':
-    start = time.time()
     MMMHF_test()
-    end = time.time()
-    print(end - start)

@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 import tracklib.filter as ft
 import tracklib.init as init
@@ -125,7 +126,7 @@ def DMMF_test():
     # number of models
     r = 3
 
-    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs)
+    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -136,6 +137,8 @@ def DMMF_test():
 
     post_state_arr[:, 0] = dmmf.state
     prob_arr[:, 0] = dmmf.probs()
+
+    start = time.time()
     for n in range(1, N):
         dmmf.predict()
         z = traj_meas[:, n]
@@ -144,8 +147,9 @@ def DMMF_test():
 
         post_state_arr[:, n] = dmmf.state
         prob_arr[:, n] = dmmf.probs()
+    end = time.time()
 
-    print(dmmf)
+    print(dmmf, end - start)
 
     state_real = np.delete(state_real, np.s_[2::3], axis=0)
     state_err = state_real - post_state_arr
@@ -178,9 +182,5 @@ def DMMF_test():
     plt.show()
 
 
-import time
 if __name__ == '__main__':
-    start = time.time()
     DMMF_test()
-    end = time.time()
-    print(end - start)

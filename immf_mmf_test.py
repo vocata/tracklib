@@ -102,27 +102,27 @@ def DMMF_MMF_test():
     # number of models
     r = 2
 
-    dmmf = ft.IMMFilter(model_cls2, model_types2, init_args2, init_kwargs2)
+    immf = ft.IMMFilter(model_cls2, model_types2, init_args2, init_kwargs2)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    dmmf.init(x_init, P_init)
+    immf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    dmmf_prob_arr = np.empty((r, N))
+    immf_prob_arr = np.empty((r, N))
 
-    post_state_arr[:, 0] = dmmf.state
-    dmmf_prob_arr[:, 0] = dmmf.probs()
+    post_state_arr[:, 0] = immf.state
+    immf_prob_arr[:, 0] = immf.probs()
     for n in range(1, N):
-        dmmf.predict()
+        immf.predict()
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):
-            dmmf.correct(z)
+            immf.correct(z)
 
-        post_state_arr[:, n] = dmmf.state
-        dmmf_prob_arr[:, n] = dmmf.probs()
+        post_state_arr[:, n] = immf.state
+        immf_prob_arr[:, n] = immf.probs()
 
-    print(dmmf)
+    print(immf)
 
     # trajectory
     fig = plt.figure()
@@ -142,7 +142,7 @@ def DMMF_MMF_test():
     n = np.arange(N)
     labels = ['hybrid', 'ct']
     for i in range(r):
-        ax.plot(n, dmmf_prob_arr[i, :], linewidth=0.8, label=labels[i])
+        ax.plot(n, immf_prob_arr[i, :], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
