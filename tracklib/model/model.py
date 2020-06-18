@@ -4,16 +4,18 @@ REFERENCES:
 [1] Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation," New York: John Wiley and Sons, Inc, 2001.
 [2] R. A. Singer, "Estimating Optimal Tracking Filter Performance for Manned Maneuvering Targets," in IEEE Transactions on Aerospace and Electronic Systems, vol. AES-6, no. 4, pp. 473-483, July 1970.
 [3] X. Rong Li and V. P. Jilkov, "Survey of maneuvering target tracking. Part I. Dynamic models," in IEEE Transactions on Aerospace and Electronic Systems, vol. 39, no. 4, pp. 1333-1364, Oct. 2003.
+[4] W. Koch, "Tracking and Sensor Data Fusion: Methodological Framework and Selected Applications," Heidelberg, Germany: Springer, 2014.
 '''
 from __future__ import division, absolute_import, print_function
 
 
 __all__ = [
-    'F_poly', 'F_singer', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer', 'H_pos_only',
-    'R_pos_only', 'F_cv', 'f_cv', 'f_cv_jac', 'Q_cv_dc', 'Q_cv_dd', 'H_cv',
-    'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca', 'f_ca_jac', 'Q_ca_dc',
-    'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca', 'F_ct', 'f_ct', 'f_ct_jac',
-    'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct', 'model_switch', 'Trajectory'
+    'F_poly', 'F_singer', 'F_van_keuk', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer',
+    'Q_van_keuk', 'H_pos_only', 'R_pos_only', 'F_cv', 'f_cv', 'f_cv_jac',
+    'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca',
+    'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
+    'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
+    'model_switch', 'Trajectory'
 ]
 
 import numbers
@@ -73,7 +75,7 @@ def F_singer(axis, T, tau=20):
     tau : float
         The time constant of the target acceleration autocorrelation, that is, the
         decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tua for aircraft
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
         are 20s for slow turn and 5s for an evasive maneuver. If this parameter
         is omitted, the default value of 20 is used.The time constant is assumed
         the same for all dimensions of motion, so this parameter is scalar.
@@ -95,6 +97,42 @@ def F_singer(axis, T, tau=20):
     F[1, 1] = 1
     F[1, 2] = (1 - eaT) * tau
     F[2, 2] = eaT
+    F = np.kron(np.eye(axis), F_base)
+
+    return F
+
+
+def F_van_keuk(axis, T, tau=20):
+    '''
+    Get the state transition matrix for the van Keuk dynamic model. This is a
+    direct discrete-time model such that the acceleration advances in each
+    dimension over time as a[k+1]=exp(-T/tau)a[k]+std*sqrt(1-exp(-2*T/tau))*v[k],
+    see section 2.2.1 in [4]
+    
+    Parameters
+    ----------
+    axis : int
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
+    T : float
+        The time-duration of the propagation interval.
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used.The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
+    Returns
+    -------
+    F : ndarray
+        The state transition matrix under a Gauss-Markov dynamic model of the given
+        axis.
+    '''
+    assert (axis >= 1)
+
+    F_base = F_poly(3, 1, T)
+    F_base[-1, -1] = np.exp(-T / tau)
     F = np.kron(np.eye(axis), F_base)
 
     return F
@@ -199,7 +237,7 @@ def Q_singer(axis, T, tau, std):
     tau : float
         The time constant of the target acceleration autocorrelation, that is, the
         decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tua for aircraft
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
         are 20s for slow turn and 5s for an evasive maneuver. If this parameter
         is omitted, the default value of 20 is used.The time constant is assumed
         the same for all dimensions of motion, so this parameter is scalar.
@@ -236,6 +274,50 @@ def Q_singer(axis, T, tau, std):
     Q_base = np.array([[q11, q12, q13],
                        [q12, q22, q23],
                        [q13, q23, q33]], dtype=float)
+    Q = np.kron(np.diag(std)**2, Q_base)
+
+    return Q
+
+
+def Q_van_keuk(axis, T, tau, std):
+    '''
+    Process noise covariance matrix for a Van Keuk dynamic model, see section 2.2.1 in [4]
+
+    Parameters
+    ----------
+    axis : int
+        Motion directions in Cartesian coordinate. If axis=1, it means x-axis,
+        2 means x-axis and y-axis, etc.
+    T : float
+        The time-duration of the propagation interval.
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used.The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
+    std : number, list
+        std is the instantaneous standard deviation of the acceleration knowm as
+        Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
+        1. Equal to a maxmum acceleration a_M with probability p_M and -a_M with the same
+           probability
+        2. Equal to zero with probability p_0
+        3. Uniformly distributed in [-a_M, a_M] with the remaining probability mass
+        All parameters mentioned above are chosen by the designer. So the expected std^2
+        is (a_M^2 / 3)*(1 + 4*p_M - p_0)
+
+    Returns
+    -------
+    Q : ndarray
+        Process noise convariance
+    '''
+    assert (axis >= 1)
+
+    if isinstance(std, numbers.Number):
+        std = [std] * axis
+    Q_base = np.diag([0, 0, 1])
+    Q_base = (1 - np.exp(-2 * T / tau)) * Q_base
     Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q

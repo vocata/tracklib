@@ -337,7 +337,7 @@ class JPDATracker():
                     else:
                         tent_tracks.append(t)
 
-            # form new tentative tracks using meas_init_flag
+            # form new tentative tracks using unassigned measurements
             for mi in unasg_meas:
                 ft = self._ft_gen()
                 z, R = detection[mi]
