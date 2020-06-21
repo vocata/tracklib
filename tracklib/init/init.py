@@ -8,7 +8,7 @@ from __future__ import division, absolute_import, print_function
 
 __all__ = [
     'two_point_diff_init', 'biased_three_point_diff_init',
-    'unbiased_three_point_diff_init', 'cp_init', 'cv_init', 'ca_init'
+    'unbiased_three_point_diff_init', 'cv_init', 'ca_init'
 ]
 
 import numbers
@@ -136,10 +136,6 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)
 # print(state, cov, sep='\n\n')
 
-def cp_init(z, R):
-    return z, R
-
-
 def cv_init(z, R, vmax=100):
     dim = len(z)
     if isinstance(vmax, numbers.Number):
@@ -147,7 +143,7 @@ def cv_init(z, R, vmax=100):
     elif isinstance(vmax, Iterable):
         vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
+        raise TypeError("error 'vmax' type: '%s'" % vmax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0]))
@@ -168,13 +164,13 @@ def ca_init(z, R, vmax=100, amax=10):
     elif isinstance(vmax, Iterable):
         vvar = np.array(tuple(vmax), dtype=float)**2 / 3
     else:
-        raise TypeError('vmax can not be the type: `%s`' % vmax.__class__.__name__)
+        raise TypeError("error 'vmax' type: '%s'" % vmax.__class__.__name__)
     if isinstance(amax, numbers.Number):
         avar = np.full(dim, amax**2 / 3, dtype=float)
     elif isinstance(amax, Iterable):
         avar = np.array(tuple(amax), dtype=float)**2 / 3
     else:
-        raise TypeError('amax can not be the type: `%s`' % amax.__class__.__name__)
+        raise TypeError("error 'amax' type: '%s'" % amax.__class__.__name__)
 
     state = np.kron(z, [1.0, 0.0, 0.0])
     cov = np.kron(R, np.diag([1.0, 0.0, 0.0]))

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Dynamic multiple model filter
+Interacting multiple model filter
 
 REFERENCE:
 [1]. Y. Bar-Shalom, X. R. Li, and T. Kirubarajan, "Estimation with Applications to Tracking and Navigation: Theory, Algorithms and Software," New York: Wiley, 2001
@@ -22,24 +22,31 @@ class IMMFilter(FilterBase):
     '''
     Interacting multiple model filter
     '''
-    def __init__(self, model_cls, model_types, init_args, init_kwargs, trans_mat=0.999, model_probs=None, switch_fcn=model_switch):
+    def __init__(self,
+                 model_cls,
+                 model_types,
+                 init_args,
+                 init_kwargs,
+                 trans_mat=0.99,
+                 model_probs=None,
+                 switch_fcn=model_switch):
         super().__init__()
 
         self._models_n = len(model_cls)
         self._models = [model_cls[i](*init_args[i], **init_kwargs[i]) for i in range(self._models_n)]
         self._types = model_types
-        if model_probs is None:
-            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
-        else:
-            self._probs = model_probs
         if self._models_n == 1:
             self._trans_mat = np.eye(1)
         elif isinstance(trans_mat, numbers.Number):
             other_probs = (1 - trans_mat) / (self._models_n - 1)
-            self._trans_mat = np.full((self._models_n, self._models_n), other_probs)
+            self._trans_mat = np.full((self._models_n, self._models_n), other_probs, dtype=float)
             np.fill_diagonal(self._trans_mat, trans_mat)
         else:
             self._trans_mat = trans_mat
+        if model_probs is None:
+            self._probs = np.full(self._models_n, 1 / self._models_n, dtype=float)
+        else:
+            self._probs = model_probs
         self._switch_fcn = switch_fcn
 
     def __str__(self):
@@ -56,39 +63,38 @@ class IMMFilter(FilterBase):
         msg += '\n}'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def __iter__(self):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if isinstance(n, numbers.Integral):
+        if isinstance(n, (numbers.Integral, slice)):
             return self._models[n], self._probs[n]
         elif isinstance(n, Iterable):
             m = [self._models[i] for i in n]
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise TypeError('index can not be the type: `%s`' % n.__class__.__name__)
+            raise TypeError("index must be an integer, slice or iterable, not '%s'" % n.__class__.__name__)
 
     def __update(self):
-        state_org = [self._models[i].state for i in range(self._models_n)]
-        cov_org = [self._models[i].cov for i in range(self._models_n)]
-        types = [self._types[i] for i in range(self._models_n)]
+        state_org = [m.state for m in self._models]
+        cov_org = [m.cov for m in self._models]
+        types = [t for t in self._types]
 
         xtmp = 0
+        xi_list = []
         for i in range(self._models_n):
             xi = self._switch_fcn(state_org[i], types[i], types[0])
+            xi_list.append(xi)
             xtmp += self._probs[i] * xi
         self._state = xtmp
 
         Ptmp = 0
         for i in range(self._models_n):
-            xi = self._switch_fcn(state_org[i], types[i], types[0])
-            pi = self._switch_fcn(cov_org[i], types[i], types[0])
+            xi = xi_list[i]
+            Pi = self._switch_fcn(cov_org[i], types[i], types[0])
             err = xi - xtmp
-            Ptmp += self._probs[i] * (pi + np.outer(err, err))
+            Ptmp += self._probs[i] * (Pi + np.outer(err, err))
         Ptmp = (Ptmp + Ptmp.T) / 2
         self._cov = Ptmp
 
@@ -108,7 +114,7 @@ class IMMFilter(FilterBase):
             None
         '''
         if self._models_n == 0:
-            raise RuntimeError('models must be added before calling init')
+            raise RuntimeError('no models')
 
         for i in range(self._models_n):
             x = self._switch_fcn(state, self._types[0], self._types[i])
@@ -120,7 +126,7 @@ class IMMFilter(FilterBase):
 
     def reset(self, state, cov):
         if self._models_n == 0:
-            raise AttributeError("AttributeError: can't set attribute")
+            raise RuntimeError('no models')
 
         for i in range(self._models_n):
             xi = self._switch_fcn(state, self._types[0], self._types[i])
@@ -129,7 +135,7 @@ class IMMFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         # mixing/interaction, the difference from the GPB1 and GPB2 is that merging
         # process (called mixing here) is carried out at the beginning of cycle.
@@ -170,7 +176,7 @@ class IMMFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         pdf = np.zeros(self._models_n)
         for i in range(self._models_n):
@@ -186,7 +192,7 @@ class IMMFilter(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         kwargs_list = [{}] * z_len
@@ -200,7 +206,7 @@ class IMMFilter(FilterBase):
             for j in range(z_len):
                 pdfs[i, j] = self._models[i].likelihood(zs[j], **kwargs_list[j])
             self._models[i].correct_JPDA(zs, probs, **kwargs)
-        
+
         # posterior model probability P(M(k)|Z^k)
         pdf = np.dot(pdfs, probs) + (1 - np.sum(probs))     # ??
         self._probs *= pdf
@@ -212,7 +218,7 @@ class IMMFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         d = 0
         for i in range(self._models_n):
@@ -222,7 +228,7 @@ class IMMFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         pdf = 0
         for i in range(self._models_n):

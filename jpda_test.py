@@ -25,13 +25,25 @@ def JPDATracker_test():
     # CV
     cv_xdim, cv_zdim = 6, 3
     sigma_w = [30, 30, 1]     # increase the filter process noise to account for unknown acceleration.
-    sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
+    sigma_v = np.sqrt(1000)   # measurement noise can be ignored because JPDA tracker will reset it later
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
     L = np.eye(cv_xdim)
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
+
+    # the normalized Mahalanobis distance with penalty term is used,
+    # so the gate is higher than that without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+    init_thres = 0.2
+    his_miss_thres = 0.2
+
+    # generator
     ft_gen = tk.JPDAFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
     # initializer
@@ -43,16 +55,8 @@ def JPDATracker_test():
     # logic
     lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    # the normalized Mahalanobis distance with penalty term is used,
-    # so the threshold is higher than that without penalty term
-    gate = 45
-    lamb = 1e-6 / 1e9
-    pd = 0.8
-    init_thres = 0.2
-    his_miss_thres = 0.2
-
     # initialize the tracker
-    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, lamb, pd, init_thres, his_miss_thres)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, pd, pfa, vol, init_thres, his_miss_thres)
 
     state_history = {}
 
@@ -92,9 +96,8 @@ def JPDATracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
@@ -124,7 +127,7 @@ def IMM_JPDATracker_test():
     # CV
     cv_xdim, cv_zdim = 6, 3
     sigma_w = [10, 10, 1]     # Increase the filter process noise to account for unknown acceleration.
-    sigma_v = np.sqrt(1000)   # measurement noise can be ignored because GNN tracker will reset it later
+    sigma_v = np.sqrt(1000)   # measurement noise can be ignored because JPDA tracker will reset it later
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
     L = np.eye(cv_xdim)
@@ -151,7 +154,17 @@ def IMM_JPDATracker_test():
     model_cls.append(ft.EKFilterAN)
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
-    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 1})       # do not use second-order EKF
+    init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'it': 2, 'order': 1})       # do not use second-order EKF due to calculation accuracy
+
+    # The normalized Mahalanobis distance with penalty term is used,
+    # so the gate is greater than one without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+    init_thres = 0.2
+    his_miss_thres = 0.2
 
     # generator
     ft_gen = tk.JPDAFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
@@ -165,16 +178,8 @@ def IMM_JPDATracker_test():
     # logic
     lgc = tk.JPDALogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
 
-    # The normalized Mahalanobis distance with penalty term is used,
-    # so the threshold is higher than that without penalty term
-    gate = 45
-    lamb = 1e-6 / 1e9
-    pd = 0.8
-    init_thres = 0.2
-    his_miss_thres = 0.2
-
     # initialize the tracker
-    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, lamb, pd, init_thres, his_miss_thres)
+    tracker = tk.JPDATracker(ft_gen, ft_init, lgc, gate, pd, pfa, vol, init_thres, his_miss_thres)
 
     state_history = {}
     prob_history = {}
@@ -217,9 +222,8 @@ def IMM_JPDATracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')

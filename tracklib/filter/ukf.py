@@ -52,9 +52,6 @@ class UKFilterAN(FilterBase):
         msg = 'Additive noise unscented Kalman filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -67,7 +64,7 @@ class UKFilterAN(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
@@ -95,7 +92,7 @@ class UKFilterAN(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'M' in kwargs: self._M[:] = kwargs['M']
@@ -132,7 +129,7 @@ class UKFilterAN(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
@@ -156,7 +153,7 @@ class UKFilterAN(FilterBase):
             S_base += w_cov[pi] * np.outer(z_err, z_err)
             x_err = self.__f_map[pi] - self._state
             xz_cov += w_cov[pi] * np.outer(x_err, z_err)
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):
@@ -178,7 +175,7 @@ class UKFilterAN(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -207,7 +204,7 @@ class UKFilterAN(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -233,7 +230,7 @@ class UKFilterAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)
 
 
 class UKFilterNAN(FilterBase):
@@ -263,9 +260,6 @@ class UKFilterNAN(FilterBase):
         msg = 'Nonadditive noise unscented Kalman filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -278,7 +272,7 @@ class UKFilterNAN(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
@@ -309,7 +303,7 @@ class UKFilterNAN(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if 'R' in kwargs: self._R[:] = kwargs['R']
 
@@ -350,7 +344,7 @@ class UKFilterNAN(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         R = kwargs['R'] if 'R' in kwargs else self._R
 
@@ -382,7 +376,7 @@ class UKFilterNAN(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         R = kwargs['R'] if 'R' in kwargs else self._R
 
@@ -411,7 +405,7 @@ class UKFilterNAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)
 
 
 class SimplexSigmaPoints():
@@ -430,17 +424,17 @@ class SimplexSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._dim + 2
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         # P = C * C'
         cov_sqrt = cholcov(cov, lower=True)
 
@@ -478,17 +472,17 @@ class SphericalSimplexSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._dim + 2
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         # P = C * C'
         cov_sqrt = cholcov(cov, lower=True)
 
@@ -528,17 +522,17 @@ class SymmetricSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return 2 * self._dim
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._w, self._w
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         # P = C * C'
         cov_sqrt = cholcov(cov, lower=True)
 
@@ -587,17 +581,17 @@ class ScaledSigmaPoints():
 
     def points_num(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return 2 * self._dim + 1
 
     def weights(self):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         return self._w_mean, self._w_cov
 
     def sigma_points(self, mean, cov):
         if self._init == False:
-            raise RuntimeError('the point generator must be initialized with init() before use')
+            raise RuntimeError('point generator must be initialized with init() before use')
         # P = C * C'
         cov_sqrt = cholcov(cov, lower=True)
 

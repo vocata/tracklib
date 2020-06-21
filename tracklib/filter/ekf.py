@@ -29,7 +29,21 @@ class EKFilterAN(FilterBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, L, h, M, Q, R, xdim, zdim, fjac=None, hjac=None, fhes=None, hhes=None, order=1, it=0):
+    def __init__(self,
+                 f,
+                 L,
+                 h,
+                 M,
+                 Q,
+                 R,
+                 xdim,
+                 zdim,
+                 fjac=None,
+                 hjac=None,
+                 fhes=None,
+                 hhes=None,
+                 order=1,
+                 it=0):
         super().__init__()
 
         self._f = lambda x, u: f(x, u)
@@ -70,9 +84,6 @@ class EKFilterAN(FilterBase):
         msg = '%s-order additive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -84,38 +95,41 @@ class EKFilterAN(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F = self._fjac(self._state, u)
+        post_state, post_cov = self.state, self._cov
+
+        F = self._fjac(post_state, u)
         Q_tilde = self._L @ self._Q @ self._L.T
-        self._state = self._f(self._state, u)
-        self._cov = F @ self._cov @ F.T + Q_tilde
+
+        self._state = self._f(post_state, u)
+        self._cov = F @ post_cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
+
         if self._order == 2:
-            FH = self._fhes(self._state, u)
-            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            FH = self._fhes(post_state, u)
+            quad = np.array([np.trace(FH[:, :, i] @ post_cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
         return self._state, self._cov
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'M' in kwargs: self._M[:] = kwargs['M']
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
-        if self._order == 2:    # not suitable for GNN
+        if self._order == 2:
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
@@ -150,22 +164,21 @@ class EKFilterAN(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
         Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
-        if self._order == 2:    # not suitable for JPDA
+        if self._order == 2:
             HH = self._hhes(prior_state)
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):
@@ -190,7 +203,7 @@ class EKFilterAN(FilterBase):
                 HH = self._hhes(self._state)
                 quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
                 z_pred += quad / 2
-            
+
             state_item = 0
             cov_item1 = cov_item2 = 0
             for i in range(z_len):
@@ -203,7 +216,7 @@ class EKFilterAN(FilterBase):
                 state_item += probs[i] * incre
                 cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
                 cov_item2 += probs[i] * np.outer(incre, incre)
-            
+
             self._state = prior_state + state_item
             self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2
@@ -212,7 +225,7 @@ class EKFilterAN(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -230,10 +243,10 @@ class EKFilterAN(FilterBase):
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
         return d
-    
+
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -251,7 +264,7 @@ class EKFilterAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small
 
 
 class EKFilterNAN(FilterBase):
@@ -266,7 +279,19 @@ class EKFilterNAN(FilterBase):
 
     w_k, v_k, x_0 are uncorrelated to each other
     '''
-    def __init__(self, f, h, Q, R, xdim, zdim, fjac=None, hjac=None, fhes=None, hhes=None, order=1, it=0):
+    def __init__(self,
+                 f,
+                 h,
+                 Q,
+                 R,
+                 xdim,
+                 zdim,
+                 fjac=None,
+                 hjac=None,
+                 fhes=None,
+                 hhes=None,
+                 order=1,
+                 it=0):
         super().__init__()
 
         self._f = lambda x, u, w: f(x, u, w)
@@ -309,9 +334,6 @@ class EKFilterNAN(FilterBase):
         msg = '%s-order nonadditive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -323,30 +345,33 @@ class EKFilterNAN(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
-        F, L = self._fjac(self._state, u, np.zeros(self._wdim))
+        post_state, post_cov = self.state, self._cov
+
+        F, L = self._fjac(post_state, u, np.zeros(self._wdim))
         Q_tilde = L @ self._Q @ L.T
-        self._state = self._f(self._state, u, np.zeros(self._wdim))
-        self._cov = F @ self._cov @ F.T + Q_tilde
+
+        self._state = self._f(post_state, u, np.zeros(self._wdim))
+        self._cov = F @ post_cov @ F.T + Q_tilde
         self._cov = (self._cov + self._cov.T) / 2
+
         if self._order == 2:
-            FH = self._fhes(self._state, u, np.zeros(self._wdim))
-            quad = np.array([np.trace(FH[:, :, i] @ self._cov) for i in range(self._xdim)], dtype=float)
+            FH = self._fhes(post_state, u, np.zeros(self._wdim))
+            quad = np.array([np.trace(FH[:, :, i] @ post_cov) for i in range(self._xdim)], dtype=float)
             self._state += quad / 2
 
         return self._state, self._cov
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self.state, self._cov
 
         H, M = self._hjac(prior_state, np.zeros(self._vdim))
         z_pred = self._h(prior_state, np.zeros(self._vdim))
@@ -385,13 +410,12 @@ class EKFilterNAN(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H, M = self._hjac(prior_state, np.zeros(self._vdim))
         z_pred = self._h(prior_state, np.zeros(self._vdim))
@@ -399,7 +423,7 @@ class EKFilterNAN(FilterBase):
             HH = self._hhes(prior_state, np.zeros(self._vdim))
             quad = np.array([np.trace(HH[:, :, i] @ prior_cov) for i in range(self._zdim)], dtype=float)
             z_pred += quad / 2
-        
+
         state_item = 0
         cov_item1 = cov_item2 = 0
         for i in range(z_len):
@@ -424,7 +448,7 @@ class EKFilterNAN(FilterBase):
                 HH = self._hhes(self._state, np.zeros(self._vdim))
                 quad = np.array([np.trace(HH[:, :, i] @ self._cov) for i in range(self._zdim)], dtype=float)
                 z_pred += quad / 2
-            
+
             state_item = 0
             cov_item1 = cov_item2 = 0
             for i in range(z_len):
@@ -437,7 +461,7 @@ class EKFilterNAN(FilterBase):
                 state_item += probs[i] * incre
                 cov_item1 += probs[i] * (prior_cov - K @ S @ K.T)
                 cov_item2 += probs[i] * np.outer(incre, incre)
-            
+
             self._state = prior_state + state_item
             self._cov = (1 - np.sum(probs)) * prior_cov + cov_item1 + (cov_item2 - np.outer(state_item, state_item))
             self._cov = (self._cov + self._cov.T) / 2
@@ -446,7 +470,7 @@ class EKFilterNAN(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         R = kwargs['R'] if 'R' in kwargs else self._R
 
@@ -466,7 +490,7 @@ class EKFilterNAN(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         R = kwargs['R'] if 'R' in kwargs else self._R
 
@@ -483,4 +507,4 @@ class EKFilterNAN(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small
