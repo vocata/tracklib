@@ -15,7 +15,8 @@ matplotlib
     2. Sequential kalman filter
     3. Extended kalman filter(first and second order)
     4. Static multiple model filter
-    5. Dynamic multiple model filter(IMMF)
+    5. Interacting multiple model filter
+    6. Multiple model multiple hypothesis filter
     5. Gaussian sum filter
     6. Unscented kalman filter
     7. Gaussian particle filter
