@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+'''
+Joint probability data association
+
+REFERENCE:
+[1]. Y. Bar-Shalom and X. R. Li, "Multitarget-Multisensor Tracking: Principles and Techniques," Storrs, CT: YBS Publishing, 1995.
+[2]. B. Zhou and N. K. Bose, "Multitarget tracking in clutter: fast algorithms for data association," in IEEE Transactions on Aerospace and Electronic Systems, vol. 29, no. 2, pp. 352-363, April 1993.
+[3]. T. Fortmann, Y. Bar-Shalom and M. Scheffe, "Sonar tracking of multiple targets using joint probabilistic data association," in IEEE Journal of Oceanic Engineering, vol. 8, no. 3, pp. 173-184, July 1983.
+'''
 from __future__ import division, absolute_import, print_function
 
 
@@ -59,8 +67,7 @@ def JPDA_clusters(valid_mat):
     row_n, col_n = valid_mat.shape
 
     flag = np.zeros(col_n, dtype=bool)
-    tar_list = []
-    meas_list = []
+    clusters = []
     for i in range(col_n):
         if flag[i]:
             continue
@@ -79,17 +86,18 @@ def JPDA_clusters(valid_mat):
                     changed = True
                     tar.append(j)
 
-        tar_list.append(sorted(tar))
-        meas_list.append([i for i in range(row_n) if meas_flag[i]])
+        tar = sorted(tar)
+        meas = [i for i in range(row_n) if meas_flag[i]]
+        clusters.append((tar, meas))
 
-    return tar_list, meas_list
+    return clusters
 
 
 class JPDATrack():
-    track_id = 0
-    def __init__(self, filter, logic):
+    def __init__(self, filter, logic, counter):
         self._ft = filter
         self._lgc = logic
+        self._ctr = counter
 
         self._id = -1
         self._age = 1
@@ -99,25 +107,20 @@ class JPDATrack():
         self._ft.predict()
 
     def _assign(self, zs, probs, Rs):
-        self._ft.correct_JPDA(zs, probs, R=Rs)
-
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
-        else:
-            pass
+        self._ft.correct_JPDA(zs, probs, R=Rs)
 
         if not self._has_confirmed:
             if self._lgc.confirmed():
-                self._id = JPDATrack.track_id
-                JPDATrack.track_id += 1
+                self._id = self._ctr.count()
+                self._ctr.increase()
                 self._has_confirmed = True
         self._age += 1
 
     def _coast(self):
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.miss()
-        else:
-            pass
         self._age += 1
 
     def _distance(self, z, R):
@@ -127,10 +130,12 @@ class JPDATrack():
         return self._ft.likelihood(z, R=R)
 
     def _confirmed(self):
-        return self._lgc.confirmed()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.confirmed()
 
     def _detached(self):
-        return self._lgc.detached()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.detached(self._has_confirmed, self._age)
 
     def filter(self):
         return self._ft
@@ -158,7 +163,9 @@ class JPDATrack():
 class JPDAFilterGenerator():
     def __init__(self, filter_cls, *args, **kwargs):
         if not hasattr(filter_cls, 'correct_JPDA'):
-            raise TypeError('the %s cannot be used as underlying filter of JPDA')
+            raise TypeError(
+                "'%s' cannot be used as underlying filter of JPDA" %
+                filter_cls.__name__)
         self._ft_cls = filter_cls
         self._args = args
         self._kwargs = kwargs
@@ -178,6 +185,7 @@ class JPDAFilterInitializer():
         state, cov = self._init_fcn(z, R, *self._args, **self._kwargs)
         filter.init(state, cov)
 
+
 class JPDALogicMaintainer():
     def __init__(self, logic_cls, *args, **kwargs):
         self._lgc_cls = logic_cls
@@ -190,32 +198,44 @@ class JPDALogicMaintainer():
 
 
 class JPDATracker():
-    def __init__(self, filter_generator, filter_initializer, logic_maintainer,
-                 gate, clutter_density, detection_prob, init_threshold,
-                 hit_miss_threshold):
+    def __init__(self,
+                 filter_generator,
+                 filter_initializer,
+                 logic_maintainer,
+                 gate=30,
+                 pd=0.9,
+                 pfa=1e-6,
+                 volume=1,
+                 beta=1e-5,
+                 init_threshold=0.1,
+                 hit_miss_threshold=0.2):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
         self._gate = gate
-        self._clt_den = clutter_density
-        self._det_prob = detection_prob
+        self._pd = pd
+        self._pfa = pfa
+        self._vol = volume
+        # spatial density of new targets, the new target density describes the expected number
+        # of new tracks per unit volume in the measurement space.
+        self._beta = beta
+        # spatial density of clutter measurements, the clutter density describes the expected
+        # number of false positive detections per unit volume.
+        self._lamb = pfa / volume
         self._init_thres = init_threshold
         self._hit_miss_thres = hit_miss_threshold
 
+        self._ctr = TrackCounter()
         self._tent_tracks = []
         self._conf_tracks = []
 
         self._len = 0
 
-    def __del__(self):
-        # reset the id counter when tracker is destroyed
-        JPDATrack.track_id = 0
-
     def __len__(self):
         return self._len
 
     def history_tracks_num(self):
-        return JPDATrack.track_id
+        return self._ctr.count()
 
     def current_tracks_num(self):
         return len(self._conf_tracks)
@@ -224,13 +244,13 @@ class JPDATracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        tracks = self._tent_tracks + self._conf_tracks
+        tracks = self._conf_tracks + self._tent_tracks
         if len(tracks) == 0:
             for z, R in detection:
                 ft = self._ft_gen()
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
-                track = JPDATrack(ft, lgc)
+                track = JPDATrack(ft, lgc, self._ctr)
                 self._tent_tracks.append(track)
         else:
             # predict all tracks
@@ -253,15 +273,15 @@ class JPDATracker():
                     unasg_meas.append(mi)
 
             # divide into some clusters and coast the targets without measurement
-            tar_list, meas_list = JPDA_clusters(valid_mat)
-            for tar, meas in zip(tar_list, meas_list):      # traverse the clusters
-                tmp_mat = valid_mat[meas][:, tar]
-                if tmp_mat.size > 0:
+            clusters = JPDA_clusters(valid_mat)
+            for tar, meas in clusters:      # traverse all clusters
+                if len(meas) > 0:
+                    tmp_mat = valid_mat[meas][:, tar]
                     sub_valid_mat = np.ones((len(meas), len(tar) + 1), dtype=bool)
                     sub_valid_mat[:, 1:] = tmp_mat
                     event_list = JPDA_events(sub_valid_mat)
 
-                    # compute the probabilites of association events in event_list
+                    # compute the probabilites of association events in events list
                     event_probs = []
                     for event in event_list:
                         item1 = item2 = 1
@@ -270,14 +290,15 @@ class JPDATracker():
                                 if event[j, i]:
                                     z, R = detection[meas[j]]
                                     pdf = tracks[tar[i - 1]]._likelihood(z, R)
-                                    item1 *= (pdf / self._clt_den)
+                                    item1 *= (pdf / self._lamb)
+                                    break
                         for i in range(1, event.shape[1]):
                             for j in range(event.shape[0]):
                                 if event[j, i]:
-                                    item2 *= self._det_prob
+                                    item2 *= self._pd
                                     break
                             else:
-                                item2 *= (1 - self._det_prob)
+                                item2 *= (1 - self._pd)
                         event_probs.append(item1 * item2)
                     event_probs = event_probs / np.sum(event_probs)
 
@@ -318,13 +339,13 @@ class JPDATracker():
                     else:
                         tent_tracks.append(t)
 
-            # form new tentative tracks using meas_init_flag
+            # form new tentative tracks using unassigned measurements
             for mi in unasg_meas:
                 ft = self._ft_gen()
                 z, R = detection[mi]
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
-                track = JPDATrack(ft, lgc)
+                track = JPDATrack(ft, lgc, self._ctr)
                 tent_tracks.append(track)
             self._conf_tracks = conf_tracks
             self._tent_tracks = tent_tracks

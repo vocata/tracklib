@@ -48,9 +48,6 @@ class GPFilter(FilterBase):
         msg = 'Gaussian particle filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -64,7 +61,7 @@ class GPFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
@@ -92,7 +89,7 @@ class GPFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'M' in kwargs: self._M[:] = kwargs['M']
@@ -105,7 +102,7 @@ class GPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] = pdf
+            self._weights[i] = max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)    # normalize
 
         # compute post_state and post_cov and the samples have been drawn in predict step
@@ -120,7 +117,7 @@ class GPFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -143,7 +140,7 @@ class GPFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -161,4 +158,4 @@ class GPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small

@@ -1,12 +1,13 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-from tracklib import Scope, Pair
+from tracklib import Scope
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -15,29 +16,24 @@ the program may yield uncertain result.
 '''
 
 
-def DMMF_test():
+def MMMHF_test():
     T = 0.1
     axis = 3
-
+    
+    np.random.seed(202)
     # generate trajectory
-    start = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
-    traj = model.Trajectory(T, start=start, pd = [Pair(Scope(-30, 30), 0.3)])
+    start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
+    traj = model.Trajectory(T,
+                            np.eye(axis),
+                            start=start,
+                            pd=[(Scope(0, 30), 0.), (Scope(30, np.inf), 0.8)])
     stages = []
     stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
     stages.append({'model': 'ct', 'len': 333, 'omega': 10})
     stages.append({'model': 'ca', 'len': 333, 'acc': 3})
 
-    # stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': -8})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
-    # stages.append({'model': 'ct', 'len': 200, 'omega': 5})
-    # stages.append({'model': 'cv', 'len': 200, 'vel': 50})
-    # stages.append({'model': 'ca', 'len': 200, 'acc': 3})
-
-    R = np.eye(3)
-    traj.add_stage(stages, R)
-    traj.show_traj()
-    traj_real, traj_meas = traj()
+    traj.add_stage(stages)
+    traj_real, traj_meas, state_real = traj()
     N = len(traj)
 
     # traj_real = np.loadtxt(
@@ -102,6 +98,7 @@ def DMMF_test():
     model_types.append('ct')
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs.append({'fjac': fjac, 'hjac': hjac})
+    # init_kwargs.append({'fjac': fjac, 'hjac': hjac, 'order': 2})
 
     # pt_gen = ft.ScaledSigmaPoints()
     # model_cls.append(ft.UKFilterAN)
@@ -126,30 +123,31 @@ def DMMF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    # number of models
-    r = 3
+    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, depth=1, pruning=0.0, trans_mat=0.99)
 
-    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs)
-
-    x_init = np.array([0, 0, 0, 0, 0, 0], dtype=float)
+    x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    dmmf.init(x_init, P_init)
+    mmmhf.init(x_init, P_init)
 
     post_state_arr = np.empty((cv_xdim, N))
-    prob_arr = np.empty((r, N))
 
-    post_state_arr[:, 0] = dmmf.state
-    prob_arr[:, 0] = dmmf.probs()
+    post_state_arr[:, 0] = mmmhf.state
+
+    start = time.time()
     for n in range(1, N):
-        dmmf.predict()
+        mmmhf.predict(n=n)
         z = traj_meas[:, n]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            dmmf.correct(z)
+            mmmhf.correct(z)
 
-        post_state_arr[:, n] = dmmf.state
-        prob_arr[:, n] = dmmf.probs()
+        post_state_arr[:, n] = mmmhf.state
+    end = time.time()
 
-    print(dmmf)
+    print(mmmhf, 'time: {}'.format(end - start), sep='\n')
+
+    state_real = np.delete(state_real, np.s_[2::3], axis=0)
+    state_err = state_real - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=1))
 
     # trajectory
     fig = plt.figure()
@@ -164,19 +162,6 @@ def DMMF_test():
     ax.set_title('trajectory')
     plt.show()
 
-    fig = plt.figure()
-    ax = fig.add_subplot()
-    n = np.arange(N)
-    for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
-    ax.set_xlabel('time(s)')
-    ax.set_ylabel('probability')
-    ax.set_xlim([0, 1200])
-    ax.set_ylim([0, 1])
-    ax.legend()
-    ax.set_title('models probability')
-    plt.show()
-
 
 if __name__ == '__main__':
-    DMMF_test()
+    MMMHF_test()

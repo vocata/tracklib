@@ -48,7 +48,7 @@ def col(x, *args, dtype=float, **kw):
     elif isinstance(x, Iterable):
         x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((-1, 1))
     else:
-        raise TypeError('x must be a real number or iterable, not `%s`' % x.__class__.__name__)
+        raise TypeError("error 'x' type: '%s'" % x.__class__.__name__)
     return x
 
 
@@ -62,7 +62,7 @@ def row(x, *args, dtype=float, **kw):
     elif isinstance(x, Iterable):
         x = np.array(tuple(x), *args, dtype=dtype, **kw).reshape((1, -1))
     else:
-        raise TypeError('x must be real number or iterable, not `%s`' % x.__class__.__name__)
+        raise TypeError("error 'x' type: '%s'" % x.__class__.__name__)
     return x
 
 
@@ -92,11 +92,11 @@ def pol2cart(r, az, z=None):
 
 def cart2sph(x, y, z):
     proj = np.sqrt(x**2 + y**2)
-    r = np.sqrt(proj + z**2)
-    elev = np.arctan2(z, proj)
+    r = np.sqrt(proj**2 + z**2)
     az = np.arctan2(y, x)
+    elev = np.arctan2(z, proj)
 
-    return r, elev, az
+    return r, az, elev
 
 
 def sph2cart(r, az, elev):

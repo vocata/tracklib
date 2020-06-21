@@ -32,6 +32,16 @@ def GNNTracker_test():
     M = np.eye(cv_zdim)
     Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
+
+    # The normalized Mahalanobis distance with penalty term is used,
+    # so the gate is greater than one without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+
+    # generator
     ft_gen = tk.GNNFilterGenerator(ft.KFilter, F, L, H, M, Q, R)
 
     # initializer
@@ -41,11 +51,8 @@ def GNNTracker_test():
     ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
 
     # logic
-    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
-
-    # the normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
-    gate = 45
+    # lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
+    lgc = tk.GNNLogicMaintainer(tk.ScoreLogic, 20, -7, pd, pfa, vol, beta)
 
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
@@ -88,9 +95,8 @@ def GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')
@@ -149,6 +155,14 @@ def IMM_GNNTracker_test():
     init_args.append((f, L, h, M, Q, R, ct_xdim, ct_zdim))
     init_kwargs.append({'fjac': fjac, 'hjac': hjac})
 
+    # The normalized Mahalanobis distance with penalty term is used,
+    # so the gate is greater than one without penalty term
+    gate = 45
+    pd = 0.8            # detection probability
+    pfa = 1e-6          # false alarm probability for a detection bin
+    vol = 1e9           # volume of sensor detection bin or of resolution cell
+    beta = 1e-14        # rate of new targets in a unit volume
+
     # generator
     ft_gen = tk.GNNFilterGenerator(ft.IMMFilter, model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
 
@@ -159,11 +173,8 @@ def IMM_GNNTracker_test():
     ft_init = tk.GNNFilterInitializer(init.cv_init, vmax=[vxmax, vymax, vzmax])
 
     # logic
-    lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
-
-    # The normalized Mahalanobis distance with penalty term is used,
-    # so the gate is higher than that without penalty term
-    gate = 45
+    # lgc = tk.GNNLogicMaintainer(tk.HistoryLogic, 3, 4, 6, 6)
+    lgc = tk.GNNLogicMaintainer(tk.ScoreLogic, 20, -7, pd, pfa, vol, beta)
 
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, gate)
@@ -209,9 +220,8 @@ def IMM_GNNTracker_test():
 
     fig = plt.figure()
     ax = fig.add_subplot()
-    id = state_history.keys()
-    for i in id:
-        state = np.array(state_history[i], dtype=float).T
+    for i, s in state_history.items():
+        state = np.array(s, dtype=float).T
         ax.plot(state[0, :], state[2, :], linewidth=0.8, label='track %d' % i)
     ax.set_xlabel('x (m)')
     ax.set_ylabel('y (m)')

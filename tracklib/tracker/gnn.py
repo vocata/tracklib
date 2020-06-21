@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+'''
+Global nearest neighbor
+'''
 from __future__ import division, absolute_import, print_function
 
 
@@ -13,10 +16,10 @@ from .common import *
 
 
 class GNNTrack():
-    track_id = 0
-    def __init__(self, filter, logic):
+    def __init__(self, filter, logic, counter):
         self._ft = filter
         self._lgc = logic
+        self._ctr = counter
 
         self._id = -1
         self._age = 1
@@ -26,19 +29,17 @@ class GNNTrack():
         self._ft.predict()
 
     def _assign(self, z, R):
-        self._ft.correct(z, R=R)
-
         # update logic
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.hit()
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            self._lgc.hit(self._ft.likelihood(z, R=R))
+        self._ft.correct(z, R=R)
 
         if not self._has_confirmed:
             if self._lgc.confirmed():
-                self._id = GNNTrack.track_id
-                GNNTrack.track_id += 1
+                self._id = self._ctr.count()
+                self._ctr.increase()
                 self._has_confirmed = True
         self._age += 1
 
@@ -46,9 +47,8 @@ class GNNTrack():
         # update logic
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.miss()
-        else:
-            # TODO other logic, such as score logic
-            pass
+        if isinstance(self._lgc, ScoreLogic):
+            self._lgc.miss()
         self._age += 1
 
     def _distance(self, z, R):
@@ -58,10 +58,16 @@ class GNNTrack():
         return self._ft.likelihood(z, R=R)
 
     def _confirmed(self):
-        return self._lgc.confirmed()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.confirmed()
+        if isinstance(self._lgc, ScoreLogic):
+            return self._lgc.confirmed()
 
     def _detached(self):
-        return self._lgc.detached()
+        if isinstance(self._lgc, HistoryLogic):
+            return self._lgc.detached(self._has_confirmed, self._age)
+        if isinstance(self._lgc, ScoreLogic):
+            return self._lgc.detached()
 
     def filter(self):
         return self._ft
@@ -120,27 +126,29 @@ class GNNLogicMaintainer():
 
 
 class GNNTracker():
-    def __init__(self, filter_generator, filter_initializer, logic_maintainer, gate, assignment=linear_sum_assignment):
+    def __init__(self,
+                 filter_generator,
+                 filter_initializer,
+                 logic_maintainer,
+                 gate=30,
+                 assignment=linear_sum_assignment):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
         self._asg_fcn = assignment
         self._gate = gate
 
+        self._ctr = TrackCounter()
         self._tent_tracks = []
         self._conf_tracks = []
 
         self._len = 0
 
-    def __del__(self):
-        # reset the id counter when tracker is destroyed
-        GNNTrack.track_id = 0
-
     def __len__(self):
         return self._len
 
     def history_tracks_num(self):
-        return GNNTrack.track_id
+        return self._ctr.count()
 
     def current_tracks_num(self):
         return len(self._conf_tracks)
@@ -149,7 +157,7 @@ class GNNTracker():
         return self._conf_tracks
 
     def add_detection(self, detection):
-        tracks = self._tent_tracks + self._conf_tracks
+        tracks = self._conf_tracks + self._tent_tracks
         if len(tracks) == 0:
             for z, R in detection:
                 # generate new filter
@@ -159,7 +167,7 @@ class GNNTracker():
                 # obtain a new logic maintainer
                 lgc = self._lgc_main()
                 # form a new tentative track
-                track = GNNTrack(ft, lgc)
+                track = GNNTrack(ft, lgc, self._ctr)
                 # add new track into tentative tracks list
                 self._tent_tracks.append(track)
         else:
@@ -171,9 +179,9 @@ class GNNTracker():
             track_num = len(tracks)
             meas_num = len(detection)
             cost_main = np.zeros((track_num, meas_num))
-            virt_track = np.full((meas_num, meas_num), np.Inf, dtype=float)
+            virt_track = np.full((meas_num, meas_num), np.inf, dtype=float)
             np.fill_diagonal(virt_track, self._gate / 2)
-            virt_det = np.full((track_num, track_num), np.Inf, dtype=float)
+            virt_det = np.full((track_num, track_num), np.inf, dtype=float)
             np.fill_diagonal(virt_det, self._gate / 2)
             cost_zero = np.zeros((meas_num, track_num))
             for ti in range(track_num):
@@ -217,7 +225,7 @@ class GNNTracker():
                 z, R = detection[mi]
                 self._ft_init(ft, z, R)
                 lgc = self._lgc_main()
-                track = GNNTrack(ft, lgc)
+                track = GNNTrack(ft, lgc, self._ctr)
                 tent_tracks.append(track)
             self._conf_tracks = conf_tracks
             self._tent_tracks = tent_tracks

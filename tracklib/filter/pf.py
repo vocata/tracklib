@@ -17,7 +17,7 @@ __all__ = ['SIRPFilter', 'RPFilter', 'EpanechnikovKernal', 'GaussianKernal']
 import numpy as np
 import scipy.linalg as lg
 from .base import FilterBase
-from tracklib.utils import multi_normal, disc_random
+from tracklib.utils import multi_normal, disc_random, cholcov
 
 
 class SIRPFilter(FilterBase):
@@ -52,9 +52,6 @@ class SIRPFilter(FilterBase):
         msg = 'SIR particle filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = state.copy()
@@ -70,7 +67,7 @@ class SIRPFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
@@ -96,7 +93,7 @@ class SIRPFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'M' in kwargs: self._M[:] = kwargs['M']
@@ -108,7 +105,7 @@ class SIRPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] *= pdf
+            self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)
 
         # resample
@@ -129,7 +126,7 @@ class SIRPFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -150,7 +147,7 @@ class SIRPFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -168,7 +165,7 @@ class SIRPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)
 
 class RPFilter(FilterBase):
     '''
@@ -201,9 +198,6 @@ class RPFilter(FilterBase):
         msg = 'Regularized particle filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -219,7 +213,7 @@ class RPFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'L' in kwargs: self._L[:] = kwargs['L']
@@ -245,7 +239,7 @@ class RPFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'M' in kwargs: self._M[:] = kwargs['M']
@@ -257,7 +251,7 @@ class RPFilter(FilterBase):
             noi = z - self._h(self._samples[i])
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
-            self._weights[i] *= pdf
+            self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)
 
         # resample and regularize
@@ -278,7 +272,7 @@ class RPFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -299,7 +293,7 @@ class RPFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         M = kwargs['M'] if 'M' in kwargs else self._M
         R = kwargs['R'] if 'R' in kwargs else self._R
@@ -317,7 +311,7 @@ class RPFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)
 
 
 class EpanechnikovKernal():
@@ -335,8 +329,7 @@ class EpanechnikovKernal():
             err = samples[i] - emp_mean
             emp_cov += weights[i] * np.outer(err, err)
         emp_cov = (emp_cov + emp_cov.T) / 2
-        U, S, V = lg.svd(emp_cov)
-        D = U @ np.diag(np.sqrt(S)) @ V.T
+        D = cholcov(emp_cov, lower=True)
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)
@@ -387,8 +380,7 @@ class GaussianKernal():
             err = samples[i] - emp_mean
             emp_cov += weights[i] * np.outer(err, err)
         emp_cov = (emp_cov + emp_cov.T) / 2
-        U, S, V = lg.svd(emp_cov)
-        D = U @ np.diag(np.sqrt(S)) @ V.T
+        D = cholcov(emp_cov, lower=True)
 
         sample, _ = disc_random(weights, self._Ns, samples, alg=resample_alg)
         sample = np.array(sample, dtype=float)

@@ -14,6 +14,7 @@ class FilterBase(abc.ABC):
     def __init__(self):
         self._state = None
         self._cov = None
+        self._init = False
 
     @abc.abstractmethod
     def init(self, state, cov):

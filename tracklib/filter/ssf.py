@@ -66,16 +66,13 @@ class AlphaFilter():
         msg = 'Alpha filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state):
         self._state = state.copy()
         self._init = True
 
     def predict(self):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = self._F @ self._state
 
@@ -83,7 +80,7 @@ class AlphaFilter():
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
@@ -147,16 +144,13 @@ class AlphaBetaFilter():
         msg = 'Alpha-beta filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state):
         self._state = state.copy()
         self._init = True
 
     def predict(self):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = self._F @ self._state
 
@@ -164,7 +158,7 @@ class AlphaBetaFilter():
 
     def correct(self, z):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
@@ -238,16 +232,13 @@ class AlphaBetaGammaFilter():
         msg = 'Alpha-beta-gamma filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state):
         self._state = state.copy()
         self._init = True
 
     def predict(self):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = self._F @ self._state
 
@@ -255,7 +246,7 @@ class AlphaBetaGammaFilter():
 
     def correct(self, z):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
@@ -356,9 +347,6 @@ class SSFilter(FilterBase):
         msg = 'Steady-state linear Kalman filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._cov = cov.copy()
         self._state = state.copy()
@@ -379,7 +367,7 @@ class SSFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         ctl = 0 if u is None else self._G @ u
         self._state = self._F @ self._state + ctl
@@ -389,7 +377,7 @@ class SSFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         self._state = self._state + self._K @ innov
@@ -399,7 +387,7 @@ class SSFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         d = innov @ lg.inv(self._S) @ innov + np.log(lg.det(self._S))
@@ -408,10 +396,10 @@ class SSFilter(FilterBase):
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         innov = z - self._H @ self._state
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * self._S))
         pdf *= np.exp(-innov @ lg.inv(self._S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)

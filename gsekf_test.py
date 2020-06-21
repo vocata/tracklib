@@ -87,9 +87,6 @@ def GSEKFilter_test():
     state_err = state_arr - post_state_arr
     print('RMS: %s' % np.std(state_err, axis=1))
 
-    state_err = state_arr - post_state_arr
-    print('RMS: %s' % np.std(state_err, axis=1))
-
     # plot
     n = np.arange(N)
     fig = plt.figure()

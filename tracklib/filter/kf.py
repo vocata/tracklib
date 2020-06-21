@@ -46,9 +46,6 @@ class KFilter(FilterBase):
         msg = 'Standard linear Kalman filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -60,7 +57,7 @@ class KFilter(FilterBase):
 
     def predict(self, u=None, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'F' in kwargs: self._F[:] = kwargs['F']
@@ -78,7 +75,7 @@ class KFilter(FilterBase):
 
     def correct(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         if len(kwargs) > 0:
             if 'H' in kwargs: self._H[:] = kwargs['H']
@@ -99,7 +96,7 @@ class KFilter(FilterBase):
 
     def correct_JPDA(self, zs, probs, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         z_len = len(zs)
         Hs = kwargs['H'] if 'H' in kwargs else [self._H] * z_len
@@ -127,7 +124,7 @@ class KFilter(FilterBase):
 
     def distance(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         H = kwargs['H'] if 'H' in kwargs else self._H
         M = kwargs['M'] if 'M' in kwargs else self._M
@@ -140,11 +137,11 @@ class KFilter(FilterBase):
         d = innov @ lg.inv(S) @ innov + np.log(lg.det(S))
 
         return d
-        
+
 
     def likelihood(self, z, **kwargs):
         if self._init == False:
-            raise RuntimeError('the filter must be initialized with init() before use')
+            raise RuntimeError('filter must be initialized with init() before use')
 
         H = kwargs['H'] if 'H' in kwargs else self._H
         M = kwargs['M'] if 'M' in kwargs else self._M
@@ -157,4 +154,4 @@ class KFilter(FilterBase):
         pdf = 1 / np.sqrt(lg.det(2 * np.pi * S))
         pdf *= np.exp(-innov @ lg.inv(S) @ innov / 2)
 
-        return pdf
+        return max(pdf, np.finfo(pdf).tiny)     # prevent likelihood from being too small
