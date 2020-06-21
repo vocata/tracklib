@@ -206,6 +206,7 @@ class JPDATracker():
                  pd=0.9,
                  pfa=1e-6,
                  volume=1,
+                 beta=1e-5,
                  init_threshold=0.1,
                  hit_miss_threshold=0.2):
         self._ft_gen = filter_generator
@@ -215,7 +216,12 @@ class JPDATracker():
         self._pd = pd
         self._pfa = pfa
         self._vol = volume
-        self._lamb = pfa / volume     # clutter density, rate of false target in unit volume
+        # spatial density of new targets, the new target density describes the expected number
+        # of new tracks per unit volume in the measurement space.
+        self._beta = beta
+        # spatial density of clutter measurements, the clutter density describes the expected
+        # number of false positive detections per unit volume.
+        self._lamb = pfa / volume
         self._init_thres = init_threshold
         self._hit_miss_thres = hit_miss_threshold
 
@@ -224,10 +230,6 @@ class JPDATracker():
         self._conf_tracks = []
 
         self._len = 0
-
-    def __del__(self):
-        # reset the id counter when tracker is destroyed
-        JPDATrack.track_id = 0
 
     def __len__(self):
         return self._len
@@ -279,7 +281,7 @@ class JPDATracker():
                     sub_valid_mat[:, 1:] = tmp_mat
                     event_list = JPDA_events(sub_valid_mat)
 
-                    # compute the probabilites of association events in event_list
+                    # compute the probabilites of association events in events list
                     event_probs = []
                     for event in event_list:
                         item1 = item2 = 1

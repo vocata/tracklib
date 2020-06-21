@@ -149,7 +149,7 @@ def DMMF_test():
         prob_arr[:, n] = dmmf.probs()
     end = time.time()
 
-    print(dmmf, end - start)
+    print(dmmf, 'time: {}'.format(end - start), sep='\n')
 
     state_real = np.delete(state_real, np.s_[2::3], axis=0)
     state_err = state_real - post_state_arr

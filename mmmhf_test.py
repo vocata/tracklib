@@ -123,7 +123,7 @@ def MMMHF_test():
     # init_args.append((f, L, h, M, Q, R, 200))
     # init_kwargs.append({})
 
-    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, keep=3, depth=1, pruning=0.0, trans_mat=0.99)
+    mmmhf = ft.MMMHFilter(model_cls, model_types, init_args, init_kwargs, depth=1, pruning=0.0, trans_mat=0.99)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
@@ -141,10 +141,9 @@ def MMMHF_test():
             mmmhf.correct(z)
 
         post_state_arr[:, n] = mmmhf.state
-        # print(n)
     end = time.time()
 
-    print(mmmhf, end - start)
+    print(mmmhf, 'time: {}'.format(end - start), sep='\n')
 
     state_real = np.delete(state_real, np.s_[2::3], axis=0)
     state_err = state_real - post_state_arr

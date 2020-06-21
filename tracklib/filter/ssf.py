@@ -66,9 +66,6 @@ class AlphaFilter():
         msg = 'Alpha filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state):
         self._state = state.copy()
         self._init = True
@@ -146,9 +143,6 @@ class AlphaBetaFilter():
     def __str__(self):
         msg = 'Alpha-beta filter'
         return msg
-
-    def __repr__(self):
-        return self.__str__()
 
     def init(self, state):
         self._state = state.copy()
@@ -237,9 +231,6 @@ class AlphaBetaGammaFilter():
     def __str__(self):
         msg = 'Alpha-beta-gamma filter'
         return msg
-
-    def __repr__(self):
-        return self.__str__()
 
     def init(self, state):
         self._state = state.copy()
@@ -355,9 +346,6 @@ class SSFilter(FilterBase):
     def __str__(self):
         msg = 'Steady-state linear Kalman filter'
         return msg
-
-    def __repr__(self):
-        return self.__str__()
 
     def init(self, state, cov):
         self._cov = cov.copy()

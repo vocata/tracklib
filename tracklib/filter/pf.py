@@ -52,9 +52,6 @@ class SIRPFilter(FilterBase):
         msg = 'SIR particle filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = state.copy()
@@ -200,9 +197,6 @@ class RPFilter(FilterBase):
     def __str__(self):
         msg = 'Regularized particle filter'
         return msg
-
-    def __repr__(self):
-        return self.__str__()
 
     def init(self, state, cov):
         self._state = state.copy()

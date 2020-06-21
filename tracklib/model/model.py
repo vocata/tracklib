@@ -316,7 +316,7 @@ def Q_van_keuk(axis, T, tau, std):
 
     if isinstance(std, numbers.Number):
         std = [std] * axis
-    Q_base = np.diag([0, 0, 1])
+    Q_base = np.diag([0., 0., 1.])
     Q_base = (1 - np.exp(-2 * T / tau)) * Q_base
     Q = np.kron(np.diag(std)**2, Q_base)
 

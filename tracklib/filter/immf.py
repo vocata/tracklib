@@ -63,21 +63,18 @@ class IMMFilter(FilterBase):
         msg += '\n}'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def __iter__(self):
         return ((self._models[i], self._probs[i]) for i in range(self._models_n))
 
     def __getitem__(self, n):
-        if isinstance(n, numbers.Integral):
+        if isinstance(n, (numbers.Integral, slice)):
             return self._models[n], self._probs[n]
         elif isinstance(n, Iterable):
             m = [self._models[i] for i in n]
             p = [self._probs[i] for i in n]
             return m, p
         else:
-            raise TypeError("index must be an integer, not '%s'" % n.__class__.__name__)
+            raise TypeError("index must be an integer, slice or iterable, not '%s'" % n.__class__.__name__)
 
     def __update(self):
         state_org = [m.state for m in self._models]

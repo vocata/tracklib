@@ -48,9 +48,6 @@ class GPFilter(FilterBase):
         msg = 'Gaussian particle filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()

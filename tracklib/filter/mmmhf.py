@@ -10,6 +10,7 @@ __all__ = ['MMMHFilter']
 import numbers
 import numpy as np
 import scipy.linalg as lg
+from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch
 
@@ -81,7 +82,7 @@ class MMMHFilter(FilterBase):
         self._depth = depth
         self._cur_depth = 1
         if keep is None:
-            self._keep = self._models_n**(self._depth + 1)
+            self._keep = self._models_n**(self._depth)
         else:
             self._keep = keep
         self._hypos = []
@@ -92,6 +93,26 @@ class MMMHFilter(FilterBase):
         self._pruning = pruning
         self._switch_fcn = switch_fcn
         self._is_first = True
+
+    def __str__(self):
+        msg = 'Multiple model multiple hypothesis filter'
+        return msg
+
+    def __len__(self):
+        return self._models_n
+
+    def __iter__(self):
+        return ((self._models[i], self._probs[i]) for i in range(self._models_n))
+
+    def __getitem__(self, n):
+        if isinstance(n, (numbers.Integral, slice)):
+            return self._models[n], self._probs[n]
+        elif isinstance(n, Iterable):
+            m = [self._models[i] for i in n]
+            p = [self._probs[i] for i in n]
+            return m, p
+        else:
+            raise TypeError("index must be an integer, slice or iterable, not '%s'" % n.__class__.__name__)
 
     def init(self, state, cov):
         if self._models_n == 0:
@@ -214,7 +235,7 @@ class MMMHFilter(FilterBase):
             self._cur_depth += 1
 
     def predict(self, u=None, **kwargs):
-        print(kwargs['n'], self._cur_types[np.argmax(self._probs)], np.max(self._probs))
+        # print(kwargs['n'], self._cur_types[np.argmax(self._probs)], np.max(self._probs))
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 

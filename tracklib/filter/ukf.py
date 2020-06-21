@@ -52,9 +52,6 @@ class UKFilterAN(FilterBase):
         msg = 'Additive noise unscented Kalman filter'
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -262,9 +259,6 @@ class UKFilterNAN(FilterBase):
     def __str__(self):
         msg = 'Nonadditive noise unscented Kalman filter'
         return msg
-
-    def __repr__(self):
-        return self.__str__()
 
     def init(self, state, cov):
         self._state = state.copy()

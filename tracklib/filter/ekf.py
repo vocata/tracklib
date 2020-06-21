@@ -84,9 +84,6 @@ class EKFilterAN(FilterBase):
         msg = '%s-order additive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -128,8 +125,7 @@ class EKFilterAN(FilterBase):
             if 'M' in kwargs: self._M[:] = kwargs['M']
             if 'R' in kwargs: self._R[:] = kwargs['R']
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
@@ -174,8 +170,7 @@ class EKFilterAN(FilterBase):
         Ms = kwargs['M'] if 'M' in kwargs else [self._M] * z_len
         Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H = self._hjac(prior_state)
         z_pred = self._h(prior_state)
@@ -339,9 +334,6 @@ class EKFilterNAN(FilterBase):
         msg = '%s-order nonadditive noise extended Kalman filter' % ('First' if self._order == 1 else 'Second')
         return msg
 
-    def __repr__(self):
-        return self.__str__()
-
     def init(self, state, cov):
         self._state = state.copy()
         self._cov = cov.copy()
@@ -423,8 +415,7 @@ class EKFilterNAN(FilterBase):
         z_len = len(zs)
         Rs = kwargs['R'] if 'R' in kwargs else [self._R] * z_len
 
-        prior_state = self._state
-        prior_cov = self._cov
+        prior_state, prior_cov = self._state, self._cov
 
         H, M = self._hjac(prior_state, np.zeros(self._vdim))
         z_pred = self._h(prior_state, np.zeros(self._vdim))
