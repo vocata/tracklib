@@ -10,3 +10,6 @@ from .immf import *
 from .mmmhf import *
 from .pf import *
 from .gpf import *
+
+# extended target filter
+from .eopf import *

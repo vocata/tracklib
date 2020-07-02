@@ -223,7 +223,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     return Q
 
 
-def Q_singer(axis, T, tau, std):
+def Q_singer(axis, T, std, tau=20):
     '''
     Process noise covariance matrix used with Singer models. see section 8.2 in [1]
 
@@ -234,13 +234,6 @@ def Q_singer(axis, T, tau, std):
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
-    tau : float
-        The time constant of the target acceleration autocorrelation, that is, the
-        decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
-        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
-        is omitted, the default value of 20 is used.The time constant is assumed
-        the same for all dimensions of motion, so this parameter is scalar.
     std : number, list
         std is the instantaneous standard deviation of the acceleration knowm as
         Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
@@ -250,6 +243,13 @@ def Q_singer(axis, T, tau, std):
         3. Uniformly distributed in [-a_M, a_M] with the remaining probability mass
         All parameters mentioned above are chosen by the designer. So the expected std^2
         is (a_M^2 / 3)*(1 + 4*p_M - p_0)
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used.The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
 
     Returns
     -------
@@ -279,7 +279,7 @@ def Q_singer(axis, T, tau, std):
     return Q
 
 
-def Q_van_keuk(axis, T, tau, std):
+def Q_van_keuk(axis, T, std, tau=20):
     '''
     Process noise covariance matrix for a Van Keuk dynamic model, see section 2.2.1 in [4]
 
@@ -290,13 +290,6 @@ def Q_van_keuk(axis, T, tau, std):
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
-    tau : float
-        The time constant of the target acceleration autocorrelation, that is, the
-        decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
-        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
-        is omitted, the default value of 20 is used.The time constant is assumed
-        the same for all dimensions of motion, so this parameter is scalar.
     std : number, list
         std is the instantaneous standard deviation of the acceleration knowm as
         Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
@@ -306,6 +299,13 @@ def Q_van_keuk(axis, T, tau, std):
         3. Uniformly distributed in [-a_M, a_M] with the remaining probability mass
         All parameters mentioned above are chosen by the designer. So the expected std^2
         is (a_M^2 / 3)*(1 + 4*p_M - p_0)
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used. The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
 
     Returns
     -------

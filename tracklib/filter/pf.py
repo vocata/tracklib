@@ -74,7 +74,7 @@ class SIRPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
+        # E[x_k+1|z_1:k] = E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -114,7 +114,7 @@ class SIRPFilter(FilterBase):
             self._samples[:], _ = disc_random(self._weights, self._Ns, self._samples, alg=self._resample_alg)
             self._weights[:] = 1 / self._Ns
 
-        # compute post state and covariance
+        # compute posterior state and covariance
         self._state = np.dot(self._weights, self._samples)
         self._cov = 0
         for i in range(self._Ns):
@@ -220,7 +220,7 @@ class RPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
+        # E[x_k+1|z_1:k] = E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -260,7 +260,7 @@ class RPFilter(FilterBase):
             self._samples[:], self._weights[:] = self._kernal.resample(
                 self._samples, self._weights, resample_alg=self._resample_alg)
 
-        # compute post state and covariance
+        # compute posterior state and covariance
         self._state = np.dot(self._weights, self._samples)
         self._cov = 0
         for i in range(self._Ns):
