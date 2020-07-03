@@ -22,7 +22,7 @@ class EOPFilter(FilterBase):
     '''
     Extended object particle filter
     '''
-    def __init__(self, F, H, Q, R, Ns, Neff, df, lamb, resample_alg='roulette'):
+    def __init__(self, F, H, Q, R, Ns, Neff, df, lamb=None, resample_alg='roulette'):
         self._F = F.copy()
         self._H = H.copy()
         self._Q = Q.copy()
@@ -33,23 +33,23 @@ class EOPFilter(FilterBase):
         self._lamb = lamb
         self._resample_alg = resample_alg
 
-    def init(self, state, cov, extension, df):
+    def init(self, state, cov, extension):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
-        self._ext_samples = st.invwishart.rvs(df, extension * df, self._Ns)
+        self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
         self._weights = np.full(self._Ns, 1 / self._Ns, dtype=float)
         self._init = True
 
-    def reset(self, state, cov, extension, df):
+    def reset(self, state, cov, extension):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
-        self._ext_samples = st.invwishart.rvs(df, extension * df, self._Ns)
+        self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
         self._weights = np.full(self._Ns, 1 / self._Ns, dtype=float)
 
     def predict(self):
@@ -62,6 +62,11 @@ class EOPFilter(FilterBase):
                                        np.kron(self._ext_samples[i], self._Q))
             for i in range(self._Ns)
         ]
+        self._ext_samples[:] = [
+            st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
+            for i in range(self._Ns)
+        ]
+
         # ext_samples = []
         # for i in range(self._Ns):
         #     try:
@@ -73,14 +78,11 @@ class EOPFilter(FilterBase):
         #         ext_samples.append(self._ext_samples[i])
         #         print('in')
         # self._ext_samples = np.array(ext_samples)
-        # self._ext_samples[:] = [
-        #     st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
-        #     for i in range(self._Ns)
-        # ]
 
-        for i in range(self._Ns):
-            B = st.wishart.rvs(self._df, np.eye(2) / self._df)
-            self._ext_samples[i] = B @ self._ext_samples[i] @ B.T + 10 * np.eye(2)
+        # for i in range(self._Ns):
+        #     B = st.wishart.rvs(self._df, np.eye(2) / self._df)
+        #     self._ext_samples[i] = B @ self._ext_samples[i] @ B.T
+        #     # self._ext_samples[i] = B @ self._ext_samples[i] @ B.T + 1 * np.eye(2)
 
         # compute prior extension, state and covariance
         self._ext = 0
@@ -97,10 +99,12 @@ class EOPFilter(FilterBase):
         return self._state, self._cov, self._ext
 
     def __volume(self, X):
-        dim = X.shape[0]
-        n = dim / 2
-        vol = np.pi**(n) * lg.det(X) / sl.gamma(n + 1)
+        dim = X.shape[0] / 2
+        vol = np.pi**dim * np.sqrt(lg.det(X)) / sl.gamma(dim + 1)
         return vol
+    
+    def __multivariate_normal_pdf(self, x, mean, cov):
+        pass
 
     def correct(self, zs):
         if self._init == False:
@@ -108,30 +112,26 @@ class EOPFilter(FilterBase):
 
         # update weights
         Nm = len(zs)    # measurements number
+        if self._lamb is None:
+            lamb = Nm / self.__volume(self._ext)        # empirical lambda
+        else:
+            lamb = self._lamb
+
         for i in range(self._Ns):
             pdf = 1
-            # V = self.__volume(self._ext_samples[i])
+            V = self.__volume(self._ext_samples[i])
             for j in range(Nm):
                 pdf *= st.multivariate_normal.pdf(
                     zs[j], np.dot(self._H, self._state_samples[i]),
                     self._ext_samples[i] + self._R)
-            # pdf *= st.poisson.pmf(Nm, self._lamb * V)     # for large extension or group
+            pdf *= st.poisson.pmf(Nm, lamb * V)
+            # print(pdf)
             self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
         self._weights /= np.sum(self._weights)
 
         # resample
         Neff = 1 / np.sum(self._weights**2)
         if Neff <= self._Neff:
-            # new_samples, _ = disc_random(self._weights,
-            #                              self._Ns,
-            #                              list(
-            #                                  zip(self._state_samples,
-            #                                      self._ext_samples)),
-            #                              alg=self._resample_alg)
-            # for i in range(self._Ns):
-            #     self._state_samples[i] = new_samples[i][0]
-            #     self._ext_samples[i] = new_samples[i][1]
-
             self._state_samples[:], index = disc_random(self._weights,
                                                     self._Ns,
                                                     self._state_samples,

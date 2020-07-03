@@ -35,7 +35,7 @@ def trajectory_generator(interval, measurement_noise, detection_prob, record):
 
 def EOPFilter_test():
     # np.random.seed(2020)
-    N, T = 2000, 1
+    N, T = 200, 5
     Ns, Neff = 300, 200
     df = 100
     tau = 20
@@ -53,7 +53,7 @@ def EOPFilter_test():
     # initial state and error convariance
     x = np.array([0, 250, 0, 250], dtype=float)
 
-    eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df=axis + 1 + df * np.exp(-T / tau), lamb=0.0001)
+    eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df=(axis + 1 + df * np.exp(-T / tau)))
 
     state_arr = np.empty((xdim, N))
     measure_arr = np.empty((zdim, N))
@@ -71,8 +71,9 @@ def EOPFilter_test():
         x = F @ x + w
         z = H @ x + v
         if n == -1:
-            x_init, P_init = init.cv_init(z, R, (300, 300))
-            eopf.init(x_init, P_init, 100 * np.eye(2), df)
+            x_init, P_init = init.cv_init(z, R, (30, 30))
+            x_init[1], x_init[3] = 250, 250
+            eopf.init(x_init, P_init, 400 * np.eye(2))
             continue
         state_arr[:, n] = x
         measure_arr[:, n] = z
@@ -82,7 +83,8 @@ def EOPFilter_test():
         prior_cov_arr[:, :, n] = eopf.cov
         prior_ext.append(eopf.extension)
 
-        eopf.correct([z + [-10, 10], z + [10, -10], z, z + [10, 10], z + [-10, -10]])
+        # eopf.correct([z])
+        eopf.correct([z + [-20, 20], z + [20, -20], z, z + [20, 20], z + [-20, -20]])
         post_state_arr[:, n] = eopf.state
         post_cov_arr[:, :, n] = eopf.cov
         post_ext.append(eopf.extension)
