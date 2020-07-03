@@ -15,7 +15,7 @@ import scipy.linalg as lg
 import scipy.stats as st
 import scipy.special as sl
 from .base import FilterBase
-from tracklib.utils import disc_random
+from tracklib.utils import disc_random, ellipsoidal_volume
 
 
 class EOPFilter(FilterBase):
@@ -37,6 +37,7 @@ class EOPFilter(FilterBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
+        self._post_ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
         self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
@@ -47,6 +48,7 @@ class EOPFilter(FilterBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
+        self._post_ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
         self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
@@ -63,8 +65,8 @@ class EOPFilter(FilterBase):
             for i in range(self._Ns)
         ]
         self._ext_samples[:] = [
-            st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
-            for i in range(self._Ns)
+            st.wishart.rvs(self._df, self._ext_samples[i] / self._df) +
+            0.5 * np.eye(*self._ext_samples[i].shape) for i in range(self._Ns)          # prevent the ellipse from being too small
         ]
 
         # ext_samples = []
@@ -98,44 +100,43 @@ class EOPFilter(FilterBase):
 
         return self._state, self._cov, self._ext
 
-    def __volume(self, X):
-        dim = X.shape[0] / 2
-        vol = np.pi**dim * np.sqrt(lg.det(X)) / sl.gamma(dim + 1)
-        return vol
-    
-    def __multivariate_normal_pdf(self, x, mean, cov):
-        pass
-
     def correct(self, zs):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 
-        # update weights
         Nm = len(zs)    # measurements number
         if self._lamb is None:
-            lamb = Nm / self.__volume(self._ext)        # empirical lambda
+            lamb = Nm / ellipsoidal_volume(self._post_ext)        # empirical target density
         else:
             lamb = self._lamb
 
+        # update weights
+        const_arr = np.zeros(self._Ns)
+        dist_arr = np.zeros(self._Ns)
         for i in range(self._Ns):
-            pdf = 1
-            V = self.__volume(self._ext_samples[i])
+            cov = self._ext_samples[i] + self._R
+            cov_inv = lg.inv(cov)
+            V = ellipsoidal_volume(self._ext_samples[i])
+            pmf = st.poisson.pmf(Nm, lamb * V)
+            const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)
+
+            dist = 0
             for j in range(Nm):
-                pdf *= st.multivariate_normal.pdf(
-                    zs[j], np.dot(self._H, self._state_samples[i]),
-                    self._ext_samples[i] + self._R)
-            pdf *= st.poisson.pmf(Nm, lamb * V)
-            # print(pdf)
-            self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
-        self._weights /= np.sum(self._weights)
+                d = zs[j] - np.dot(self._H, self._state_samples[i])
+                dist += d @ cov_inv @ d / 2
+            dist_arr[i] = dist
+        # the underflow problem is avoided by adding offset to exp function
+        exp_term = np.exp(-dist_arr + dist_arr.min())
+        self._weights *= const_arr * exp_term
+        self._weights /= self._weights.sum()
 
         # resample
-        Neff = 1 / np.sum(self._weights**2)
+        Neff = 1 / (self._weights**2).sum()
         if Neff <= self._Neff:
             self._state_samples[:], index = disc_random(self._weights,
-                                                    self._Ns,
-                                                    self._state_samples,
-                                                    alg=self._resample_alg)
+                                                        self._Ns,
+                                                        self._state_samples,
+                                                        alg=self._resample_alg)
             self._ext_samples[:] = self._ext_samples[index]
             self._weights[:] = 1 / self._Ns
 
@@ -151,6 +152,8 @@ class EOPFilter(FilterBase):
             self._cov += self._weights[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
 
+        self._post_ext = self._ext
+
         return self._state, self._cov, self._ext
 
     def distance(self, z, **kwargs):
@@ -159,6 +162,5 @@ class EOPFilter(FilterBase):
     def likelihood(self, z, **kwargs):
         return super().likelihood(z, **kwargs)
 
-    @property
     def extension(self):
         return self._ext

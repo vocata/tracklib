@@ -5,12 +5,14 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope', 'Pair'
+    'sph2cart', 'ellipsoidal_volume', 'cholcov', 'multi_normal', 'disc_random',
+    'Scope', 'Pair'
 ]
 
 import numbers
 import numpy as np
 import scipy.linalg as lg
+import scipy.special as sl
 from collections.abc import Iterable
 
 
@@ -106,6 +108,12 @@ def sph2cart(r, az, elev):
     y = proj * np.sin(az)
 
     return x, y, z
+
+
+def ellipsoidal_volume(X):
+    n = X.shape[0] / 2
+    vol = np.pi**n * np.sqrt(lg.det(X)) / sl.gamma(n + 1)
+    return vol
 
 
 def cholcov(cov, lower=False):

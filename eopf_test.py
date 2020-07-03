@@ -34,7 +34,7 @@ def trajectory_generator(interval, measurement_noise, detection_prob, record):
 
 
 def EOPFilter_test():
-    # np.random.seed(2020)
+    np.random.seed(2020)
     N, T = 200, 5
     Ns, Neff = 300, 200
     df = 100
@@ -71,8 +71,8 @@ def EOPFilter_test():
         x = F @ x + w
         z = H @ x + v
         if n == -1:
-            x_init, P_init = init.cv_init(z, R, (30, 30))
-            x_init[1], x_init[3] = 250, 250
+            x_init, P_init = init.cv_init(z, R, (300, 300))
+            # x_init[1], x_init[3] = 250, 250
             eopf.init(x_init, P_init, 400 * np.eye(2))
             continue
         state_arr[:, n] = x
@@ -81,13 +81,14 @@ def EOPFilter_test():
         eopf.predict()
         prior_state_arr[:, n] = eopf.state
         prior_cov_arr[:, :, n] = eopf.cov
-        prior_ext.append(eopf.extension)
+        prior_ext.append(eopf.extension())
 
         # eopf.correct([z])
+        # eopf.correct([z + [-20, 20], z, z + [20, -20]])
         eopf.correct([z + [-20, 20], z + [20, -20], z, z + [20, 20], z + [-20, -20]])
         post_state_arr[:, n] = eopf.state
         post_cov_arr[:, :, n] = eopf.cov
-        post_ext.append(eopf.extension)
+        post_ext.append(eopf.extension())
         print(n)
 
     print(eopf)

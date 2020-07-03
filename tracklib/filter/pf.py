@@ -106,10 +106,10 @@ class SIRPFilter(FilterBase):
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
-        self._weights /= np.sum(self._weights)
+        self._weights /= self._weights.sum()
 
         # resample
-        Neff = 1 / np.sum(self._weights**2)
+        Neff = 1 / (self._weights**2).sum()
         if Neff <= self._Neff:
             self._samples[:], _ = disc_random(self._weights, self._Ns, self._samples, alg=self._resample_alg)
             self._weights[:] = 1 / self._Ns
@@ -252,10 +252,10 @@ class RPFilter(FilterBase):
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
-        self._weights /= np.sum(self._weights)
+        self._weights /= self._weights.sum()
 
         # resample and regularize
-        Neff = 1 / np.sum(self._weights**2)
+        Neff = 1 / (self._weights**2).sum()
         if Neff <= self._Neff:
             self._samples[:], self._weights[:] = self._kernal.resample(
                 self._samples, self._weights, resample_alg=self._resample_alg)
