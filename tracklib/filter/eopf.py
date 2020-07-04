@@ -13,7 +13,6 @@ __all__ = ['EOPFilter']
 import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
-import scipy.special as sl
 from .base import FilterBase
 from tracklib.utils import disc_random, ellipsoidal_volume
 

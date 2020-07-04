@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import tracklib as tlb
 import tracklib.filter as ft
-import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-from tracklib import Scope, Pair
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -21,21 +18,26 @@ def DMMF_MMF_test():
     axis = 3
 
     # generate trajectory
-    start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
-    traj = model.Trajectory(T,
-                            np.eye(axis),
-                            start=start,
-                            pd=[(Scope(0, 30), 0.3), (Scope(30, np.inf), 0.8)])
-    stages = []
-    stages.append({'model': 'cv', 'len': 200, 'vel': [150, 0, 0]})
-    stages.append({'model': 'ct', 'len': 200, 'omega': -8})
-    stages.append({'model': 'ca', 'len': 200, 'acc': [None, None, 3]})
-    stages.append({'model': 'ct', 'len': 200, 'omega': 5})
-    stages.append({'model': 'cv', 'len': 200, 'vel': 50})
-    stages.append({'model': 'ca', 'len': 200, 'acc': 3})
-    traj.add_stage(stages)
-    traj_real, traj_meas, state_real = traj()
-    N = len(traj)
+    record = {
+        'interval': [T],
+        'start': [[100, 100, 100]],
+        'pattern': [
+            [
+                {'model': 'cv', 'length': 200, 'velocity': [150, 0, 0]},
+                {'model': 'ct', 'length': 200, 'turnrate': -8},
+                {'model': 'ca', 'length': 200, 'acceleration': [None, None, 3]},
+                {'model': 'ct', 'length': 200, 'turnrate': 5},
+                {'model': 'cv', 'length': 200, 'velocity': 50},
+                {'model': 'ca', 'length': 200, 'acceleration': 3}
+            ]
+        ],
+        'noise':[np.eye(axis)],
+        'pd': [0.9],
+        'entries': 1
+    }
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    traj_state, traj_meas = trajs_state[0], trajs_meas[0]
+    N = traj_state.shape[1]
 
     model_cls1 = []
     model_types1 = []
@@ -127,8 +129,8 @@ def DMMF_MMF_test():
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(traj_real[0, 0], traj_real[1, 0], traj_real[2, 0], s=50, c='r', marker='x', label='start')
-    ax.plot(traj_real[0, :], traj_real[1, :], traj_real[2, :], linewidth=0.8, label='real')
+    ax.scatter(traj_state[0, 0], traj_state[3, 0], traj_state[6, 0], s=50, c='r', marker='x', label='start')
+    ax.plot(traj_state[0, :], traj_state[3, :], traj_state[6, :], linewidth=0.8, label='real')
     ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')
     ax.plot(post_state_arr[0, :], post_state_arr[2, :], post_state_arr[4, :], linewidth=0.8, label='esti')
     ax.set_xlabel('x')

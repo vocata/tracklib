@@ -8,8 +8,6 @@ REFERENCES:
 '''
 from __future__ import division, absolute_import, print_function
 
-from scipy.linalg.special_matrices import invhilbert
-
 
 __all__ = [
     'F_poly', 'F_singer', 'F_van_keuk', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer',

@@ -17,7 +17,6 @@ __all__ = ['MMFilter']
 
 import numbers
 import numpy as np
-import scipy.linalg as lg
 from collections.abc import Iterable
 from .base import FilterBase
 from tracklib.model import model_switch

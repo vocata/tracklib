@@ -5,8 +5,7 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'ellipsoidal_volume', 'cholcov', 'multi_normal', 'disc_random',
-    'Scope', 'Pair'
+    'sph2cart', 'ellipsoidal_volume', 'cholcov', 'multi_normal', 'disc_random'
 ]
 
 import numbers
@@ -245,18 +244,3 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
         raise ValueError('unknown algorithem: %s' % alg)
 
     return rv, index
-
-
-class Scope():
-    def __init__(self, value_min, value_max):
-        assert (value_min <= value_max)
-        self._min = value_min
-        self._max = value_max
-
-    def within(self, value):
-        return self._min <= value <= self._max
-
-
-class Pair(tuple):
-    def __new__(cls, value1, value2):
-        return super().__new__(cls, (value1, value2))

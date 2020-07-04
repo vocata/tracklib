@@ -3,7 +3,6 @@
 
 import pickle as pic
 import numpy as np
-import scipy.io as io
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model

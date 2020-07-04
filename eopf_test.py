@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from tracklib.model.model import trajectory_cv, trajectory_generator
 import numpy as np
-from numpy.core.records import record
 import scipy.linalg as lg
 import tracklib as tlb
 import tracklib.filter as ft
@@ -54,7 +52,7 @@ def plot_traj():
         'pd': [0.9, 0.9],
         'entries': 2
     }
-    trajs_state, trajs_meas = trajectory_generator(record, seed=0)
+    trajs_state, trajs_meas = model.trajectory_generator(record, seed=0)
     plt.plot(trajs_meas[0][0, :], trajs_meas[0][1, :])
     plt.plot(trajs_meas[1][0, :], trajs_meas[1][1, :])
     plt.axis('equal')

@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment
+import scipy.optimize as op
 from .common import *
 
 
@@ -131,7 +131,7 @@ class GNNTracker():
                  filter_initializer,
                  logic_maintainer,
                  gate=30,
-                 assignment=linear_sum_assignment):
+                 assignment=op.linear_sum_assignment):
         self._ft_gen = filter_generator
         self._ft_init = filter_initializer
         self._lgc_main = logic_maintainer
