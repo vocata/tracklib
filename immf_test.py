@@ -36,16 +36,6 @@ def DMMF_test():
     traj_real, traj_meas, state_real = traj()
     N = len(traj)
 
-    # traj_real = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\truePos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # traj_meas = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # N = traj_meas.shape[1]
-
     model_cls = []
     model_types = []
     init_args = []

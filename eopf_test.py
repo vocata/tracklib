@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from tracklib.model.model import trajectory_cv, trajectory_generator
 import numpy as np
+from numpy.core.records import record
 import scipy.linalg as lg
 import tracklib as tlb
 import tracklib.filter as ft
@@ -29,8 +31,34 @@ def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
     ax.plot(x0 + X[0, :], y0 + X[1, :], *args, **kwargs)
 
 
-def trajectory_generator(interval, measurement_noise, detection_prob, record):
-    pass
+def plot_traj():
+    record = {
+        'interval': [0.1, 0.1],
+        'start': [
+            [0, 0, 0],
+            [0, 100, 0],
+        ],
+        'pattern': [
+            [
+                {'model': 'cv', 'length': 333, 'velocity': [200, 0, 0]},
+                {'model': 'ct', 'length': 333, 'turnrate': 10},
+                {'model': 'ca', 'length': 333, 'acceleration': 3}
+            ],
+            [
+                {'model': 'cv', 'length': 333, 'velocity': [0, 200, 0]},
+                {'model': 'ct', 'length': 333, 'turnrate': 10},
+                {'model': 'ca', 'length': 333, 'acceleration': 3}
+            ]
+        ],
+        'noise': [100*np.eye(3), 100*np.eye(3)],
+        'pd': [0.9, 0.9],
+        'entries': 2
+    }
+    trajs_state, trajs_meas = trajectory_generator(record, seed=0)
+    plt.plot(trajs_meas[0][0, :], trajs_meas[0][1, :])
+    plt.plot(trajs_meas[1][0, :], trajs_meas[1][1, :])
+    plt.axis('equal')
+    plt.show()
 
 
 def EOPFilter_test():
@@ -149,50 +177,7 @@ def EOPFilter_test():
     ax.set_title('trajectory')
     plt.show()
 
-    # trajectory amination
-    # from matplotlib.patches import Ellipse
-    # fig = plt.figure()
-    # ax = fig.add_subplot()
-    # ax.scatter(state_arr[0, 0], state_arr[2, 0], s=50, c='r', marker='x', label='start')
-    # ax.plot(state_arr[0, :], state_arr[2, :], linewidth=0.8, label='real')
-    # ax.scatter(measure_arr[0, :], measure_arr[1, :], s=5, c='orange', label='meas')
-    # ax.plot(prior_state_arr[0, :], prior_state_arr[2, :], linewidth=0.8, label='prior esti')
-    # ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.legend()
-    # ax.set_title('trajectory')
-    # plt.ion()
-    # for i in range(N):
-    #     prior_state = prior_state_arr[np.s_[::2], i]
-    #     prior_cov = prior_cov_arr[np.s_[::2], np.s_[::2], i]
-    #     post_state = post_state_arr[np.s_[::2], i]
-    #     post_cov = post_cov_arr[np.s_[::2], np.s_[::2], i]
-    #     origin = prior_state
-    #     d, v = lg.eigh(prior_cov)
-    #     width = 2 * np.sqrt(d[0])
-    #     height = 2 * np.sqrt(d[1])
-    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[0, 1])).imag)
-    #     e = Ellipse(origin, width, height, angle)
-    #     e.set_facecolor('white')
-    #     e.set_edgecolor('black')
-    #     ax.add_patch(e)
-    #     plt.pause(0.2)
-    #     e.remove()
-    #     origin = post_state
-    #     d, v = lg.eigh(post_cov)
-    #     width = 2 * np.sqrt(d[0])
-    #     height = 2 * np.sqrt(d[1])
-    #     angle = np.rad2deg(np.log(complex(v[0, 0], v[0, 1])).imag)
-    #     e = Ellipse(origin, width, height, angle)
-    #     e.set_facecolor('white')
-    #     e.set_edgecolor('red')
-    #     ax.add_patch(e)
-    #     plt.pause(0.01)
-    #     e.remove()
-    # plt.ioff()
-    # plt.show()
-
 
 if __name__ == '__main__':
+    # plot_traj()
     EOPFilter_test()

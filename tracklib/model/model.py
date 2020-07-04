@@ -8,6 +8,8 @@ REFERENCES:
 '''
 from __future__ import division, absolute_import, print_function
 
+from scipy.linalg.special_matrices import invhilbert
+
 
 __all__ = [
     'F_poly', 'F_singer', 'F_van_keuk', 'Q_poly_dc', 'Q_poly_dd', 'Q_singer',
@@ -15,15 +17,15 @@ __all__ = [
     'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca',
     'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
     'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
-    'model_switch', 'Trajectory'
+    'model_switch', 'trajectory_cv', 'trajectory_ca', 'trajectory_ct',
+    'trajectory_generator'
 ]
 
 import numbers
 import numpy as np
 import scipy.linalg as lg
-from collections.abc import Iterable
-from scipy.special import factorial
-from tracklib.utils import multi_normal, cart2sph
+import scipy.stats as st
+import scipy.special as sl
 
 
 def F_poly(order, axis, T):
@@ -53,7 +55,7 @@ def F_poly(order, axis, T):
 
     F_base = np.zeros((order, order))
     tmp = np.arange(order)
-    F_base[0, :] = T**tmp / factorial(tmp)
+    F_base[0, :] = T**tmp / sl.factorial(tmp)
     for row in range(1, order):
         F_base[row, row:] = F_base[0, :order - row]
     F = np.kron(np.eye(axis), F_base)
@@ -91,12 +93,12 @@ def F_singer(axis, T, tau=20):
     F_base = np.zeros((3, 3))
     aT = alpha * T
     eaT = np.exp(-aT)
-    F[0, 0] = 1
-    F[0, 1] = T
-    F[0, 2] = (aT - 1 + eaT) * tau**2
-    F[1, 1] = 1
-    F[1, 2] = (1 - eaT) * tau
-    F[2, 2] = eaT
+    F_base[0, 0] = 1
+    F_base[0, 1] = T
+    F_base[0, 2] = (aT - 1 + eaT) * tau**2
+    F_base[1, 1] = 1
+    F_base[1, 2] = (1 - eaT) * tau
+    F_base[2, 2] = eaT
     F = np.kron(np.eye(axis), F_base)
 
     return F
@@ -168,7 +170,7 @@ def Q_poly_dc(order, axis, T, std):
         std = [std] * axis
     sel = np.arange(order - 1, -1, -1)
     col, row = np.meshgrid(sel, sel)
-    Q_base = T**(col + row + 1) / (factorial(col) * factorial(row) * (col + row + 1))
+    Q_base = T**(col + row + 1) / (sl.factorial(col) * sl.factorial(row) * (col + row + 1))
     Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q
@@ -216,7 +218,7 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     if isinstance(std, numbers.Number):
         std = [std] * axis
     sel = np.arange(ht + order - 1, ht - 1, -1)
-    L = T**sel / factorial(sel)
+    L = T**sel / sl.factorial(sel)
     Q_base = np.outer(L, L)
     Q = np.kron(np.diag(std)**2, Q_base)
 
@@ -472,10 +474,10 @@ def R_ca(axis, std):
     return R_pos_only(axis, std)
 
 
-def F_ct(axis, turn_rate, T):
+def F_ct(axis, turnrate, T):
     assert (axis >= 2)
 
-    omega = np.deg2rad(turn_rate)
+    omega = np.deg2rad(turnrate)
     wt = omega * T
     sin_wt = np.sin(wt)
     cos_wt = np.cos(wt)
@@ -775,152 +777,151 @@ def model_switch(x, type_in, type_out):
         raise TypeError("error 'x' type: '%s'" % x.__class__.__name__)
 
 
-class Trajectory():
-    def __init__(self, T, R, start=np.zeros(9), pd=None):
-        assert (len(start) == 9)
+def trajectory_cv(state, interval, length, velocity):
+    head = state.copy()
+    dim = head.size
+    order = 2
+    axis = dim // order
+    traj_cv = np.zeros((dim, length))
 
-        if R.shape == (3, 3):
-            self._doppler = False
-        elif R.shape == (4, 4):
-            self._doppler = True
-        else:
-            raise ValueError('the shape of R must be (3, 3) or (4, 4)')
-        if pd is None:
-            self._pd = ()
-        elif isinstance(pd, Iterable):
-            self._pd = tuple(pd)
-        else:
-            raise TypeError("error 'pd' type: '%s'" % pd.__class__.__name__)
+    vel = velocity
+    cur_vel = head[1:dim:order]
+    if isinstance(vel, numbers.Number):
+        vel *= (cur_vel / lg.norm(cur_vel))
+    else:
+        vel = [cur_vel[i] if vel[i] is None else vel[i] for i in range(axis)]
+    cur_vel[:] = vel        # it will also change the head
 
-        self._T = T
-        self._R = R
-        self._head = start.copy()
-        self._traj = []
-        self._stage = []
-        self._noise = None
-        self._len = 0
-        self._xdim = 9
+    F = F_cv(axis, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_cv[:, i] = head
+    return traj_cv
 
-    def __len__(self):
-        return self._len
+def trajectory_ca(state, interval, length, acceleration):
+    head = state.copy()
+    dim = state.size
+    order = 3
+    axis = dim // order
+    traj_ca = np.zeros((dim, length))
 
-    def __call__(self, coordinate='xyz'):
-        state = np.concatenate(self._traj, axis=1)
+    acc = acceleration
+    cur_vel = head[1:dim:order]
+    cur_acc = head[2:dim:order]
+    if isinstance(acc, numbers.Number):
+        acc *= (cur_vel / lg.norm(cur_vel))
+    else:
+        acc = [cur_acc[i] if acc[i] is None else acc[i] for i in range(axis)]
+    cur_acc[:] = acc        # it will also change the head
 
-        H = H_ca(3)
-        traj_real = np.dot(H, state)
+    F = F_ca(axis, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_ca[:, i] = head
+    return traj_ca
 
-        speed = np.empty(self._len)
-        for i in range(self._len):
-            p = state[0::3, i]
-            v = state[1::3, i]
-            d = lg.norm(p)
-            speed[i] = np.dot(p, v) / d
+def trajectory_ct(state, interval, length, turnrate):
+    head = state.copy()
+    dim = state.size
+    order = 2
+    axis = dim // order
+    traj_ct = np.zeros((dim, length))
 
-        if coordinate == 'rae':
-            meas = np.array(cart2sph(*state[::3]), dtype=float)
-        elif coordinate == 'xyz':
-            meas = traj_real
-        else:
-            raise ValueError("unknown coordinate: '%s'" % coordinate)
+    F = F_ct(axis, turnrate, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_ct[:, i] = head
+    return traj_ct
 
-        if self._doppler:
-            traj_real = np.vstack((traj_real, speed))
-            meas = np.vstack((meas, speed))
-        traj_meas = meas + self._noise
+def trajectory_generator(record, seed=0):
+    '''
+    record = {
+        'interval': [1, 1],
+        'start':
+        [
+            [0, 0, 0],
+            [0, 5, 0]
+        ],
+        'pattern':
+        [
+            [
+                {'model': 'cv', 'length': 100, 'velocity': [250, 250, 0]},
+                {'model': 'ct', 'length': 25, 'turnrate': 30}
+            ],
+            [
+                {'model': 'cv', 'length': 100, 'velocity': [250, 250, 0]},
+                {'model': 'ct', 'length': 30, 'turnrate': 30}
+            ]
+        ],
+        'noise':
+        [
+            10 * np.eye(3), 10 * np.eye(3)
+        ],
+        'pd':
+        [
+            0.9, 0.9
+        ],
+        'entries': 2
+    }
+    '''
+    dim, order, axis = 9, 3, 3
+    vel_sel = range(1, dim, order)
+    acc_sel = range(2, dim, order)
+    all_sel = range(dim)
+    cv_sel = np.setdiff1d(all_sel, acc_sel)
+    ct_sel = np.setdiff1d(all_sel, acc_sel)
+    insert_sel = [2, 4, 6]
 
-        for i in range(self._len):
-            for scope, pd in self._pd:
-                if scope.within(np.abs(speed[i])):
-                    r = np.random.rand()
-                    if r < 1 - pd:
-                        traj_meas[:, i] = np.nan
+    interval = record['interval']
+    start = record['start']
+    pattern = record['pattern']
+    noise = record['noise']
+    pd = record['pd']
+    entries = record['entries']
 
-        return traj_real, traj_meas, state
-
-    def stage(self):
-        return self._stage
-
-    def traj(self):
-        return self._traj
-
-    def add_stage(self, stages):
-        '''
-        stage are list of dicts, for example:
-        stage = [
-            {'model': 'cv', 'len': 100, 'vel': [30, 20, 1]},
-            {'model': 'cv', 'len': 100, 'vel': 7},
-            {'model': 'ca', 'len': 100, 'acc': [10, 30, 1]},
-            {'model': 'ca', 'len': 100, 'acc': 3},
-            {'model': 'ct', 'len': 100, 'omega': 30}
-        ]
-        '''
-        self._stage.extend(stages)
-        for i in range(len(stages)):
-            mdl = stages[i]['model']
-            traj_len = stages[i]['len']
-            self._len += traj_len
-
-            state = np.zeros((self._xdim, traj_len))
-            if mdl == 'cv':
-                F = F_cv(3, self._T)
-                v = stages[i]['vel']
-                if isinstance(v, numbers.Number):
-                    cur_v = self._head[[1, 4, 7]]
-                    unit_v = cur_v / lg.norm(cur_v)
-                    v *= unit_v
-                if v[0] is not None:
-                    self._head[1] = v[0]
-                if v[1] is not None:
-                    self._head[4] = v[1]
-                if v[2] is not None:
-                    self._head[7] = v[2]
-
-                sel = [0, 1, 3, 4, 6, 7]
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.zeros(self._xdim)
-                    tmp[sel] = np.dot(F, self._head[sel])
-                    self._head[:] = tmp
-                    state[:, j] = tmp
-            elif mdl == 'ca':
-                F = F_ca(3, self._T)
-                a = stages[i]['acc']
-                if isinstance(a, numbers.Number):
-                    cur_v = self._head[[1, 4, 7]]
-                    unit_v = cur_v / lg.norm(cur_v)
-                    a *= unit_v
-                if a[0] is not None:
-                    self._head[2] = a[0]
-                if a[1] is not None:
-                    self._head[5] = a[1]
-                if a[2] is not None:
-                    self._head[8] = a[2]
-
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.dot(F, self._head)
-                    self._head[:] = tmp
-                    state[:, j] = tmp
-            elif mdl == 'ct':
-                omega = stages[i]['omega']
-                F = F_ct(3, omega, self._T)
-
-                sel = [0, 1, 3, 4, 6, 7]
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.zeros(self._xdim)
-                    tmp[sel] = np.dot(F, self._head[sel])
-                    self._head[:] = tmp
-                    state[:, j] = tmp
+    trajs_state = []
+    for i in range(entries):
+        head = np.kron(start[i], [1., 0., 0.])
+        state = np.kron(start[i], [1., 0., 0.]).reshape(-1, 1)
+        for pat in pattern[i]:
+            if pat['model'] == 'cv':
+                ret = trajectory_cv(head[cv_sel], interval[i], pat['length'], pat['velocity'])
+                ret = np.insert(ret, insert_sel, 0, axis=0)
+                head = ret[all_sel, -1]
+                state[vel_sel, -1] = ret[vel_sel, 0]    # change the velocity of previous state
+                state = np.hstack((state, ret))
+            elif pat['model'] == 'ca':
+                ret = trajectory_ca(head, interval[i], pat['length'], pat['acceleration'])
+                head = ret[all_sel, -1]
+                state[acc_sel, -1] = ret[acc_sel, 0]    # change the acceleartion of previous state
+                state = np.hstack((state, ret))
+            elif pat['model'] == 'ct':
+                ret = trajectory_ct(head[ct_sel], interval[i], pat['length'], pat['turnrate'])
+                ret = np.insert(ret, insert_sel, 0, axis=0)
+                head = ret[all_sel, -1]
+                state = np.hstack((state, ret))
             else:
-                raise ValueError('unknown model')
-            self._traj.append(state)
+                raise ValueError('invalid model')
+        trajs_state.append(state)
 
-        self._noise = multi_normal(0, self._R, self._len, axis=1)
+    random_state = np.random.get_state()
+    np.random.seed(seed)
+
+    # add noise
+    trajs_meas = []
+    for i in range(entries):
+        H = H_ca(axis)
+        traj_len = trajs_state[i].shape[1]
+        noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len).T
+        trajs_meas.append(np.dot(H, trajs_state[i]) + noi)
+
+    # remove some measurements according to `pd`
+    for i in range(entries):
+        traj_len = trajs_state[i].shape[1]
+        remove = st.uniform.rvs(size=traj_len) >= pd[i]
+        trajs_meas[i][:, remove] = np.nan
+
+    np.random.set_state(random_state)
+
+
+    return trajs_state, trajs_meas

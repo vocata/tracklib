@@ -118,6 +118,7 @@ class EOPFilter(FilterBase):
             cov_inv = lg.inv(cov)
             V = ellipsoidal_volume(self._ext_samples[i])
             pmf = st.poisson.pmf(Nm, lamb * V)
+            # pmf = 1
             const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)
 
             dist = 0
