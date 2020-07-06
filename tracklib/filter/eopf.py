@@ -36,7 +36,6 @@ class EOPFilter(FilterBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
-        self._post_ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
         self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
@@ -47,7 +46,6 @@ class EOPFilter(FilterBase):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
-        self._post_ext = extension.copy()
 
         self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
         self._ext_samples = st.wishart.rvs(self._df, extension / self._df, self._Ns)
@@ -64,26 +62,9 @@ class EOPFilter(FilterBase):
             for i in range(self._Ns)
         ]
         self._ext_samples[:] = [
-            st.wishart.rvs(self._df, self._ext_samples[i] / self._df) +
-            0.5 * np.eye(*self._ext_samples[i].shape) for i in range(self._Ns)          # prevent the ellipse from being too small
+            st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
+            for i in range(self._Ns)
         ]
-
-        # ext_samples = []
-        # for i in range(self._Ns):
-        #     try:
-        #         # ext = st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
-        #         G = st.multivariate_normal.rvs(cov=self._ext_samples[i] / self._df, size=self._df)
-        #         ext = np.dot(G.T, G)
-        #         ext_samples.append(ext)
-        #     except lg.LinAlgError:
-        #         ext_samples.append(self._ext_samples[i])
-        #         print('in')
-        # self._ext_samples = np.array(ext_samples)
-
-        # for i in range(self._Ns):
-        #     B = st.wishart.rvs(self._df, np.eye(2) / self._df)
-        #     self._ext_samples[i] = B @ self._ext_samples[i] @ B.T
-        #     # self._ext_samples[i] = B @ self._ext_samples[i] @ B.T + 1 * np.eye(2)
 
         # compute prior extension, state and covariance
         self._ext = 0
@@ -105,7 +86,7 @@ class EOPFilter(FilterBase):
 
         Nm = len(zs)    # measurements number
         if self._lamb is None:
-            lamb = Nm / ellipsoidal_volume(self._post_ext)        # empirical target density
+            lamb = Nm / ellipsoidal_volume(self._ext)        # empirical target density
         else:
             lamb = self._lamb
 
@@ -113,7 +94,7 @@ class EOPFilter(FilterBase):
         const_arr = np.zeros(self._Ns)
         dist_arr = np.zeros(self._Ns)
         for i in range(self._Ns):
-            cov = self._ext_samples[i] + self._R
+            cov = self._ext_samples[i] / 4 + self._R
             cov_inv = lg.inv(cov)
             V = ellipsoidal_volume(self._ext_samples[i])
             pmf = st.poisson.pmf(Nm, lamb * V)
@@ -151,8 +132,6 @@ class EOPFilter(FilterBase):
             err = self._state_samples[i] - self._state
             self._cov += self._weights[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
-
-        self._post_ext = self._ext
 
         return self._state, self._cov, self._ext
 
