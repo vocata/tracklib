@@ -476,13 +476,15 @@ def F_ct(axis, turnrate, T):
     assert (axis >= 2)
 
     omega = np.deg2rad(turnrate)
-    wt = omega * T
-    sin_wt = np.sin(wt)
-    cos_wt = np.cos(wt)
     if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+        wt = omega * T
+        sin_wt = np.sin(wt)
+        cos_wt = np.cos(wt)
         sin_div = sin_wt / omega
         cos_div = (cos_wt - 1) / omega
     else:
+        sin_wt = 0
+        cos_wt = 1
         sin_div = T
         cos_div = 0
     F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
@@ -499,13 +501,15 @@ def f_ct(axis, T):
 
     def f(x, u):
         omega = np.deg2rad(x[4])
-        wt = omega * T
-        sin_wt = np.sin(wt)
-        cos_wt = np.cos(wt)
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+            wt = omega * T
+            sin_wt = np.sin(wt)
+            cos_wt = np.cos(wt)
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
         else:
+            sin_wt = 0
+            cos_wt = 1
             sin_div = T
             cos_div = 0
 
@@ -525,10 +529,10 @@ def f_ct_jac(axis, T):
 
     def fjac(x, u):
         omega = np.deg2rad(x[4])
-        wt = omega * T
-        sin_wt = np.sin(wt)
-        cos_wt = np.cos(wt)
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+            wt = omega * T
+            sin_wt = np.sin(wt)
+            cos_wt = np.cos(wt)
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
             f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)
@@ -536,6 +540,8 @@ def f_ct_jac(axis, T):
             f2 = np.deg2rad((wt * (x[1] * sin_wt + x[3] * cos_wt) - (x[1] * (1 - cos_wt) + x[3] * sin_wt)) / omega**2)
             f3 = np.deg2rad((x[1]*cos_wt - x[3]*sin_wt) * T)
         else:
+            sin_wt = 0
+            cos_wt = 1
             sin_div = T
             cos_div = 0
             f0 = np.deg2rad(-x[3] * T**2 / 2)

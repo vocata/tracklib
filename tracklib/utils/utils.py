@@ -213,7 +213,7 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
     '''
     rv_num = len(prob)
     if scope is None:
-        scope = np.arange(rv_num)
+        scope = range(rv_num)
 
     rv = []
     index = []
