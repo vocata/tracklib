@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.linalg as lg
 import scipy.stats as st
 import tracklib.filter as ft
 import tracklib.init as init
@@ -12,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 def gen_ellipse_uniform(trajs, C, R, theta, lamb):
-    N = trajs.shape[1]
+    N = trajs.shape[0]
     trajs_elli = []
     elli = []
     A = np.eye(2)
@@ -21,7 +20,7 @@ def gen_ellipse_uniform(trajs, C, R, theta, lamb):
         A = utils.rotate_matrix_deg(theta[i]) @ A
         elli.append(A @ C @ A.T)
         z = utils.ellipse_uniform(elli[i], pt_N)
-        z += trajs[:, i]
+        z += trajs[i]
         z += st.multivariate_normal.rvs(cov=R, size=pt_N)
         trajs_elli.append(z)
     return trajs_elli, elli
@@ -50,7 +49,7 @@ def EOT_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
-    N = trajs_state[0].shape[1]
+    N = trajs_state[0].shape[0]
     T = 10
     entries = 1
     Ns = 2000
@@ -77,43 +76,43 @@ def EOT_test():
     theta.extend([0] * 18)
     theta.extend([90 / 15 for i in range(15)])
     theta.extend([0] * 54)
-    trajs_meas_elli, elli = gen_ellipse_uniform(trajs_meas[0][:-1], C, R, theta, 20)
+    trajs_meas_elli, elli = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
 
     eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df, lamb=lamb)
 
-    prior_state_arr = np.empty((xdim, N))
-    prior_cov_arr = np.empty((xdim, xdim, N))
-    post_state_arr = np.empty((xdim, N))
-    post_cov_arr = np.empty((xdim, xdim, N))
+    prior_state_arr = np.empty((N, xdim))
+    prior_cov_arr = np.empty((N, xdim, xdim))
+    post_state_arr = np.empty((N, xdim))
+    post_cov_arr = np.empty((N, xdim, xdim))
     prior_ext = []
     post_ext = []
 
     for n in range(N):
-        z = trajs_meas_elli[n]
+        zs = trajs_meas_elli[n]
         if n == 0:
-            z_mean = np.mean(z, axis=0)
+            z_mean = np.mean(zs, axis=0)
             ellip = 100**2 * np.eye(2)
             x_init, P_init = init.cv_init(z_mean, R, (10, 10))
             x_init[1], x_init[3] = 14, -14
             eopf.init(x_init, P_init, df, ellip)
 
-            prior_state_arr[:, n] = eopf.state
-            prior_cov_arr[:, :, n] = eopf.cov
+            prior_state_arr[n, :] = eopf.state
+            prior_cov_arr[n, :, :] = eopf.cov
             prior_ext.append(eopf.extension)
 
-            post_state_arr[:, n] = eopf.state
-            post_cov_arr[:, :, n] = eopf.cov
+            post_state_arr[n, :] = eopf.state
+            post_cov_arr[n, :, :] = eopf.cov
             post_ext.append(eopf.extension)
             continue
 
         eopf.predict()
-        prior_state_arr[:, n] = eopf.state
-        prior_cov_arr[:, :, n] = eopf.cov
+        prior_state_arr[n, :] = eopf.state
+        prior_cov_arr[n, :, :] = eopf.cov
         prior_ext.append(eopf.extension)
 
-        eopf.correct(z)
-        post_state_arr[:, n] = eopf.state
-        post_cov_arr[:, :, n] = eopf.cov
+        eopf.correct(zs)
+        post_state_arr[n, :] = eopf.state
+        post_cov_arr[n, :, :] = eopf.cov
         post_ext.append(eopf.extension)
         print(n)
 
@@ -122,19 +121,19 @@ def EOT_test():
     # plot
     n = np.arange(N)
 
-    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
-    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
-    print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
-    print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
+    print('x prior error variance {}'.format(prior_cov_arr[-1, 0, 0]))
+    print('x posterior error variance {}'.format(post_cov_arr[-1, 0, 0]))
+    print('y prior error variance {}'.format(prior_cov_arr[-1, 2, 2]))
+    print('y posterior error variance {}'.format(post_cov_arr[-1, 2, 2]))
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 0, 0], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 0, 0], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
-    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 2, 2], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 2, 2], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
@@ -143,19 +142,16 @@ def EOT_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     for i in range(entries):
-        ax.scatter(trajs_meas[i][0, ::3], trajs_meas[i][1, ::3], marker='^', facecolors=None, edgecolors='k', s=5)
+        ax.scatter(trajs_meas[i][::3, 0], trajs_meas[i][::3, 1], marker='^', facecolors=None, edgecolors='k', s=5)
     for i in range(entries):
         for j in range(N):
             if j % 3 == 0:
-                x, y = utils.ellipse_point(trajs_meas[i][0, j], trajs_meas[i][1, j], post_ext[j], 200)
+                x, y = utils.ellipse_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], post_ext[j], 200)
                 ax.plot(x, y, color='gray')
-                x, y = utils.ellipse_point(trajs_meas[i][0, j], trajs_meas[i][1, j], elli[j], 200)
-                ax.plot(x, y)
-
-        for j in range(N):
-            if j % 3 == 0:
+                x, y = utils.ellipse_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], elli[j], 200)
+                ax.plot(x, y, color='green')
                 ax.scatter(trajs_meas_elli[j][:, 0], trajs_meas_elli[j][:, 1], s=1)
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.axis('equal')
@@ -163,6 +159,6 @@ def EOT_test():
     ax.set_title('trajectory')
     plt.show()
 
+
 if __name__ == '__main__':
-    # test()
     EOT_test()

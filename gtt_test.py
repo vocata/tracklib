@@ -7,6 +7,7 @@ import scipy.stats as st
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
+import tracklib.utils as utils
 import matplotlib.pyplot as plt
 '''
 notes:
@@ -16,20 +17,11 @@ the program may yield uncertain result.
 
 
 def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
-    C = (C + C.T) / 2
-    U, s, V = lg.svd(C)
-    D = (U + V) / 2
-    S = np.diag(s)
-
-    theta = np.linspace(0, 2 * np.pi, N)
-    x = np.cos(theta) * np.sqrt(S[0, 0])
-    y = np.sin(theta) * np.sqrt(S[1, 1])
-    X = np.dot(D, np.vstack((x, y)))
-
-    ax.plot(x0 + X[0, :], y0 + X[1, :], *args, **kwargs)
+    x, y = utils.ellipse_point(x0, y0, C, N)
+    ax.plot(x, y, *args, **kwargs)
 
 
-def EOPFilter_test():
+def GTT_test():
     record = {
         'interval': [10] * 5,
         'start': [
@@ -102,7 +94,7 @@ def EOPFilter_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
-    N = trajs_state[0].shape[1]
+    N = trajs_state[0].shape[0]
     T = 10
     entries = 5
     Ns = 2000
@@ -121,10 +113,10 @@ def EOPFilter_test():
 
     eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df=df)
 
-    prior_state_arr = np.empty((xdim, N))
-    prior_cov_arr = np.empty((xdim, xdim, N))
-    post_state_arr = np.empty((xdim, N))
-    post_cov_arr = np.empty((xdim, xdim, N))
+    prior_state_arr = np.empty((N, xdim))
+    prior_cov_arr = np.empty((N, xdim, xdim))
+    post_state_arr = np.empty((N, xdim))
+    post_cov_arr = np.empty((N, xdim, xdim))
     prior_ext = []
     post_ext = []
 
@@ -132,8 +124,8 @@ def EOPFilter_test():
     zs = []
     for i in range(N):
         z = [
-            trajs_meas[j][:-1, i] for j in range(entries)
-            if not np.any(np.isnan(trajs_meas[j][:-1, i]))
+            trajs_meas[j][i, :-1] for j in range(entries)
+            if not np.any(np.isnan(trajs_meas[j][i, :-1]))
         ]
         zs.append(z)
 
@@ -145,23 +137,23 @@ def EOPFilter_test():
             x_init[1], x_init[3] = 200, -200
             eopf.init(x_init, P_init, df, ellip)
 
-            prior_state_arr[:, n] = eopf.state
-            prior_cov_arr[:, :, n] = eopf.cov
+            prior_state_arr[n, :] = eopf.state
+            prior_cov_arr[n, :, :] = eopf.cov
             prior_ext.append(eopf.extension)
 
-            post_state_arr[:, n] = eopf.state
-            post_cov_arr[:, :, n] = eopf.cov
+            post_state_arr[n, :] = eopf.state
+            post_cov_arr[n, :, :] = eopf.cov
             post_ext.append(eopf.extension)
             continue
 
         eopf.predict()
-        prior_state_arr[:, n] = eopf.state
-        prior_cov_arr[:, :, n] = eopf.cov
+        prior_state_arr[n, :] = eopf.state
+        prior_cov_arr[n, :, :] = eopf.cov
         prior_ext.append(eopf.extension)
 
         eopf.correct(zs[n])
-        post_state_arr[:, n] = eopf.state
-        post_cov_arr[:, :, n] = eopf.cov
+        post_state_arr[n, :] = eopf.state
+        post_cov_arr[n, :, :] = eopf.cov
         post_ext.append(eopf.extension)
         print(n)
 
@@ -170,19 +162,19 @@ def EOPFilter_test():
     # plot
     n = np.arange(N)
 
-    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
-    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
-    print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
-    print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
+    print('x prior error variance {}'.format(prior_cov_arr[-1, 0, 0]))
+    print('x posterior error variance {}'.format(post_cov_arr[-1, 0, 0]))
+    print('y prior error variance {}'.format(prior_cov_arr[-1, 2, 2]))
+    print('y posterior error variance {}'.format(post_cov_arr[-1, 2, 2]))
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 0, 0], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 0, 0], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
-    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 2, 2], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 2, 2], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
@@ -191,10 +183,10 @@ def EOPFilter_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     for i in range(entries):
-        ax.scatter(trajs_meas[i][0, :], trajs_meas[i][1, :], marker='^', facecolors=None, edgecolors='k', s=5)
+        ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[0, i], post_state_arr[2, i], post_ext[i], 200)
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.axis('equal')
@@ -203,7 +195,7 @@ def EOPFilter_test():
     plt.show()
 
 
-def IMMEOPFilter1_test():
+def IMMGTT_test1():
     record = {
         'interval': [10] * 5,
         'start': [
@@ -276,7 +268,7 @@ def IMMEOPFilter1_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
-    N = trajs_state[0].shape[1]
+    N = trajs_state[0].shape[0]
     T = 10
     entries = 5
     Ns = 2000
@@ -365,11 +357,11 @@ def IMMEOPFilter1_test():
 
     immeopf = ft.IMMEOPFilter(len(df), init_fcn, state_trans_fcn, ext_trans_fcn, meas_fcn, merge_fcn, df, state_noise, meas_noise, Ns, Neff)
 
-    prior_state_arr = np.empty((xdim, N))
-    prior_cov_arr = np.empty((xdim, xdim, N))
-    post_state_arr = np.empty((xdim, N))
-    post_cov_arr = np.empty((xdim, xdim, N))
-    prob_arr = np.empty((len(df), N))
+    prior_state_arr = np.empty((N, xdim))
+    prior_cov_arr = np.empty((N, xdim, xdim))
+    post_state_arr = np.empty((N, xdim))
+    post_cov_arr = np.empty((N, xdim, xdim))
+    prob_arr = np.empty((N, len(df)))
     prior_ext = []
     post_ext = []
 
@@ -377,8 +369,8 @@ def IMMEOPFilter1_test():
     zs = []
     for i in range(N):
         z = [
-            trajs_meas[j][:-1, i] for j in range(entries)
-            if not np.any(np.isnan(trajs_meas[j][:-1, i]))
+            trajs_meas[j][i, :-1] for j in range(entries)
+            if not np.any(np.isnan(trajs_meas[j][i, :-1]))
         ]
         zs.append(z)
 
@@ -391,28 +383,28 @@ def IMMEOPFilter1_test():
             x_init[1], x_init[3] = 200, -200
             immeopf.init(x_init, P_init, df_init, ellip)
 
-            prior_state_arr[:, n] = immeopf.state
-            prior_cov_arr[:, :, n] = immeopf.cov
+            prior_state_arr[n, :] = immeopf.state
+            prior_cov_arr[n, :, :] = immeopf.cov
             prior_ext.append(immeopf.extension)
 
-            post_state_arr[:, n] = immeopf.state
-            post_cov_arr[:, :, n] = immeopf.cov
+            post_state_arr[n, :] = immeopf.state
+            post_cov_arr[n, :, :] = immeopf.cov
             post_ext.append(immeopf.extension)
 
-            prob_arr[:, n] = immeopf.probs()
+            prob_arr[n, :] = immeopf.probs()
             continue
 
         immeopf.predict()
-        prior_state_arr[:, n] = immeopf.state
-        prior_cov_arr[:, :, n] = immeopf.cov
+        prior_state_arr[n, :] = immeopf.state
+        prior_cov_arr[n, :, :] = immeopf.cov
         prior_ext.append(immeopf.extension)
 
         immeopf.correct(zs[n])
-        post_state_arr[:, n] = immeopf.state
-        post_cov_arr[:, :, n] = immeopf.cov
+        post_state_arr[n, :] = immeopf.state
+        post_cov_arr[n, :, :] = immeopf.cov
         post_ext.append(immeopf.extension)
 
-        prob_arr[:, n] = immeopf.probs()
+        prob_arr[n, :] = immeopf.probs()
 
         print(n, immeopf.probs())
 
@@ -421,19 +413,19 @@ def IMMEOPFilter1_test():
     # plot
     n = np.arange(N)
 
-    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
-    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
-    print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
-    print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
+    print('x prior error variance {}'.format(prior_cov_arr[-1, 0, 0]))
+    print('x posterior error variance {}'.format(post_cov_arr[-1, 0, 0]))
+    print('y prior error variance {}'.format(prior_cov_arr[-1, 2, 2]))
+    print('y posterior error variance {}'.format(post_cov_arr[-1, 2, 2]))
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 0, 0], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 0, 0], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
-    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 2, 2], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 2, 2], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
@@ -442,10 +434,10 @@ def IMMEOPFilter1_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     for i in range(entries):
-        ax.scatter(trajs_meas[i][0, :], trajs_meas[i][1, :], marker='^', facecolors=None, edgecolors='k', s=8)
+        ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[0, i], post_state_arr[2, i], post_ext[i], 200)
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.axis('equal')
@@ -459,7 +451,7 @@ def IMMEOPFilter1_test():
     n = np.arange(N)
     model_types = ['low', 'rotate', 'moderate']
     for i in range(len(df)):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
+        ax.plot(n, prob_arr[:, i], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.legend()
@@ -467,7 +459,7 @@ def IMMEOPFilter1_test():
     plt.show()
 
 
-def IMMEOPFilter2_test():
+def IMMGTT_test2():
     record = {
         'interval': [10] * 5,
         'start': [
@@ -540,7 +532,7 @@ def IMMEOPFilter2_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
-    N = trajs_state[0].shape[1]
+    N = trajs_state[0].shape[0]
     T = 10
     entries = 5
     Ns = 2000
@@ -552,7 +544,7 @@ def IMMEOPFilter2_test():
     # cv
     w_cv = 0.01
     v_cv = [100., 100.]
-    df_cv = 50
+    df_cv = 60
     F_cv = lg.block_diag(model.F_cv(axis, T), 0)
     h_cv = model.h_ct(axis)
     Q_cv = model.Q_cv_dd(1, T, w_cv)
@@ -568,7 +560,7 @@ def IMMEOPFilter2_test():
     # ct
     w_ct, w_omega = 0.01, 0.5
     v_ct = [100., 100.]
-    df_ct = 50
+    df_ct = 100
     f_ct = model.f_ct(axis, T)
     h_ct = model.h_ct(axis)
     Q_ct = model.Q_cv_dd(1, T, w_ct)
@@ -617,11 +609,11 @@ def IMMEOPFilter2_test():
 
     immeopf = ft.IMMEOPFilter(len(df), init_fcn, state_trans_fcn, ext_trans_fcn, meas_fcn, merge_fcn, df, state_noise, meas_noise, Ns, Neff)
 
-    prior_state_arr = np.empty((xdim, N))
-    prior_cov_arr = np.empty((xdim, xdim, N))
-    post_state_arr = np.empty((xdim, N))
-    post_cov_arr = np.empty((xdim, xdim, N))
-    prob_arr = np.empty((len(df), N))
+    prior_state_arr = np.empty((N, xdim))
+    prior_cov_arr = np.empty((N, xdim, xdim))
+    post_state_arr = np.empty((N, xdim))
+    post_cov_arr = np.empty((N, xdim, xdim))
+    prob_arr = np.empty((N, len(df)))
     prior_ext = []
     post_ext = []
 
@@ -629,8 +621,8 @@ def IMMEOPFilter2_test():
     zs = []
     for i in range(N):
         z = [
-            trajs_meas[j][:-1, i] for j in range(entries)
-            if not np.any(np.isnan(trajs_meas[j][:-1, i]))
+            trajs_meas[j][i, :-1] for j in range(entries)
+            if not np.any(np.isnan(trajs_meas[j][i, :-1]))
         ]
         zs.append(z)
 
@@ -643,28 +635,28 @@ def IMMEOPFilter2_test():
             x_init[1], x_init[3] = 200, -200
             immeopf.init(x_init, P_init, df_init, ellip)
 
-            prior_state_arr[:, n] = immeopf.state
-            prior_cov_arr[:, :, n] = immeopf.cov
+            prior_state_arr[n, :] = immeopf.state
+            prior_cov_arr[n, :, :] = immeopf.cov
             prior_ext.append(immeopf.extension)
 
-            post_state_arr[:, n] = immeopf.state
-            post_cov_arr[:, :, n] = immeopf.cov
+            post_state_arr[n, :] = immeopf.state
+            post_cov_arr[n, :, :] = immeopf.cov
             post_ext.append(immeopf.extension)
 
-            prob_arr[:, n] = immeopf.probs()
+            prob_arr[n, :] = immeopf.probs()
             continue
 
         immeopf.predict()
-        prior_state_arr[:, n] = immeopf.state
-        prior_cov_arr[:, :, n] = immeopf.cov
+        prior_state_arr[n, :] = immeopf.state
+        prior_cov_arr[n, :, :] = immeopf.cov
         prior_ext.append(immeopf.extension)
 
         immeopf.correct(zs[n])
-        post_state_arr[:, n] = immeopf.state
-        post_cov_arr[:, :, n] = immeopf.cov
+        post_state_arr[n, :] = immeopf.state
+        post_cov_arr[n, :, :] = immeopf.cov
         post_ext.append(immeopf.extension)
 
-        prob_arr[:, n] = immeopf.probs()
+        prob_arr[n, :] = immeopf.probs()
 
         print(n, immeopf.probs())
 
@@ -673,19 +665,19 @@ def IMMEOPFilter2_test():
     # plot
     n = np.arange(N)
 
-    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
-    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
-    print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
-    print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
+    print('x prior error variance {}'.format(prior_cov_arr[-1, 0, 0]))
+    print('x posterior error variance {}'.format(post_cov_arr[-1, 0, 0]))
+    print('y prior error variance {}'.format(prior_cov_arr[-1, 2, 2]))
+    print('y posterior error variance {}'.format(post_cov_arr[-1, 2, 2]))
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 0, 0], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 0, 0], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
-    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 2, 2], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 2, 2], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
@@ -694,10 +686,10 @@ def IMMEOPFilter2_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     for i in range(entries):
-        ax.scatter(trajs_meas[i][0, :], trajs_meas[i][1, :], marker='^', facecolors=None, edgecolors='k', s=8)
+        ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[0, i], post_state_arr[2, i], post_ext[i], 200)
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.axis('equal')
@@ -711,7 +703,7 @@ def IMMEOPFilter2_test():
     n = np.arange(N)
     model_types = ['line', 'turn']
     for i in range(len(df)):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
+        ax.plot(n, prob_arr[:, i], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.legend()
@@ -719,7 +711,7 @@ def IMMEOPFilter2_test():
     plt.show()
 
 
-def IMMEOPFilter3_test():
+def IMMGTT_test3():
     record = {
         'interval': [10] * 5,
         'start': [
@@ -792,7 +784,7 @@ def IMMEOPFilter3_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
-    N = trajs_state[0].shape[1]
+    N = trajs_state[0].shape[0]
     T = 10
     entries = 5
     Ns = 2000
@@ -878,11 +870,11 @@ def IMMEOPFilter3_test():
 
     immeopf = ft.IMMEOPFilter(len(df), init_fcn, state_trans_fcn, ext_trans_fcn, meas_fcn, merge_fcn, df, state_noise, meas_noise, Ns, Neff, trans_mat=0.95)
 
-    prior_state_arr = np.empty((xdim, N))
-    prior_cov_arr = np.empty((xdim, xdim, N))
-    post_state_arr = np.empty((xdim, N))
-    post_cov_arr = np.empty((xdim, xdim, N))
-    prob_arr = np.empty((len(df), N))
+    prior_state_arr = np.empty((N, xdim))
+    prior_cov_arr = np.empty((N, xdim, xdim))
+    post_state_arr = np.empty((N, xdim))
+    post_cov_arr = np.empty((N, xdim, xdim))
+    prob_arr = np.empty((N, len(df)))
     prior_ext = []
     post_ext = []
 
@@ -890,8 +882,8 @@ def IMMEOPFilter3_test():
     zs = []
     for i in range(N):
         z = [
-            trajs_meas[j][:-1, i] for j in range(entries)
-            if not np.any(np.isnan(trajs_meas[j][:-1, i]))
+            trajs_meas[j][i, :-1] for j in range(entries)
+            if not np.any(np.isnan(trajs_meas[j][i, :-1]))
         ]
         zs.append(z)
 
@@ -904,28 +896,28 @@ def IMMEOPFilter3_test():
             x_init[1], x_init[3] = 200, -200
             immeopf.init(x_init, P_init, df_init, ellip)
 
-            prior_state_arr[:, n] = immeopf.state
-            prior_cov_arr[:, :, n] = immeopf.cov
+            prior_state_arr[n, :] = immeopf.state
+            prior_cov_arr[n, :, :] = immeopf.cov
             prior_ext.append(immeopf.extension)
 
-            post_state_arr[:, n] = immeopf.state
-            post_cov_arr[:, :, n] = immeopf.cov
+            post_state_arr[n, :] = immeopf.state
+            post_cov_arr[n, :, :] = immeopf.cov
             post_ext.append(immeopf.extension)
 
-            prob_arr[:, n] = immeopf.probs()
+            prob_arr[n, :] = immeopf.probs()
             continue
 
         immeopf.predict()
-        prior_state_arr[:, n] = immeopf.state
-        prior_cov_arr[:, :, n] = immeopf.cov
+        prior_state_arr[n, :] = immeopf.state
+        prior_cov_arr[n, :, :] = immeopf.cov
         prior_ext.append(immeopf.extension)
 
         immeopf.correct(zs[n])
-        post_state_arr[:, n] = immeopf.state
-        post_cov_arr[:, :, n] = immeopf.cov
+        post_state_arr[n, :] = immeopf.state
+        post_cov_arr[n, :, :] = immeopf.cov
         post_ext.append(immeopf.extension)
 
-        prob_arr[:, n] = immeopf.probs()
+        prob_arr[n, :] = immeopf.probs()
 
         print(n, immeopf.probs())
 
@@ -934,19 +926,19 @@ def IMMEOPFilter3_test():
     # plot
     n = np.arange(N)
 
-    print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
-    print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
-    print('y prior error variance {}'.format(prior_cov_arr[2, 2, -1]))
-    print('y posterior error variance {}'.format(post_cov_arr[2, 2, -1]))
+    print('x prior error variance {}'.format(prior_cov_arr[-1, 0, 0]))
+    print('x posterior error variance {}'.format(post_cov_arr[-1, 0, 0]))
+    print('y prior error variance {}'.format(prior_cov_arr[-1, 2, 2]))
+    print('y posterior error variance {}'.format(post_cov_arr[-1, 2, 2]))
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(n, prior_cov_arr[0, 0, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[0, 0, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 0, 0], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 0, 0], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('x error variance/mean square error')
     ax = fig.add_subplot(212)
-    ax.plot(n, prior_cov_arr[2, 2, :], linewidth=0.8)
-    ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
+    ax.plot(n, prior_cov_arr[:, 2, 2], linewidth=0.8)
+    ax.plot(n, post_cov_arr[:, 2, 2], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
     plt.show()
@@ -955,10 +947,10 @@ def IMMEOPFilter3_test():
     fig = plt.figure()
     ax = fig.add_subplot()
     for i in range(entries):
-        ax.scatter(trajs_meas[i][0, :], trajs_meas[i][1, :], marker='^', facecolors=None, edgecolors='k', s=8)
+        ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[0, i], post_state_arr[2, i], post_ext[i], 200)
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], linewidth=0.8, label='post esti')
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.axis('equal')
@@ -972,7 +964,7 @@ def IMMEOPFilter3_test():
     n = np.arange(N)
     model_types = ['low', 'high', 'moderate']
     for i in range(len(df)):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
+        ax.plot(n, prob_arr[:, i], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.legend()
@@ -981,7 +973,7 @@ def IMMEOPFilter3_test():
 
 
 if __name__ == '__main__':
-    EOPFilter_test()
-    IMMEOPFilter1_test()
-    IMMEOPFilter2_test()
-    IMMEOPFilter3_test()
+    GTT_test()
+    # IMMGTT_test1()
+    # IMMGTT_test2()
+    # IMMGTT_test3()

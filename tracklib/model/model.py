@@ -786,7 +786,7 @@ def trajectory_cv(state, interval, length, velocity):
     dim = head.size
     order = 2
     axis = dim // order
-    traj_cv = np.zeros((dim, length))
+    traj_cv = np.zeros((length, dim))
 
     vel = velocity
     cur_vel = head[1:dim:order]
@@ -800,7 +800,7 @@ def trajectory_cv(state, interval, length, velocity):
     F = F_cv(axis, interval)
     for i in range(length):
         head = np.dot(F, head)
-        traj_cv[:, i] = head
+        traj_cv[i] = head
     return traj_cv, head_cv
 
 def trajectory_ca(state, interval, length, acceleration):
@@ -808,7 +808,7 @@ def trajectory_ca(state, interval, length, acceleration):
     dim = state.size
     order = 3
     axis = dim // order
-    traj_ca = np.zeros((dim, length))
+    traj_ca = np.zeros((length, dim))
 
     acc = acceleration
     cur_vel = head[1:dim:order]
@@ -823,7 +823,7 @@ def trajectory_ca(state, interval, length, acceleration):
     F = F_ca(axis, interval)
     for i in range(length):
         head = np.dot(F, head)
-        traj_ca[:, i] = head
+        traj_ca[i] = head
     return traj_ca, head_ca
 
 def trajectory_ct(state, interval, length, turnrate, velocity=None):
@@ -831,7 +831,7 @@ def trajectory_ct(state, interval, length, turnrate, velocity=None):
     dim = state.size
     order = 2
     axis = dim // order
-    traj_ct = np.zeros((dim, length))
+    traj_ct = np.zeros((length, dim))
 
     if velocity is not None:
         vel = velocity
@@ -846,7 +846,7 @@ def trajectory_ct(state, interval, length, turnrate, velocity=None):
     F = F_ct(axis, turnrate, interval)
     for i in range(length):
         head = np.dot(F, head)
-        traj_ct[:, i] = head
+        traj_ct[i] = head
     return traj_ct, head_ct
 
 def trajectory_generator(record, seed=0):
@@ -897,30 +897,30 @@ def trajectory_generator(record, seed=0):
     trajs_state = []
     for i in range(entries):
         head = np.kron(start[i], [1., 0., 0.])
-        state = np.kron(start[i], [1., 0., 0.]).reshape(-1, 1)
+        state = np.kron(start[i], [1., 0., 0.]).reshape(1, -1)
         for pat in pattern[i]:
             if pat['model'] == 'cv':
                 ret, head_cv = trajectory_cv(head[cv_sel], interval[i], pat['length'], pat['velocity'])
-                ret = np.insert(ret, insert_sel, 0, axis=0)
-                head = ret[ca_sel, -1]
-                state[acc_sel, -1] = 0         # set acceleration to zero
-                state[cv_sel, -1] = head_cv    # change the velocity of previous state
-                state = np.hstack((state, ret))
+                ret = np.insert(ret, insert_sel, 0, axis=1)
+                head = ret[-1, ca_sel]
+                state[-1, acc_sel] = 0         # set the acceleration of previous state to zero
+                state[-1, cv_sel] = head_cv    # change the velocity of previous state
+                state = np.vstack((state, ret))
             elif pat['model'] == 'ca':
                 ret, head_ca = trajectory_ca(head, interval[i], pat['length'], pat['acceleration'])
-                head = ret[ca_sel, -1]
-                state[ca_sel, -1] = head_ca    # change the acceleartion of previous state
-                state = np.hstack((state, ret))
+                head = ret[-1, ca_sel]
+                state[-1, ca_sel] = head_ca    # change the acceleartion of previous state
+                state = np.vstack((state, ret))
             elif pat['model'] == 'ct':
                 if 'velocity' in pat:
                     ret, head_ct = trajectory_ct(head[ct_sel], interval[i], pat['length'], pat['turnrate'], pat['velocity'])
                 else:
                     ret, head_ct = trajectory_ct(head[ct_sel], interval[i], pat['length'], pat['turnrate'])
-                ret = np.insert(ret, insert_sel, 0, axis=0)
-                head = ret[ca_sel, -1]
-                state[acc_sel, -1] = 0         # set acceleration to zero
-                state[ct_sel, -1] = head_ct
-                state = np.hstack((state, ret))
+                ret = np.insert(ret, insert_sel, 0, axis=1)
+                head = ret[-1, ca_sel]
+                state[-1, acc_sel] = 0
+                state[-1, ct_sel] = head_ct
+                state = np.vstack((state, ret))
             else:
                 raise ValueError('invalid model')
         trajs_state.append(state)
@@ -932,15 +932,15 @@ def trajectory_generator(record, seed=0):
     trajs_meas = []
     for i in range(entries):
         H = H_ca(axis)
-        traj_len = trajs_state[i].shape[1]
-        noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len).T
-        trajs_meas.append(np.dot(H, trajs_state[i]) + noi)
+        traj_len = trajs_state[i].shape[0]
+        noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len)
+        trajs_meas.append(np.dot(trajs_state[i], H.T) + noi)
 
     # remove some measurements according to `pd`
     for i in range(entries):
-        traj_len = trajs_state[i].shape[1]
+        traj_len = trajs_state[i].shape[0]
         remove = st.uniform.rvs(size=traj_len) >= pd[i]
-        trajs_meas[i][:, remove] = np.nan
+        trajs_meas[i][remove] = np.nan
 
     np.random.set_state(random_state)
 
