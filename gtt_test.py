@@ -75,7 +75,7 @@ def EOPFilter_test():
             ],
             [
                 {'model': 'cv', 'length': 20, 'velocity': [300 * np.sin(np.pi / 4), -300 * np.cos(np.pi / 4), 0]},
-                {'model': 'ct', 'length': 2, 'turnrate': 45/20, 'velocity': 300+500*np.pi/80},
+                {'model': 'ct', 'length': 2, 'turnrate': 45/20, 'velocity': 300+500*np.pi/80},  # v'=v+w*ΔR
                 {'model': 'cv', 'length': 20, 'velocity': 300},
                 {'model': 'ct', 'length': 2, 'turnrate': 90/20, 'velocity': 300+500*np.pi/40},
                 {'model': 'cv', 'length': 15, 'velocity': 300},

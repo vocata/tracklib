@@ -5,7 +5,9 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'ellipsoidal_volume', 'cholcov', 'multi_normal', 'disc_random'
+    'sph2cart', 'rotate_matrix_rad', 'rotate_matrix_deg', 'ellipsoidal_volume',
+    'ellipse_point', 'ellipse_uniform', 'cholcov', 'multi_normal',
+    'disc_random'
 ]
 
 import numbers
@@ -109,11 +111,51 @@ def sph2cart(r, az, elev):
     return x, y, z
 
 
+def rotate_matrix_rad(theta):
+    cvar, svar = np.cos(theta), np.sin(theta)
+    return np.array([[cvar, -svar], [svar, cvar]])
+
+
+def rotate_matrix_deg(theta):
+    theta = deg2rad(theta)
+    return rotate_matrix_rad(theta)
+
+
 def ellipsoidal_volume(X):
     n = X.shape[0] / 2
     vol = np.pi**n * np.sqrt(lg.det(X)) / sl.gamma(n + 1)
     return vol
 
+
+def ellipse_point(x0, y0, C, N):
+    C = (C + C.T) / 2
+    U, s, V = lg.svd(C)
+    D = (U + V) / 2
+
+    theta = np.linspace(0, 2 * np.pi, N)
+    x = np.cos(theta) * np.sqrt(s[0])
+    y = np.sin(theta) * np.sqrt(s[1])
+    x, y = np.dot(D, np.vstack((x, y)))
+
+    return x0 + x, y0 + y
+
+
+def ellipse_uniform(C, Ns, axis=0):
+    dim = C.shape[0]
+
+    r = np.random.rand(Ns)**(1 / dim)
+    theta = np.random.randn(dim, Ns)
+    theta = theta / lg.norm(theta, axis=0)
+    x = r * theta
+
+    L = lg.cholesky(lg.inv(C))
+    v = np.dot(lg.inv(L), x)
+    if axis == 0:
+        return v.T
+    elif axis == 1:
+        return v
+    else:
+        raise ValueError('axis must be 0 or 1')
 
 def cholcov(cov, lower=False):
     '''
@@ -224,7 +266,7 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
         for i in range(rv_num):
             cdf[i + 1] = cdf[i] + prob[i]
         for i in range(Ns):
-            idx = np.where(cdf < rnd[i])[0][-1] 
+            idx = np.where(cdf < rnd[i])[0][-1]
             rv.append(scope[idx])
             index.append(idx)
     elif alg == 'low_var':
