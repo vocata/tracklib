@@ -219,16 +219,14 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
     index = []
 
     if alg == 'roulette':
-        cdf = list(range(rv_num + 1))
+        cdf = np.zeros(rv_num + 1)
+        rnd = np.random.rand(Ns)
         for i in range(rv_num):
             cdf[i + 1] = cdf[i] + prob[i]
         for i in range(Ns):
-            idx = 0
-            rnd = np.random.rand()
-            while cdf[idx] < rnd:
-                idx += 1
-            rv.append(scope[idx - 1])
-            index.append(idx - 1)
+            idx = np.where(cdf < rnd[i])[0][-1] 
+            rv.append(scope[idx])
+            index.append(idx)
     elif alg == 'low_var':
         rnd = np.random.rand() / Ns
         cdf = prob[0]

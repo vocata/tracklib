@@ -382,14 +382,14 @@ def F_cv(axis, T):
 
 def f_cv(axis, T):
     F = F_cv(axis, T)
-    def f(x, u):
+    def f(x, u=None):
         return np.dot(F, x)
     return f
 
 
 def f_cv_jac(axis, T):
     F = F_cv(axis, T)
-    def fjac(x, u):
+    def fjac(x, u=None):
         return F
     return fjac
 
@@ -430,14 +430,14 @@ def F_ca(axis, T):
 
 def f_ca(axis, T):
     F = F_ca(axis, T)
-    def f(x, u):
+    def f(x, u=None):
         return np.dot(F, x)
     return f
 
 
 def f_ca_jac(axis, T):
     F = F_ca(axis, T)
-    def fjac(x, u):
+    def fjac(x, u=None):
         return F
     return fjac
 
@@ -499,7 +499,7 @@ def F_ct(axis, turnrate, T):
 def f_ct(axis, T):
     assert (axis >= 2)
 
-    def f(x, u):
+    def f(x, u=None):
         omega = np.deg2rad(x[4])
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
             wt = omega * T
@@ -527,7 +527,7 @@ def f_ct(axis, T):
 def f_ct_jac(axis, T):
     assert (axis >= 2)
 
-    def fjac(x, u):
+    def fjac(x, u=None):
         omega = np.deg2rad(x[4])
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
             wt = omega * T
@@ -580,12 +580,12 @@ def Q_ct(axis, T, std):
 def h_ct(axis):
     assert (axis >= 2)
 
+    if axis == 3:
+        H = H_pos_only(2, 3)
+    else:
+        H = H_pos_only(2, 2)
+    H = np.insert(H, 4, 0, axis=1)
     def h(x):
-        if axis == 3:
-            H = H_pos_only(2, 3)
-        else:
-            H = H_pos_only(2, 2)
-        H = np.insert(H, 4, 0, axis=1)
         return np.dot(H, x)
     return h
 
@@ -593,12 +593,12 @@ def h_ct(axis):
 def h_ct_jac(axis):
     assert (axis >= 2)
 
+    if axis == 3:
+        H = H_pos_only(2, 3)
+    else:
+        H = H_pos_only(2, 2)
+    H = np.insert(H, 4, 0, axis=1)
     def hjac(x):
-        if axis == 3:
-            H = H_pos_only(2, 3)
-        else:
-            H = H_pos_only(2, 2)
-        H = np.insert(H, 4, 0, axis=1)
         return H
     return hjac
 
