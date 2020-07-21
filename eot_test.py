@@ -12,21 +12,21 @@ import matplotlib.pyplot as plt
 
 def gen_ellipse_uniform(trajs, C, R, theta, lamb):
     N = trajs.shape[0]
-    trajs_elli = []
-    elli = []
+    trajs_ellip = []
+    real_ellip = []
     A = np.eye(2)
     for i in range(N):
         pt_N = st.poisson.rvs(lamb)
         A = utils.rotate_matrix_deg(theta[i]) @ A
-        elli.append(A @ C @ A.T)
-        z = utils.ellipse_uniform(elli[i], pt_N)
-        z += trajs[i]
+        real_ellip.append(A @ C @ A.T)
+        z = utils.ellip_uniform(real_ellip[i], pt_N)
         z += st.multivariate_normal.rvs(cov=R, size=pt_N)
-        trajs_elli.append(z)
-    return trajs_elli, elli
+        z += trajs[i]
+        trajs_ellip.append(z)
+    return trajs_ellip, real_ellip
 
 def EOT_test():
-    vel = 50e3 / 36e2
+    vel = 50e3 / 36e2   # 27 knot
     record = {
         'interval': [10],
         'start': [
@@ -56,7 +56,7 @@ def EOT_test():
     Neff = Ns
     df = 40
     C = np.diag([340 / 2, 80 / 2])**2
-    lamb = 20 / utils.ellipsoidal_volume(C)
+    lamb = 20 / utils.ellip_volume(C)
 
     axis = 2
     xdim = 4
@@ -76,7 +76,7 @@ def EOT_test():
     theta.extend([0] * 18)
     theta.extend([90 / 15 for i in range(15)])
     theta.extend([0] * 54)
-    trajs_meas_elli, elli = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
+    trajs_meas_ellip, real_ellip = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
 
     eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df, lamb=lamb)
 
@@ -88,7 +88,7 @@ def EOT_test():
     post_ext = []
 
     for n in range(N):
-        zs = trajs_meas_elli[n]
+        zs = trajs_meas_ellip[n]
         if n == 0:
             z_mean = np.mean(zs, axis=0)
             ellip = 100**2 * np.eye(2)
@@ -146,11 +146,11 @@ def EOT_test():
     for i in range(entries):
         for j in range(N):
             if j % 3 == 0:
-                x, y = utils.ellipse_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], post_ext[j], 200)
+                x, y = utils.ellip_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], post_ext[j], 200)
                 ax.plot(x, y, color='gray')
-                x, y = utils.ellipse_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], elli[j], 200)
+                x, y = utils.ellip_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], real_ellip[j], 200)
                 ax.plot(x, y, color='green')
-                ax.scatter(trajs_meas_elli[j][:, 0], trajs_meas_elli[j][:, 1], s=1)
+                ax.scatter(trajs_meas_ellip[j][:, 0], trajs_meas_ellip[j][:, 1], s=1)
     ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')

@@ -17,7 +17,7 @@ the program may yield uncertain result.
 
 
 def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
-    x, y = utils.ellipse_point(x0, y0, C, N)
+    x, y = utils.ellip_point(x0, y0, C, N)
     ax.plot(x, y, *args, **kwargs)
 
 
@@ -974,6 +974,6 @@ def IMMGTT_test3():
 
 if __name__ == '__main__':
     GTT_test()
-    # IMMGTT_test1()
-    # IMMGTT_test2()
-    # IMMGTT_test3()
+    IMMGTT_test1()
+    IMMGTT_test2()
+    IMMGTT_test3()

@@ -15,7 +15,7 @@ import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
 from .base import EOFilterBase
-from tracklib.utils import disc_random, ellipsoidal_volume
+from tracklib.utils import disc_random, ellip_volume
 
 
 class EOPFilter(EOFilterBase):
@@ -79,7 +79,7 @@ class EOPFilter(EOFilterBase):
 
         Nm = len(zs)    # measurements number
         if self._lamb is None:
-            lamb = Nm / ellipsoidal_volume(self._ext)        # empirical target density
+            lamb = Nm / ellip_volume(self._ext)        # empirical target density
         else:
             lamb = self._lamb
 
@@ -89,7 +89,7 @@ class EOPFilter(EOFilterBase):
         for i in range(self._Ns):
             cov = self._ext_samples[i] / 4 + self._R
             cov_inv = lg.inv(cov)
-            V = ellipsoidal_volume(self._ext_samples[i])
+            V = ellip_volume(self._ext_samples[i])
             pmf = st.poisson.pmf(Nm, lamb * V)
             # pmf = 1
             const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)
@@ -237,7 +237,7 @@ class IMMEOPFilter(EOFilterBase):
         # update weights
         Nm = len(zs)    # measurements number
         if self._lamb is None:
-            lamb = Nm / ellipsoidal_volume(self._ext)        # empirical target density
+            lamb = Nm / ellip_volume(self._ext)        # empirical target density
         else:
             lamb = self._lamb
 
@@ -247,7 +247,7 @@ class IMMEOPFilter(EOFilterBase):
         for i in range(self._Ns):
             cov = self._ext_samples[i] / 4 + self._meas_noise[self._index[i]]
             cov_inv = lg.inv(cov)
-            V = ellipsoidal_volume(self._ext_samples[i])
+            V = ellip_volume(self._ext_samples[i])
             pmf = st.poisson.pmf(Nm, lamb * V)
             # pmf = 1
             const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)

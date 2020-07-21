@@ -5,8 +5,8 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'rotate_matrix_rad', 'rotate_matrix_deg', 'ellipsoidal_volume',
-    'ellipse_point', 'ellipse_uniform', 'cholcov', 'multi_normal',
+    'sph2cart', 'rotate_matrix_rad', 'rotate_matrix_deg', 'ellip_volume',
+    'ellip_point', 'ellip_uniform', 'cholcov', 'multi_normal',
     'disc_random'
 ]
 
@@ -121,13 +121,13 @@ def rotate_matrix_deg(theta):
     return rotate_matrix_rad(theta)
 
 
-def ellipsoidal_volume(X):
+def ellip_volume(X):
     n = X.shape[0] / 2
     vol = np.pi**n * np.sqrt(lg.det(X)) / sl.gamma(n + 1)
     return vol
 
 
-def ellipse_point(x0, y0, C, N):
+def ellip_point(x0, y0, C, N):
     C = (C + C.T) / 2
     U, s, V = lg.svd(C)
     D = (U + V) / 2
@@ -140,7 +140,7 @@ def ellipse_point(x0, y0, C, N):
     return x0 + x, y0 + y
 
 
-def ellipse_uniform(C, Ns, axis=0):
+def ellip_uniform(C, Ns, axis=0):
     dim = C.shape[0]
 
     r = np.random.rand(Ns)**(1 / dim)
