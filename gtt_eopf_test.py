@@ -89,20 +89,21 @@ def GTT_test():
             ],
         ],
         'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [1] * 5,
+        'pd': [0.8] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
     N = trajs_state[0].shape[0]
-    T = 10
     entries = 5
-    Ns = 2000
-    Neff = Ns // 6
-    df = 50
+    T = 10
+    tau = 8 * T
+    Ns = 3000
+    Neff = Ns
+    df = 50 * np.exp(-T / tau)
 
     axis = 2
-    xdim = 4
+    zdim, xdim = 2, 4
     sigma_w = 0.05
     sigma_v = [100., 100.]
 
@@ -117,8 +118,8 @@ def GTT_test():
     prior_cov_arr = np.empty((N, xdim, xdim))
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
-    prior_ext = []
-    post_ext = []
+    prior_ext_arr = np.empty((N, zdim, zdim))
+    post_ext_arr = np.empty((N, zdim, zdim))
 
     # remove the invalid measurements
     zs = []
@@ -139,22 +140,22 @@ def GTT_test():
 
             prior_state_arr[n, :] = eopf.state
             prior_cov_arr[n, :, :] = eopf.cov
-            prior_ext.append(eopf.extension)
+            prior_ext_arr[n, :, :] = eopf.extension
 
             post_state_arr[n, :] = eopf.state
             post_cov_arr[n, :, :] = eopf.cov
-            post_ext.append(eopf.extension)
+            post_ext_arr[n, :, :] = eopf.extension
             continue
 
         eopf.predict()
         prior_state_arr[n, :] = eopf.state
         prior_cov_arr[n, :, :] = eopf.cov
-        prior_ext.append(eopf.extension)
+        prior_ext_arr[n, :, :] = eopf.extension
 
         eopf.correct(zs[n])
         post_state_arr[n, :] = eopf.state
         post_cov_arr[n, :, :] = eopf.cov
-        post_ext.append(eopf.extension)
+        post_ext_arr[n, :, :] = eopf.extension
         print(n)
 
     print(eopf)
@@ -185,7 +186,7 @@ def GTT_test():
     for i in range(entries):
         ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext_arr[i], 200)
     ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -272,10 +273,10 @@ def IMMGTT_test1():
     T = 10
     entries = 5
     Ns = 2000
-    Neff = Ns // 1
+    Neff = Ns
 
     axis = 2
-    xdim = 4
+    zdim, xdim = 2, 4
 
     # cv1
     w_cv1 = 0.001
@@ -362,8 +363,8 @@ def IMMGTT_test1():
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
     prob_arr = np.empty((N, len(df)))
-    prior_ext = []
-    post_ext = []
+    prior_ext_arr = np.empty((N, zdim, zdim))
+    post_ext_arr = np.empty((N, zdim, zdim))
 
     # remove the invalid measurements
     zs = []
@@ -385,11 +386,11 @@ def IMMGTT_test1():
 
             prior_state_arr[n, :] = immeopf.state
             prior_cov_arr[n, :, :] = immeopf.cov
-            prior_ext.append(immeopf.extension)
+            prior_ext_arr[n, :, :] = immeopf.extension
 
             post_state_arr[n, :] = immeopf.state
             post_cov_arr[n, :, :] = immeopf.cov
-            post_ext.append(immeopf.extension)
+            post_ext_arr[n, :, :] = immeopf.extension
 
             prob_arr[n, :] = immeopf.probs()
             continue
@@ -397,12 +398,12 @@ def IMMGTT_test1():
         immeopf.predict()
         prior_state_arr[n, :] = immeopf.state
         prior_cov_arr[n, :, :] = immeopf.cov
-        prior_ext.append(immeopf.extension)
+        prior_ext_arr[n, :, :] = immeopf.extension
 
         immeopf.correct(zs[n])
         post_state_arr[n, :] = immeopf.state
         post_cov_arr[n, :, :] = immeopf.cov
-        post_ext.append(immeopf.extension)
+        post_ext_arr[n, :, :] = immeopf.extension
 
         prob_arr[n, :] = immeopf.probs()
 
@@ -436,7 +437,7 @@ def IMMGTT_test1():
     for i in range(entries):
         ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext_arr[i], 200)
     ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -536,10 +537,10 @@ def IMMGTT_test2():
     T = 10
     entries = 5
     Ns = 2000
-    Neff = Ns // 1
+    Neff = Ns
 
     axis = 2
-    xdim = 4
+    zdim, xdim = 2, 4
 
     # cv
     w_cv = 0.01
@@ -614,8 +615,8 @@ def IMMGTT_test2():
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
     prob_arr = np.empty((N, len(df)))
-    prior_ext = []
-    post_ext = []
+    prior_ext_arr = np.empty((N, zdim, zdim))
+    post_ext_arr = np.empty((N, zdim, zdim))
 
     # remove the invalid measurements
     zs = []
@@ -637,11 +638,11 @@ def IMMGTT_test2():
 
             prior_state_arr[n, :] = immeopf.state
             prior_cov_arr[n, :, :] = immeopf.cov
-            prior_ext.append(immeopf.extension)
+            prior_ext_arr[n, :, :] = immeopf.extension
 
             post_state_arr[n, :] = immeopf.state
             post_cov_arr[n, :, :] = immeopf.cov
-            post_ext.append(immeopf.extension)
+            post_ext_arr[n, :, :] = immeopf.extension
 
             prob_arr[n, :] = immeopf.probs()
             continue
@@ -649,12 +650,12 @@ def IMMGTT_test2():
         immeopf.predict()
         prior_state_arr[n, :] = immeopf.state
         prior_cov_arr[n, :, :] = immeopf.cov
-        prior_ext.append(immeopf.extension)
+        prior_ext_arr[n, :, :] = immeopf.extension
 
         immeopf.correct(zs[n])
         post_state_arr[n, :] = immeopf.state
         post_cov_arr[n, :, :] = immeopf.cov
-        post_ext.append(immeopf.extension)
+        post_ext_arr.append(immeopf.extension)
 
         prob_arr[n, :] = immeopf.probs()
 
@@ -688,7 +689,7 @@ def IMMGTT_test2():
     for i in range(entries):
         ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext_arr[i], 200)
     ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -788,10 +789,10 @@ def IMMGTT_test3():
     T = 10
     entries = 5
     Ns = 2000
-    Neff = Ns // 1
+    Neff = Ns
 
     axis = 2
-    xdim = 4
+    zdim, xdim = 2, 4
 
     # cv1
     w_cv1 = 0.005
@@ -875,8 +876,8 @@ def IMMGTT_test3():
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
     prob_arr = np.empty((N, len(df)))
-    prior_ext = []
-    post_ext = []
+    prior_ext_arr = np.empty((N, zdim, zdim))
+    post_ext_arr = np.empty((N, zdim, zdim))
 
     # remove the invalid measurements
     zs = []
@@ -898,11 +899,11 @@ def IMMGTT_test3():
 
             prior_state_arr[n, :] = immeopf.state
             prior_cov_arr[n, :, :] = immeopf.cov
-            prior_ext.append(immeopf.extension)
+            prior_ext_arr[n, :, :] = immeopf.extension
 
             post_state_arr[n, :] = immeopf.state
             post_cov_arr[n, :, :] = immeopf.cov
-            post_ext.append(immeopf.extension)
+            post_ext_arr[n, :, :] = immeopf.extension
 
             prob_arr[n, :] = immeopf.probs()
             continue
@@ -910,12 +911,12 @@ def IMMGTT_test3():
         immeopf.predict()
         prior_state_arr[n, :] = immeopf.state
         prior_cov_arr[n, :, :] = immeopf.cov
-        prior_ext.append(immeopf.extension)
+        prior_ext_arr[n, :, :] = immeopf.extension
 
         immeopf.correct(zs[n])
         post_state_arr[n, :] = immeopf.state
         post_cov_arr[n, :, :] = immeopf.cov
-        post_ext.append(immeopf.extension)
+        post_ext_arr[n, :, :] = immeopf.extension
 
         prob_arr[n, :] = immeopf.probs()
 
@@ -949,7 +950,7 @@ def IMMGTT_test3():
     for i in range(entries):
         ax.scatter(trajs_meas[i][:, 0], trajs_meas[i][:, 1], marker='^', facecolors=None, edgecolors='k', s=8)
     for i in range(N):
-        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext[i], 200)
+        plot_ellipse(ax, post_state_arr[i, 0], post_state_arr[i, 2], post_ext_arr[i], 200)
     ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], linewidth=0.8, label='post esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -974,6 +975,6 @@ def IMMGTT_test3():
 
 if __name__ == '__main__':
     GTT_test()
-    IMMGTT_test1()
-    IMMGTT_test2()
-    IMMGTT_test3()
+    # IMMGTT_test1()
+    # IMMGTT_test2()
+    # IMMGTT_test3()

@@ -12,4 +12,5 @@ from .pf import *
 from .gpf import *
 
 # extended target filter
+from .eof import *
 from .eopf import *

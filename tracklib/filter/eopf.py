@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Extended object tracker
+SMC Extended object tracker
 
 REFERENCE:
 [1]. 
@@ -20,7 +20,7 @@ from tracklib.utils import disc_random, ellip_volume
 
 class EOPFilter(EOFilterBase):
     '''
-    Extended object particle filter
+    SMC Extended object particle filter
     '''
     def __init__(self, F, H, Q, R, Ns, Neff, df, lamb=None, resample_alg='roulette'):
         self._F = F.copy()

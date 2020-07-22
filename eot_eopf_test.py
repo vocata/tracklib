@@ -25,6 +25,7 @@ def gen_ellipse_uniform(trajs, C, R, theta, lamb):
         trajs_ellip.append(z)
     return trajs_ellip, real_ellip
 
+
 def EOT_test():
     vel = 50e3 / 36e2   # 27 knot
     record = {
@@ -50,11 +51,12 @@ def EOT_test():
     trajs_state, trajs_meas = model.trajectory_generator(record)
 
     N = trajs_state[0].shape[0]
-    T = 10
     entries = 1
-    Ns = 2000
+    T = 10
+    tau = 8 * T
+    Ns = 3000
     Neff = Ns
-    df = 40
+    df = 50 * np.exp(-T / tau)
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 
@@ -84,8 +86,8 @@ def EOT_test():
     prior_cov_arr = np.empty((N, xdim, xdim))
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
-    prior_ext = []
-    post_ext = []
+    prior_ext_arr = []
+    post_ext_arr = []
 
     for n in range(N):
         zs = trajs_meas_ellip[n]
@@ -98,22 +100,22 @@ def EOT_test():
 
             prior_state_arr[n, :] = eopf.state
             prior_cov_arr[n, :, :] = eopf.cov
-            prior_ext.append(eopf.extension)
+            prior_ext_arr.append(eopf.extension)
 
             post_state_arr[n, :] = eopf.state
             post_cov_arr[n, :, :] = eopf.cov
-            post_ext.append(eopf.extension)
+            post_ext_arr.append(eopf.extension)
             continue
 
         eopf.predict()
         prior_state_arr[n, :] = eopf.state
         prior_cov_arr[n, :, :] = eopf.cov
-        prior_ext.append(eopf.extension)
+        prior_ext_arr.append(eopf.extension)
 
         eopf.correct(zs)
         post_state_arr[n, :] = eopf.state
         post_cov_arr[n, :, :] = eopf.cov
-        post_ext.append(eopf.extension)
+        post_ext_arr.append(eopf.extension)
         print(n)
 
     print(eopf)
@@ -146,7 +148,7 @@ def EOT_test():
     for i in range(entries):
         for j in range(N):
             if j % 3 == 0:
-                x, y = utils.ellip_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], post_ext[j], 200)
+                x, y = utils.ellip_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], post_ext_arr[j], 200)
                 ax.plot(x, y, color='gray')
                 x, y = utils.ellip_point(trajs_meas[i][j, 0], trajs_meas[i][j, 1], real_ellip[j], 200)
                 ax.plot(x, y, color='green')
