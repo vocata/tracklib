@@ -61,7 +61,7 @@ def EOT_test():
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.01
     sigma_v = [50, 50]
 
     F = model.F_cv(axis, T)

@@ -59,7 +59,7 @@ def KochEOT_test():
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.01
     sigma_v = [50, 50]
 
     # below parameters are in single dimension
@@ -195,7 +195,7 @@ def FeldmannEOT_test():
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.01
     sigma_v = [50, 50]
 
     F = model.F_cv(axis, T)
@@ -323,13 +323,13 @@ def LanEOT_test():
     T = 10
     tau = 4 * T
     entries = 1
-    delta = 100
+    delta = 50
     df = 50
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.01
     sigma_v = [50, 50]
 
     # below parameters are in single dimension
