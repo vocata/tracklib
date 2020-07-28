@@ -48,7 +48,7 @@ class KochEOFilter(EOFilterBase):
 
         # predict joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
-        self._single_cov = self._F @ self._single_cov @ self._F + self._D
+        self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
         self._cov = np.kron(self._ext, self._single_cov)
         F_tilde = np.kron(np.eye(self._dim), self._F)
         self._state = np.dot(F_tilde, self._state)
@@ -115,7 +115,7 @@ class FeldmannEOFilter(EOFilterBase):
             raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = np.dot(self._F, self._state)
-        self._cov = self._F @ self._cov @ self._F + np.kron(self._ext, self._Q)
+        self._cov = self._F @ self._cov @ self._F.T + np.kron(self._ext, self._Q)
         self._ext = self._ext
         self._df = 2 + self._at * (self._df - 2)
 
@@ -190,7 +190,7 @@ class LanEOFilter(EOFilterBase):
 
         # predict joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
-        self._single_cov = self._F @ self._single_cov @ self._F + self._D
+        self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
         self._cov = np.kron(self._ext, self._single_cov)
         F_tilde = np.kron(np.eye(self._dim), self._F)
         self._state = np.dot(F_tilde, self._state)
