@@ -53,15 +53,14 @@ def EOT_test():
     N = trajs_state[0].shape[0]
     entries = 1
     T = 10
-    tau = 8 * T
     Ns = 3000
     Neff = Ns
-    df = 50 * np.exp(-T / tau)
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 
     axis = 2
-    xdim = 4
+    zdim, xdim = 2, 4
     sigma_w = 0.05
     sigma_v = [50, 50]
 
@@ -86,8 +85,8 @@ def EOT_test():
     prior_cov_arr = np.empty((N, xdim, xdim))
     post_state_arr = np.empty((N, xdim))
     post_cov_arr = np.empty((N, xdim, xdim))
-    prior_ext_arr = []
-    post_ext_arr = []
+    prior_ext_arr = np.empty((N, zdim, zdim))
+    post_ext_arr = np.empty((N, zdim, zdim))
 
     for n in range(N):
         zs = trajs_meas_ellip[n]
@@ -100,22 +99,22 @@ def EOT_test():
 
             prior_state_arr[n, :] = eopf.state
             prior_cov_arr[n, :, :] = eopf.cov
-            prior_ext_arr.append(eopf.extension)
+            prior_ext_arr[n, :, :] = eopf.extension
 
             post_state_arr[n, :] = eopf.state
             post_cov_arr[n, :, :] = eopf.cov
-            post_ext_arr.append(eopf.extension)
+            post_ext_arr[n, :, :] = eopf.extension
             continue
 
         eopf.predict()
         prior_state_arr[n, :] = eopf.state
         prior_cov_arr[n, :, :] = eopf.cov
-        prior_ext_arr.append(eopf.extension)
+        prior_ext_arr[n, :, :] = eopf.extension
 
         eopf.correct(zs)
         post_state_arr[n, :] = eopf.state
         post_cov_arr[n, :, :] = eopf.cov
-        post_ext_arr.append(eopf.extension)
+        post_ext_arr[n, :, :] = eopf.extension
         print(n)
 
     print(eopf)

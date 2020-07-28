@@ -14,6 +14,7 @@ import numbers
 import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
+import scipy.special as sl
 from .base import EOFilterBase
 from tracklib.utils import disc_random, ellip_volume
 
@@ -88,16 +89,18 @@ class EOPFilter(EOFilterBase):
         dist_arr = np.zeros(self._Ns)
         for i in range(self._Ns):
             cov = self._ext_samples[i] / 4 + self._R
-            cov_inv = lg.inv(cov)
             V = ellip_volume(self._ext_samples[i])
-            pmf = st.poisson.pmf(Nm, lamb * V)
+            pmf = (lamb * V)**Nm * np.exp(-lamb * V) / sl.factorial(Nm)
+            # pmf = st.poisson.pmf(Nm, lamb * V)    # too slow
             # pmf = 1
             const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)
 
-            dist = 0
-            for j in range(Nm):
-                d = zs[j] - np.dot(self._H, self._state_samples[i])
-                dist += d @ cov_inv @ d / 2
+            d = zs - np.dot(self._H, self._state_samples[i])
+            dist = (lg.inv(cov) @ (d.T @ d)).trace() / 2
+            # dist = 0
+            # for j in range(Nm):
+            #     d = zs[j] - np.dot(self._H, self._state_samples[i])
+            #     dist += d @ cov_inv @ d / 2
             dist_arr[i] = dist
         # the underflow problem is avoided by adding offset to exp function
         exp_term = np.exp(-dist_arr + dist_arr.min())
@@ -246,16 +249,18 @@ class IMMEOPFilter(EOFilterBase):
         dist_arr = np.zeros(self._Ns)
         for i in range(self._Ns):
             cov = self._ext_samples[i] / 4 + self._meas_noise[self._index[i]]
-            cov_inv = lg.inv(cov)
             V = ellip_volume(self._ext_samples[i])
-            pmf = st.poisson.pmf(Nm, lamb * V)
+            pmf = (lamb * V)**Nm * np.exp(-lamb * V) / sl.factorial(Nm)
+            # pmf = st.poisson.pmf(Nm, lamb * V)
             # pmf = 1
             const_arr[i] = pmf / lg.det(2 * np.pi * cov)**(Nm / 2)
 
-            dist = 0
-            for j in range(Nm):
-                d = zs[j] - self._meas_fcn[self._index[i]](self._state_samples[i])
-                dist += d @ cov_inv @ d / 2
+            d = zs - self._meas_fcn[self._index[i]](self._state_samples[i])
+            dist = (lg.inv(cov) @ (d.T @ d)).trace() / 2
+            # dist = 0
+            # for j in range(Nm):
+            #     d = zs[j] - self._meas_fcn[self._index[i]](self._state_samples[i])
+            #     dist += d @ cov_inv @ d / 2
             dist_arr[i] = dist
         # the underflow problem is avoided by adding offset to exp function
         exp_term = np.exp(-dist_arr + dist_arr.min())

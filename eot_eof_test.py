@@ -52,7 +52,7 @@ def KochEOT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 1
     df = 50
     C = np.diag([340 / 2, 80 / 2])**2
@@ -188,7 +188,7 @@ def FeldmannEOT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 1
     df = 50
     C = np.diag([340 / 2, 80 / 2])**2

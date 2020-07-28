@@ -97,10 +97,9 @@ def GTT_test():
     N = trajs_state[0].shape[0]
     entries = 5
     T = 10
-    tau = 8 * T
     Ns = 3000
     Neff = Ns
-    df = 50 * np.exp(-T / tau)
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
@@ -264,7 +263,7 @@ def IMMGTT_test1():
             ],
         ],
         'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [1] * 5,
+        'pd': [0.8] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
@@ -528,7 +527,7 @@ def IMMGTT_test2():
             ],
         ],
         'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [1] * 5,
+        'pd': [0.8] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
@@ -655,7 +654,7 @@ def IMMGTT_test2():
         immeopf.correct(zs[n])
         post_state_arr[n, :] = immeopf.state
         post_cov_arr[n, :, :] = immeopf.cov
-        post_ext_arr.append(immeopf.extension)
+        post_ext_arr[n, :, :] = immeopf.extension
 
         prob_arr[n, :] = immeopf.probs()
 
@@ -780,7 +779,7 @@ def IMMGTT_test3():
             ],
         ],
         'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [1] * 5,
+        'pd': [0.8] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)

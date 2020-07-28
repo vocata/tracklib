@@ -105,7 +105,6 @@ class FeldmannEOFilter(EOFilterBase):
 
     def init(self, state, cov, df, extension):
         self._df = df
-        self._scale = extension * (df - 2 * self._dim - 2)
 
         self._state = state.copy()
         self._cov = cov.copy()
@@ -116,16 +115,11 @@ class FeldmannEOFilter(EOFilterBase):
         if self._init == False:
             raise RuntimeError('filter must be initialized with init() before use')
 
-        # predict inverse wishart parameters
-        df = self._df
-        self._df = 2 * self._dim + 2 + self._at * (self._df - 2 * self._dim - 2)
-        w = (self._df - 2 * self._dim - 2) / (df - 2 * self._dim - 2)
-        self._scale = w * self._scale
-
-        # predict joint state
-        self._ext = self._scale / (self._df - 2 * self._dim - 2)
-        self._cov = self._F @ self._cov @ self._F + np.kron(self._ext, self._Q)
         self._state = np.dot(self._F, self._state)
+        self._cov = self._F @ self._cov @ self._F + np.kron(self._ext, self._Q)
+        self._ext = self._ext
+        self._df = 2 + self._at * (self._df - 2)
+
         return self._state, self._cov, self._ext
 
     def correct(self, zs):
@@ -138,27 +132,21 @@ class FeldmannEOFilter(EOFilterBase):
         eps = z_mean - np.dot(self._H, self._state)
         z_center = zs - z_mean
         Z = np.dot(z_center.T, z_center)
-
-        X_hat = self._scale / (self._df - 2 * self._dim - 2)
-        Y = X_hat / 4 + self._R
+        Y = self._ext / 4 + self._R
         S = self._H @ self._cov @ self._H.T + Y / n
-        S_inv = lg.inv(S)
-        K = self._cov @ self._H.T @ S_inv
-        X_chol = lg.cholesky(X_hat, lower=True)
-        S_chol = lg.cholesky(S_inv, lower=True)
-        Y_chol = lg.cholesky(lg.inv(Y), lower=True)
+        X_chol = lg.cholesky(self._ext, lower=True)
+        S_chol = lg.inv(lg.cholesky(S, lower=True))
+        Y_chol = lg.inv(lg.cholesky(Y, lower=True))
         N = np.outer(eps, eps)
         N_hat = X_chol @ S_chol @ N @ S_chol.T @ X_chol.T
         Z_hat = X_chol @ Y_chol @ Z @ Y_chol.T @ X_chol.T
-
-        # correct inverse wishart parameters
+        df = self._df
         self._df += n
-        self._scale += N_hat + Z_hat
+        self._ext = (df * self._ext + N_hat + Z_hat) / self._df
 
-        # correct joint state
-        self._ext = self._scale / (self._df - 2 * self._dim - 2)
+        K = self._cov @ self._H.T @ lg.inv(S)
+        self._state += K @ eps
         self._cov -= K @ S @ K.T
-        self._state += np.dot(K, eps)
 
         return self._state, self._cov, self._ext
 

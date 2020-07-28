@@ -35,7 +35,7 @@ def MMMHF_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
     traj_state, traj_meas = trajs_state[0], trajs_meas[0]
-    N = traj_state.shape[1]
+    N = traj_state.shape[0]
 
     model_cls = []
     model_types = []
@@ -120,33 +120,33 @@ def MMMHF_test():
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     mmmhf.init(x_init, P_init)
 
-    post_state_arr = np.empty((cv_xdim, N))
+    post_state_arr = np.empty((N, cv_xdim))
 
-    post_state_arr[:, 0] = mmmhf.state
+    post_state_arr[0, :] = mmmhf.state
 
     start = time.time()
     for n in range(1, N):
         mmmhf.predict(n=n)
-        z = traj_meas[:, n]
+        z = traj_meas[n, :]
         if not np.any(np.isnan(z)):     # skip the empty detections
             mmmhf.correct(z)
 
-        post_state_arr[:, n] = mmmhf.state
+        post_state_arr[n, :] = mmmhf.state
     end = time.time()
 
     print(mmmhf, 'time: {}'.format(end - start), sep='\n')
 
-    real_state = np.delete(traj_state, np.s_[2::3], axis=0)
+    real_state = np.delete(traj_state, np.s_[2::3], axis=1)
     state_err = real_state - post_state_arr
-    print('RMS: %s' % np.std(state_err, axis=1))
+    print('RMS: %s' % np.std(state_err, axis=0))
 
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(traj_state[0, 0], traj_state[3, 0], traj_state[6, 0], s=50, c='r', marker='x', label='start')
-    ax.plot(traj_state[0, :], traj_state[3, :], traj_state[6, :], linewidth=0.8, label='real')
-    ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], post_state_arr[4, :], linewidth=0.8, label='esti')
+    ax.scatter(traj_state[0, 0], traj_state[0, 3], traj_state[0, 6], s=50, c='r', marker='x', label='start')
+    ax.plot(traj_state[:, 0], traj_state[:, 3], traj_state[:, 6], linewidth=0.8, label='real')
+    ax.scatter(traj_meas[:, 0], traj_meas[:, 1], traj_meas[:, 2], s=5, c='orange', label='meas')
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], post_state_arr[:, 4], linewidth=0.8, label='esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend()

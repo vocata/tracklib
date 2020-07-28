@@ -37,7 +37,7 @@ def DMMF_DMMF_test():
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
     traj_state, traj_meas = trajs_state[0], trajs_meas[0]
-    N = traj_state.shape[1]
+    N = traj_state.shape[0]
 
 
     model_cls1 = []
@@ -111,29 +111,29 @@ def DMMF_DMMF_test():
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
     immf.init(x_init, P_init)
 
-    post_state_arr = np.empty((cv_xdim, N))
-    immf_prob_arr = np.empty((r, N))
+    post_state_arr = np.empty((N, cv_xdim))
+    immf_prob_arr = np.empty((N, r))
 
-    post_state_arr[:, 0] = immf.state
-    immf_prob_arr[:, 0] = immf.probs()
+    post_state_arr[0, :] = immf.state
+    immf_prob_arr[0, :] = immf.probs()
     for n in range(1, N):
         immf.predict()
-        z = traj_meas[:, n]
+        z = traj_meas[n, :]
         if not np.any(np.isnan(z)):
             immf.correct(z)
 
-        post_state_arr[:, n] = immf.state
-        immf_prob_arr[:, n] = immf.probs()
+        post_state_arr[n, :] = immf.state
+        immf_prob_arr[n, :] = immf.probs()
 
     print(immf)
 
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(traj_state[0, 0], traj_state[3, 0], traj_state[6, 0], s=50, c='r', marker='x', label='start')
-    ax.plot(traj_state[0, :], traj_state[3, :], traj_state[6, :], linewidth=0.8, label='real')
-    ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], post_state_arr[4, :], linewidth=0.8, label='esti')
+    ax.scatter(traj_state[0, 0], traj_state[0, 3], traj_state[0, 6], s=50, c='r', marker='x', label='start')
+    ax.plot(traj_state[:, 0], traj_state[:, 3], traj_state[:, 6], linewidth=0.8, label='real')
+    ax.scatter(traj_meas[:, 0], traj_meas[:, 1], traj_meas[:, 2], s=5, c='orange', label='meas')
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], post_state_arr[:, 4], linewidth=0.8, label='esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend()
@@ -145,7 +145,7 @@ def DMMF_DMMF_test():
     n = np.arange(N)
     labels = ['hybrid', 'ct']
     for i in range(r):
-        ax.plot(n, immf_prob_arr[i, :], linewidth=0.8, label=labels[i])
+        ax.plot(n, immf_prob_arr[:, i], linewidth=0.8, label=labels[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])
