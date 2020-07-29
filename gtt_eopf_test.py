@@ -99,7 +99,7 @@ def GTT_test():
     T = 10
     Ns = 3000
     Neff = Ns
-    df = 60
+    df = 50
 
     axis = 2
     zdim, xdim = 2, 4
@@ -111,7 +111,7 @@ def GTT_test():
     Q = model.Q_cv_dd(1, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
-    eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df=df)
+    eopf = ft.EOPFilter(F, H, Q, R, Ns, Neff, df)
 
     prior_state_arr = np.empty((N, xdim))
     prior_cov_arr = np.empty((N, xdim, xdim))

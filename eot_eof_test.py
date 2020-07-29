@@ -321,10 +321,9 @@ def LanEOT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 4 * T
     entries = 1
-    delta = 50
     df = 50
+    delta = 40
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -348,7 +347,7 @@ def LanEOT_test():
     theta.extend([0] * 54)
     trajs_meas_ellip, real_ellip = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
 
-    epf = ft.LanEOFilter(F, H, R, R, delta, T, tau)
+    epf = ft.LanEOFilter(F, H, Q, R, delta)
 
     prior_state_arr = np.empty((N, xdim))
     prior_cov_arr = np.empty((N, xdim, xdim))

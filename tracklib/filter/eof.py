@@ -49,6 +49,7 @@ class KochEOFilter(EOFilterBase):
         # predict joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
         self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
+        self._single_cov = (self._single_cov + self._single_cov.T) / 2
         self._cov = np.kron(self._ext, self._single_cov)
         F_tilde = np.kron(np.eye(self._dim), self._F)
         self._state = np.dot(F_tilde, self._state)
@@ -66,6 +67,7 @@ class KochEOFilter(EOFilterBase):
         z_center = zs - z_mean
         Z = np.dot(z_center.T, z_center)
         S = self._H @ self._single_cov @ self._H.T + 1 / n
+        S = (S + S.T) / 2
         S_inv = lg.inv(S)
         K = self._single_cov @ self._H.T @ S_inv
         N = S_inv * np.outer(eps, eps)
@@ -77,6 +79,7 @@ class KochEOFilter(EOFilterBase):
         # correct joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
         self._single_cov -= K @ S @ K.T
+        self._single_cov = (self._single_cov + self._single_cov.T) / 2
         self._cov = np.kron(self._ext, self._single_cov)
         K_tilde = np.kron(np.eye(self._dim), K)
         self._state += np.dot(K_tilde, eps)
@@ -116,6 +119,7 @@ class FeldmannEOFilter(EOFilterBase):
 
         self._state = np.dot(self._F, self._state)
         self._cov = self._F @ self._cov @ self._F.T + np.kron(self._ext, self._Q)
+        self._cov = (self._cov + self._cov.T) / 2
         self._ext = self._ext
         self._df = 2 + self._at * (self._df - 2)
 
@@ -133,6 +137,7 @@ class FeldmannEOFilter(EOFilterBase):
         Z = np.dot(z_center.T, z_center)
         Y = self._ext / 4 + self._R
         S = self._H @ self._cov @ self._H.T + Y / n
+        S = (S + S.T) / 2
         X_chol = lg.cholesky(self._ext, lower=True)
         S_chol = lg.inv(lg.cholesky(S, lower=True))
         Y_chol = lg.inv(lg.cholesky(Y, lower=True))
@@ -146,6 +151,7 @@ class FeldmannEOFilter(EOFilterBase):
         K = self._cov @ self._H.T @ lg.inv(S)
         self._state += K @ eps
         self._cov -= K @ S @ K.T
+        self._cov = (self._cov + self._cov.T) / 2
 
         return self._state, self._cov, self._ext
 
@@ -160,13 +166,12 @@ class LanEOFilter(EOFilterBase):
     '''
     Extended object particle filter using Lan approach
     '''
-    def __init__(self, F, H, D, R, delta, interval, tau, dim=2):
+    def __init__(self, F, H, D, R, delta, dim=2):
         self._F = F.copy()
         self._H = H.copy()
         self._D = D.copy()
         self._R = R.copy()
         self._delta = delta
-        self._at = np.exp(-interval / tau)      # attenuation factor
         self._dim = dim
 
     def init(self, state, cov, df, extension):
@@ -191,6 +196,7 @@ class LanEOFilter(EOFilterBase):
         # predict joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
         self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
+        self._single_cov = (self._single_cov + self._single_cov.T) / 2
         self._cov = np.kron(self._ext, self._single_cov)
         F_tilde = np.kron(np.eye(self._dim), self._F)
         self._state = np.dot(F_tilde, self._state)
@@ -210,6 +216,7 @@ class LanEOFilter(EOFilterBase):
         B = lg.cholesky(self._ext / 4 + self._R, lower=True) @ lg.inv(lg.cholesky(self._ext, lower=True))
         B_inv = lg.inv(B)
         S = self._H @ self._single_cov @ self._H.T + lg.det(B)**(2 / self._dim) / n
+        S = (S + S.T) / 2
         S_inv = lg.inv(S)
         K = self._single_cov @ self._H.T @ S_inv
         N = S_inv * np.outer(eps, eps)
@@ -221,6 +228,7 @@ class LanEOFilter(EOFilterBase):
         # correct joint state
         self._ext = self._scale / (self._df - 2 * self._dim - 2)
         self._single_cov -= K @ S @ K.T
+        self._single_cov = (self._single_cov + self._single_cov.T) / 2
         self._cov = np.kron(self._ext, self._single_cov)
         K_tilde = np.kron(np.eye(self._dim), K)
         self._state += np.dot(K_tilde, eps)
