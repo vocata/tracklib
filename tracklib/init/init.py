@@ -94,7 +94,8 @@ def biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T):
     return __swap(state, cov, 2)
 
 
-# TODO not sure, it needs careful verification.
+# TODO
+# not sure, it needs careful verification.
 def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
     '''
     Note that The q is an optional process noise parameter. If this parameter is
@@ -135,6 +136,7 @@ def unbiased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T, q=None):
 # T = 2
 # state, cov = biased_three_point_diff_init(z1, z2, z3, R1, R2, R3, T)
 # print(state, cov, sep='\n\n')
+
 
 def cv_init(z, R, vmax=100):
     dim = len(z)

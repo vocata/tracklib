@@ -9,7 +9,6 @@ __all__ = ['HistoryLogic', 'ScoreLogic', 'Detection', 'TrackCounter']
 
 import numbers
 import numpy as np
-import tracklib as tlb
 from collections.abc import Iterable
 
 

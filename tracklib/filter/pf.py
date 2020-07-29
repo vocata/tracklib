@@ -74,7 +74,7 @@ class SIRPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
+        # E[x_k+1|z_1:k] = E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -106,15 +106,15 @@ class SIRPFilter(FilterBase):
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
-        self._weights /= np.sum(self._weights)
+        self._weights /= self._weights.sum()
 
         # resample
-        Neff = 1 / np.sum(self._weights**2)
+        Neff = 1 / (self._weights**2).sum()
         if Neff <= self._Neff:
             self._samples[:], _ = disc_random(self._weights, self._Ns, self._samples, alg=self._resample_alg)
             self._weights[:] = 1 / self._Ns
 
-        # compute post state and covariance
+        # compute posterior state and covariance
         self._state = np.dot(self._weights, self._samples)
         self._cov = 0
         for i in range(self._Ns):
@@ -220,7 +220,7 @@ class RPFilter(FilterBase):
             if 'Q' in kwargs: self._Q[:] = kwargs['Q']
 
         # compute prior state and covariance
-        # E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
+        # E[x_k+1|z_1:k] = E[f(x_k)+w_k|z_1:k] = E[f(x_k)|z_1:k] = Σf(x_k^i)*w^i
         f_map = [self._f(self._samples[i], u) for i in range(self._Ns)]
         self._state = np.dot(self._weights, f_map)
         self._cov = 0
@@ -252,15 +252,15 @@ class RPFilter(FilterBase):
             pdf = 1 / np.sqrt(lg.det(2 * np.pi * R_tilde))
             pdf *= np.exp(-noi @ lg.inv(R_tilde) @ noi / 2)
             self._weights[i] *= max(pdf, np.finfo(pdf).tiny)
-        self._weights /= np.sum(self._weights)
+        self._weights /= self._weights.sum()
 
         # resample and regularize
-        Neff = 1 / np.sum(self._weights**2)
+        Neff = 1 / (self._weights**2).sum()
         if Neff <= self._Neff:
             self._samples[:], self._weights[:] = self._kernal.resample(
                 self._samples, self._weights, resample_alg=self._resample_alg)
 
-        # compute post state and covariance
+        # compute posterior state and covariance
         self._state = np.dot(self._weights, self._samples)
         self._cov = 0
         for i in range(self._Ns):

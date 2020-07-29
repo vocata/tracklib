@@ -5,12 +5,15 @@ from __future__ import division, absolute_import, print_function
 __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
-    'sph2cart', 'cholcov', 'multi_normal', 'disc_random', 'Scope', 'Pair'
+    'sph2cart', 'rotate_matrix_rad', 'rotate_matrix_deg', 'ellip_volume',
+    'ellip_point', 'ellip_uniform', 'cholcov', 'multi_normal',
+    'disc_random'
 ]
 
 import numbers
 import numpy as np
 import scipy.linalg as lg
+import scipy.special as sl
 from collections.abc import Iterable
 
 
@@ -107,6 +110,52 @@ def sph2cart(r, az, elev):
 
     return x, y, z
 
+
+def rotate_matrix_rad(theta):
+    cvar, svar = np.cos(theta), np.sin(theta)
+    return np.array([[cvar, -svar], [svar, cvar]])
+
+
+def rotate_matrix_deg(theta):
+    theta = deg2rad(theta)
+    return rotate_matrix_rad(theta)
+
+
+def ellip_volume(X):
+    n = X.shape[0] / 2
+    vol = np.pi**n * np.sqrt(lg.det(X)) / sl.gamma(n + 1)
+    return vol
+
+
+def ellip_point(x0, y0, C, N):
+    C = (C + C.T) / 2
+    U, s, V = lg.svd(C)
+    D = (U + V) / 2
+
+    theta = np.linspace(0, 2 * np.pi, N)
+    x = np.cos(theta) * np.sqrt(s[0])
+    y = np.sin(theta) * np.sqrt(s[1])
+    x, y = np.dot(D, np.vstack((x, y)))
+
+    return x0 + x, y0 + y
+
+
+def ellip_uniform(C, Ns, axis=0):
+    dim = C.shape[0]
+
+    r = np.random.rand(Ns)**(1 / dim)
+    theta = np.random.randn(dim, Ns)
+    theta = theta / lg.norm(theta, axis=0)
+    x = r * theta
+
+    L = lg.cholesky(lg.inv(C))
+    v = np.dot(lg.inv(L), x)
+    if axis == 0:
+        return v.T
+    elif axis == 1:
+        return v
+    else:
+        raise ValueError('axis must be 0 or 1')
 
 def cholcov(cov, lower=False):
     '''
@@ -206,22 +255,20 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
     '''
     rv_num = len(prob)
     if scope is None:
-        scope = np.arange(rv_num)
+        scope = range(rv_num)
 
     rv = []
     index = []
 
     if alg == 'roulette':
-        cdf = list(range(rv_num + 1))
+        cdf = np.zeros(rv_num + 1)
+        rnd = np.random.rand(Ns)
         for i in range(rv_num):
             cdf[i + 1] = cdf[i] + prob[i]
         for i in range(Ns):
-            idx = 0
-            rnd = np.random.rand()
-            while cdf[idx] < rnd:
-                idx += 1
-            rv.append(scope[idx - 1])
-            index.append(idx - 1)
+            idx = np.where(cdf < rnd[i])[0][-1]
+            rv.append(scope[idx])
+            index.append(idx)
     elif alg == 'low_var':
         rnd = np.random.rand() / Ns
         cdf = prob[0]
@@ -237,18 +284,3 @@ def disc_random(prob, Ns=1, scope=None, alg='roulette'):
         raise ValueError('unknown algorithem: %s' % alg)
 
     return rv, index
-
-
-class Scope():
-    def __init__(self, value_min, value_max):
-        assert (value_min <= value_max)
-        self._min = value_min
-        self._max = value_max
-
-    def within(self, value):
-        return self._min <= value <= self._max
-
-
-class Pair(tuple):
-    def __new__(cls, value1, value2):
-        return super().__new__(cls, (value1, value2))

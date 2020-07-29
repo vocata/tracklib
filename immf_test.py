@@ -4,10 +4,8 @@
 import time
 import numpy as np
 import tracklib.filter as ft
-import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-from tracklib import Scope
 from mpl_toolkits import mplot3d
 '''
 notes:
@@ -20,31 +18,24 @@ def DMMF_test():
     T = 0.1
     axis = 3
 
-    np.random.seed(2021)
     # generate trajectory
-    start = np.array([100, 0, 0, 100, 0, 0, 100, 0, 0], dtype=float)
-    traj = model.Trajectory(T,
-                            np.eye(axis),
-                            start=start,
-                            pd=[(Scope(0, 30), 0.), (Scope(30, np.inf), 0.8)])
-    stages = []
-    stages.append({'model': 'cv', 'len': 333, 'vel': [200, 0, 1]})
-    stages.append({'model': 'ct', 'len': 333, 'omega': 10})
-    stages.append({'model': 'ca', 'len': 333, 'acc': 3})
-
-    traj.add_stage(stages)
-    traj_real, traj_meas, state_real = traj()
-    N = len(traj)
-
-    # traj_real = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\truePos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # traj_meas = np.loadtxt(
-    #     r'C:\Users\Ray\Documents\MATLAB\Examples\R2020a\fusion\TrackingManeuveringTargetsExample\measPos.csv',
-    #     dtype=np.float64,
-    #     delimiter=',')
-    # N = traj_meas.shape[1]
+    record = {
+        'interval': [T],
+        'start': [[100, 100, 100]],
+        'pattern': [
+            [
+                {'model': 'cv', 'length': 333, 'velocity': [200, 0, 1]},
+                {'model': 'ct', 'length': 333, 'turnrate': 10},
+                {'model': 'ca', 'length': 333, 'acceleration': 3}
+            ]
+        ],
+        'noise':[np.eye(axis)],
+        'pd': [0.9],
+        'entries': 1
+    }
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    traj_state, traj_meas = trajs_state[0], trajs_meas[0]
+    N = traj_state.shape[0]
 
     model_cls = []
     model_types = []
@@ -126,42 +117,42 @@ def DMMF_test():
     # number of models
     r = 3
 
-    dmmf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs, trans_mat=0.99)
+    immf = ft.IMMFilter(model_cls, model_types, init_args, init_kwargs, trans_mat=0.999)
 
     x_init = np.array([100, 0, 100, 0, 100, 0], dtype=float)
     P_init = np.diag([1.0, 1e4, 1.0, 1e4, 1.0, 1e4])
-    dmmf.init(x_init, P_init)
+    immf.init(x_init, P_init)
 
-    post_state_arr = np.empty((cv_xdim, N))
-    prob_arr = np.empty((r, N))
+    post_state_arr = np.empty((N, cv_xdim))
+    prob_arr = np.empty((N, r))
 
-    post_state_arr[:, 0] = dmmf.state
-    prob_arr[:, 0] = dmmf.probs()
+    post_state_arr[0, :] = immf.state
+    prob_arr[0, :] = immf.probs()
 
     start = time.time()
     for n in range(1, N):
-        dmmf.predict()
-        z = traj_meas[:, n]
+        immf.predict()
+        z = traj_meas[n, :]
         if not np.any(np.isnan(z)):     # skip the empty detections
-            dmmf.correct(z)
+            immf.correct(z)
 
-        post_state_arr[:, n] = dmmf.state
-        prob_arr[:, n] = dmmf.probs()
+        post_state_arr[n, :] = immf.state
+        prob_arr[n, :] = immf.probs()
     end = time.time()
 
-    print(dmmf, 'time: {}'.format(end - start), sep='\n')
+    print(immf, 'time: {}'.format(end - start), sep='\n')
 
-    state_real = np.delete(state_real, np.s_[2::3], axis=0)
-    state_err = state_real - post_state_arr
-    print('RMS: %s' % np.std(state_err, axis=1))
+    real_state = np.delete(traj_state, np.s_[2::3], axis=1)     # remove acceleration
+    state_err = real_state - post_state_arr
+    print('RMS: %s' % np.std(state_err, axis=0))
 
     # trajectory
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(traj_real[0, 0], traj_real[1, 0], traj_real[2, 0], s=50, c='r', marker='x', label='start')
-    ax.plot(traj_real[0, :], traj_real[1, :], traj_real[2, :], linewidth=0.8, label='real')
-    ax.scatter(traj_meas[0, :], traj_meas[1, :], traj_meas[2, :], s=5, c='orange', label='meas')
-    ax.plot(post_state_arr[0, :], post_state_arr[2, :], post_state_arr[4, :], linewidth=0.8, label='esti')
+    ax.scatter(traj_state[0, 0], traj_state[0, 3], traj_state[0, 6], s=50, c='r', marker='x', label='start')
+    ax.plot(traj_state[:, 0], traj_state[:, 3], traj_state[:, 6], linewidth=0.8, label='real')
+    ax.scatter(traj_meas[:, 0], traj_meas[:, 1], traj_meas[:, 2], s=5, c='orange', label='meas')
+    ax.plot(post_state_arr[:, 0], post_state_arr[:, 2], post_state_arr[:, 4], linewidth=0.8, label='esti')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend()
@@ -172,7 +163,7 @@ def DMMF_test():
     ax = fig.add_subplot()
     n = np.arange(N)
     for i in range(r):
-        ax.plot(n, prob_arr[i, :], linewidth=0.8, label=model_types[i])
+        ax.plot(n, prob_arr[:, i], linewidth=0.8, label=model_types[i])
     ax.set_xlabel('time(s)')
     ax.set_ylabel('probability')
     ax.set_xlim([0, 1200])

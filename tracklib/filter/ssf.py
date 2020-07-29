@@ -20,7 +20,6 @@ __all__ = [
 
 import numpy as np
 import scipy.linalg as lg
-from functools import reduce
 from .base import FilterBase
 from tracklib.model import F_poly, H_pos_only
 

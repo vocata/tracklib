@@ -15,15 +15,15 @@ __all__ = [
     'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca',
     'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
     'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
-    'model_switch', 'Trajectory'
+    'model_switch', 'trajectory_cv', 'trajectory_ca', 'trajectory_ct',
+    'trajectory_generator'
 ]
 
 import numbers
 import numpy as np
 import scipy.linalg as lg
-from collections.abc import Iterable
-from scipy.special import factorial
-from tracklib.utils import multi_normal, cart2sph
+import scipy.stats as st
+import scipy.special as sl
 
 
 def F_poly(order, axis, T):
@@ -53,7 +53,7 @@ def F_poly(order, axis, T):
 
     F_base = np.zeros((order, order))
     tmp = np.arange(order)
-    F_base[0, :] = T**tmp / factorial(tmp)
+    F_base[0, :] = T**tmp / sl.factorial(tmp)
     for row in range(1, order):
         F_base[row, row:] = F_base[0, :order - row]
     F = np.kron(np.eye(axis), F_base)
@@ -91,12 +91,12 @@ def F_singer(axis, T, tau=20):
     F_base = np.zeros((3, 3))
     aT = alpha * T
     eaT = np.exp(-aT)
-    F[0, 0] = 1
-    F[0, 1] = T
-    F[0, 2] = (aT - 1 + eaT) * tau**2
-    F[1, 1] = 1
-    F[1, 2] = (1 - eaT) * tau
-    F[2, 2] = eaT
+    F_base[0, 0] = 1
+    F_base[0, 1] = T
+    F_base[0, 2] = (aT - 1 + eaT) * tau**2
+    F_base[1, 1] = 1
+    F_base[1, 2] = (1 - eaT) * tau
+    F_base[2, 2] = eaT
     F = np.kron(np.eye(axis), F_base)
 
     return F
@@ -168,7 +168,7 @@ def Q_poly_dc(order, axis, T, std):
         std = [std] * axis
     sel = np.arange(order - 1, -1, -1)
     col, row = np.meshgrid(sel, sel)
-    Q_base = T**(col + row + 1) / (factorial(col) * factorial(row) * (col + row + 1))
+    Q_base = T**(col + row + 1) / (sl.factorial(col) * sl.factorial(row) * (col + row + 1))
     Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q
@@ -216,14 +216,14 @@ def Q_poly_dd(order, axis, T, std, ht=0):
     if isinstance(std, numbers.Number):
         std = [std] * axis
     sel = np.arange(ht + order - 1, ht - 1, -1)
-    L = T**sel / factorial(sel)
+    L = T**sel / sl.factorial(sel)
     Q_base = np.outer(L, L)
     Q = np.kron(np.diag(std)**2, Q_base)
 
     return Q
 
 
-def Q_singer(axis, T, tau, std):
+def Q_singer(axis, T, std, tau=20):
     '''
     Process noise covariance matrix used with Singer models. see section 8.2 in [1]
 
@@ -234,13 +234,6 @@ def Q_singer(axis, T, tau, std):
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
-    tau : float
-        The time constant of the target acceleration autocorrelation, that is, the
-        decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
-        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
-        is omitted, the default value of 20 is used.The time constant is assumed
-        the same for all dimensions of motion, so this parameter is scalar.
     std : number, list
         std is the instantaneous standard deviation of the acceleration knowm as
         Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
@@ -250,6 +243,13 @@ def Q_singer(axis, T, tau, std):
         3. Uniformly distributed in [-a_M, a_M] with the remaining probability mass
         All parameters mentioned above are chosen by the designer. So the expected std^2
         is (a_M^2 / 3)*(1 + 4*p_M - p_0)
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used.The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
 
     Returns
     -------
@@ -279,7 +279,7 @@ def Q_singer(axis, T, tau, std):
     return Q
 
 
-def Q_van_keuk(axis, T, tau, std):
+def Q_van_keuk(axis, T, std, tau=20):
     '''
     Process noise covariance matrix for a Van Keuk dynamic model, see section 2.2.1 in [4]
 
@@ -290,13 +290,6 @@ def Q_van_keuk(axis, T, tau, std):
         2 means x-axis and y-axis, etc.
     T : float
         The time-duration of the propagation interval.
-    tau : float
-        The time constant of the target acceleration autocorrelation, that is, the
-        decorrelation time is approximately 2*tau. A reasonable range of tau for
-        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
-        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
-        is omitted, the default value of 20 is used.The time constant is assumed
-        the same for all dimensions of motion, so this parameter is scalar.
     std : number, list
         std is the instantaneous standard deviation of the acceleration knowm as
         Ornstein-Uhlenbeck process, which can be obtained by assuming it to be
@@ -306,6 +299,13 @@ def Q_van_keuk(axis, T, tau, std):
         3. Uniformly distributed in [-a_M, a_M] with the remaining probability mass
         All parameters mentioned above are chosen by the designer. So the expected std^2
         is (a_M^2 / 3)*(1 + 4*p_M - p_0)
+    tau : float
+        The time constant of the target acceleration autocorrelation, that is, the
+        decorrelation time is approximately 2*tau. A reasonable range of tau for
+        Singer's model is between 5 and 20 seconds. Typical values of tau for aircraft
+        are 20s for slow turn and 5s for an evasive maneuver. If this parameter
+        is omitted, the default value of 20 is used. The time constant is assumed
+        the same for all dimensions of motion, so this parameter is scalar.
 
     Returns
     -------
@@ -382,14 +382,14 @@ def F_cv(axis, T):
 
 def f_cv(axis, T):
     F = F_cv(axis, T)
-    def f(x, u):
+    def f(x, u=None):
         return np.dot(F, x)
     return f
 
 
 def f_cv_jac(axis, T):
     F = F_cv(axis, T)
-    def fjac(x, u):
+    def fjac(x, u=None):
         return F
     return fjac
 
@@ -430,14 +430,14 @@ def F_ca(axis, T):
 
 def f_ca(axis, T):
     F = F_ca(axis, T)
-    def f(x, u):
+    def f(x, u=None):
         return np.dot(F, x)
     return f
 
 
 def f_ca_jac(axis, T):
     F = F_ca(axis, T)
-    def fjac(x, u):
+    def fjac(x, u=None):
         return F
     return fjac
 
@@ -472,17 +472,19 @@ def R_ca(axis, std):
     return R_pos_only(axis, std)
 
 
-def F_ct(axis, turn_rate, T):
+def F_ct(axis, turnrate, T):
     assert (axis >= 2)
 
-    omega = np.deg2rad(turn_rate)
-    wt = omega * T
-    sin_wt = np.sin(wt)
-    cos_wt = np.cos(wt)
+    omega = np.deg2rad(turnrate)
     if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+        wt = omega * T
+        sin_wt = np.sin(wt)
+        cos_wt = np.cos(wt)
         sin_div = sin_wt / omega
         cos_div = (cos_wt - 1) / omega
     else:
+        sin_wt = 0
+        cos_wt = 1
         sin_div = T
         cos_div = 0
     F = np.array([[1, sin_div, 0, cos_div], [0, cos_wt, 0, -sin_wt],
@@ -497,15 +499,17 @@ def F_ct(axis, turn_rate, T):
 def f_ct(axis, T):
     assert (axis >= 2)
 
-    def f(x, u):
+    def f(x, u=None):
         omega = np.deg2rad(x[4])
-        wt = omega * T
-        sin_wt = np.sin(wt)
-        cos_wt = np.cos(wt)
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+            wt = omega * T
+            sin_wt = np.sin(wt)
+            cos_wt = np.cos(wt)
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
         else:
+            sin_wt = 0
+            cos_wt = 1
             sin_div = T
             cos_div = 0
 
@@ -523,12 +527,12 @@ def f_ct(axis, T):
 def f_ct_jac(axis, T):
     assert (axis >= 2)
 
-    def fjac(x, u):
+    def fjac(x, u=None):
         omega = np.deg2rad(x[4])
-        wt = omega * T
-        sin_wt = np.sin(wt)
-        cos_wt = np.cos(wt)
         if np.fabs(omega) >= np.sqrt(np.finfo(omega).eps):
+            wt = omega * T
+            sin_wt = np.sin(wt)
+            cos_wt = np.cos(wt)
             sin_div = sin_wt / omega
             cos_div = (cos_wt - 1) / omega
             f0 = np.deg2rad(((wt * cos_wt - sin_wt) * x[1] + (1 - cos_wt - wt * sin_wt) * x[3]) / omega**2)
@@ -536,6 +540,8 @@ def f_ct_jac(axis, T):
             f2 = np.deg2rad((wt * (x[1] * sin_wt + x[3] * cos_wt) - (x[1] * (1 - cos_wt) + x[3] * sin_wt)) / omega**2)
             f3 = np.deg2rad((x[1]*cos_wt - x[3]*sin_wt) * T)
         else:
+            sin_wt = 0
+            cos_wt = 1
             sin_div = T
             cos_div = 0
             f0 = np.deg2rad(-x[3] * T**2 / 2)
@@ -574,12 +580,12 @@ def Q_ct(axis, T, std):
 def h_ct(axis):
     assert (axis >= 2)
 
+    if axis == 3:
+        H = H_pos_only(2, 3)
+    else:
+        H = H_pos_only(2, 2)
+    H = np.insert(H, 4, 0, axis=1)
     def h(x):
-        if axis == 3:
-            H = H_pos_only(2, 3)
-        else:
-            H = H_pos_only(2, 2)
-        H = np.insert(H, 4, 0, axis=1)
         return np.dot(H, x)
     return h
 
@@ -587,12 +593,12 @@ def h_ct(axis):
 def h_ct_jac(axis):
     assert (axis >= 2)
 
+    if axis == 3:
+        H = H_pos_only(2, 3)
+    else:
+        H = H_pos_only(2, 2)
+    H = np.insert(H, 4, 0, axis=1)
     def hjac(x):
-        if axis == 3:
-            H = H_pos_only(2, 3)
-        else:
-            H = H_pos_only(2, 2)
-        H = np.insert(H, 4, 0, axis=1)
         return H
     return hjac
 
@@ -775,152 +781,168 @@ def model_switch(x, type_in, type_out):
         raise TypeError("error 'x' type: '%s'" % x.__class__.__name__)
 
 
-class Trajectory():
-    def __init__(self, T, R, start=np.zeros(9), pd=None):
-        assert (len(start) == 9)
+def trajectory_cv(state, interval, length, velocity):
+    head = state.copy()
+    dim = head.size
+    order = 2
+    axis = dim // order
+    traj_cv = np.zeros((length, dim))
 
-        if R.shape == (3, 3):
-            self._doppler = False
-        elif R.shape == (4, 4):
-            self._doppler = True
+    vel = velocity
+    cur_vel = head[1:dim:order]
+    if isinstance(vel, numbers.Number):
+        vel *= (cur_vel / lg.norm(cur_vel))
+    else:
+        vel = [cur_vel[i] if vel[i] is None else vel[i] for i in range(axis)]
+    cur_vel[:] = vel        # it will also change the head
+    head_cv = head
+
+    F = F_cv(axis, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_cv[i] = head
+    return traj_cv, head_cv
+
+def trajectory_ca(state, interval, length, acceleration):
+    head = state.copy()
+    dim = state.size
+    order = 3
+    axis = dim // order
+    traj_ca = np.zeros((length, dim))
+
+    acc = acceleration
+    cur_vel = head[1:dim:order]
+    cur_acc = head[2:dim:order]
+    if isinstance(acc, numbers.Number):
+        acc *= (cur_vel / lg.norm(cur_vel))
+    else:
+        acc = [cur_acc[i] if acc[i] is None else acc[i] for i in range(axis)]
+    cur_acc[:] = acc        # it will also change the head
+    head_ca = head
+
+    F = F_ca(axis, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_ca[i] = head
+    return traj_ca, head_ca
+
+def trajectory_ct(state, interval, length, turnrate, velocity=None):
+    head = state.copy()
+    dim = state.size
+    order = 2
+    axis = dim // order
+    traj_ct = np.zeros((length, dim))
+
+    if velocity is not None:
+        vel = velocity
+        cur_vel = head[1:dim:order]
+        if isinstance(vel, numbers.Number):
+            vel *= (cur_vel / lg.norm(cur_vel))
         else:
-            raise ValueError('the shape of R must be (3, 3) or (4, 4)')
-        if pd is None:
-            self._pd = ()
-        elif isinstance(pd, Iterable):
-            self._pd = tuple(pd)
-        else:
-            raise TypeError("error 'pd' type: '%s'" % pd.__class__.__name__)
+            vel = [cur_vel[i] if vel[i] is None else vel[i] for i in range(axis)]
+        cur_vel[:] = vel
+    head_ct = head
 
-        self._T = T
-        self._R = R
-        self._head = start.copy()
-        self._traj = []
-        self._stage = []
-        self._noise = None
-        self._len = 0
-        self._xdim = 9
+    F = F_ct(axis, turnrate, interval)
+    for i in range(length):
+        head = np.dot(F, head)
+        traj_ct[i] = head
+    return traj_ct, head_ct
 
-    def __len__(self):
-        return self._len
+def trajectory_generator(record, seed=0):
+    '''
+    record = {
+        'interval': [1, 1],
+        'start':
+        [
+            [0, 0, 0],
+            [0, 5, 0]
+        ],
+        'pattern':
+        [
+            [
+                {'model': 'cv', 'length': 100, 'velocity': [250, 250, 0]},
+                {'model': 'ct', 'length': 25, 'turnrate': 30}
+            ],
+            [
+                {'model': 'cv', 'length': 100, 'velocity': [250, 250, 0]},
+                {'model': 'ct', 'length': 30, 'turnrate': 30, 'velocity': 30}
+            ]
+        ],
+        'noise':
+        [
+            10 * np.eye(3), 10 * np.eye(3)
+        ],
+        'pd':
+        [
+            0.9, 0.9
+        ],
+        'entries': 2
+    }
+    '''
+    dim, order, axis = 9, 3, 3
+    ca_sel = range(dim)
+    acc_sel = range(2, dim, order)
+    cv_sel = np.setdiff1d(ca_sel, acc_sel)
+    ct_sel = np.setdiff1d(ca_sel, acc_sel)
+    insert_sel = [2, 4, 6]
 
-    def __call__(self, coordinate='xyz'):
-        state = np.concatenate(self._traj, axis=1)
+    interval = record['interval']
+    start = record['start']
+    pattern = record['pattern']
+    noise = record['noise']
+    pd = record['pd']
+    entries = record['entries']
 
-        H = H_ca(3)
-        traj_real = np.dot(H, state)
-
-        speed = np.empty(self._len)
-        for i in range(self._len):
-            p = state[0::3, i]
-            v = state[1::3, i]
-            d = lg.norm(p)
-            speed[i] = np.dot(p, v) / d
-
-        if coordinate == 'rae':
-            meas = np.array(cart2sph(*state[::3]), dtype=float)
-        elif coordinate == 'xyz':
-            meas = traj_real
-        else:
-            raise ValueError("unknown coordinate: '%s'" % coordinate)
-
-        if self._doppler:
-            traj_real = np.vstack((traj_real, speed))
-            meas = np.vstack((meas, speed))
-        traj_meas = meas + self._noise
-
-        for i in range(self._len):
-            for scope, pd in self._pd:
-                if scope.within(np.abs(speed[i])):
-                    r = np.random.rand()
-                    if r < 1 - pd:
-                        traj_meas[:, i] = np.nan
-
-        return traj_real, traj_meas, state
-
-    def stage(self):
-        return self._stage
-
-    def traj(self):
-        return self._traj
-
-    def add_stage(self, stages):
-        '''
-        stage are list of dicts, for example:
-        stage = [
-            {'model': 'cv', 'len': 100, 'vel': [30, 20, 1]},
-            {'model': 'cv', 'len': 100, 'vel': 7},
-            {'model': 'ca', 'len': 100, 'acc': [10, 30, 1]},
-            {'model': 'ca', 'len': 100, 'acc': 3},
-            {'model': 'ct', 'len': 100, 'omega': 30}
-        ]
-        '''
-        self._stage.extend(stages)
-        for i in range(len(stages)):
-            mdl = stages[i]['model']
-            traj_len = stages[i]['len']
-            self._len += traj_len
-
-            state = np.zeros((self._xdim, traj_len))
-            if mdl == 'cv':
-                F = F_cv(3, self._T)
-                v = stages[i]['vel']
-                if isinstance(v, numbers.Number):
-                    cur_v = self._head[[1, 4, 7]]
-                    unit_v = cur_v / lg.norm(cur_v)
-                    v *= unit_v
-                if v[0] is not None:
-                    self._head[1] = v[0]
-                if v[1] is not None:
-                    self._head[4] = v[1]
-                if v[2] is not None:
-                    self._head[7] = v[2]
-
-                sel = [0, 1, 3, 4, 6, 7]
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.zeros(self._xdim)
-                    tmp[sel] = np.dot(F, self._head[sel])
-                    self._head[:] = tmp
-                    state[:, j] = tmp
-            elif mdl == 'ca':
-                F = F_ca(3, self._T)
-                a = stages[i]['acc']
-                if isinstance(a, numbers.Number):
-                    cur_v = self._head[[1, 4, 7]]
-                    unit_v = cur_v / lg.norm(cur_v)
-                    a *= unit_v
-                if a[0] is not None:
-                    self._head[2] = a[0]
-                if a[1] is not None:
-                    self._head[5] = a[1]
-                if a[2] is not None:
-                    self._head[8] = a[2]
-
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.dot(F, self._head)
-                    self._head[:] = tmp
-                    state[:, j] = tmp
-            elif mdl == 'ct':
-                omega = stages[i]['omega']
-                F = F_ct(3, omega, self._T)
-
-                sel = [0, 1, 3, 4, 6, 7]
-                for j in range(traj_len):
-                    if i == 0 and j == 0:
-                        state[:, j] = self._head
-                        continue
-                    tmp = np.zeros(self._xdim)
-                    tmp[sel] = np.dot(F, self._head[sel])
-                    self._head[:] = tmp
-                    state[:, j] = tmp
+    trajs_state = []
+    for i in range(entries):
+        head = np.kron(start[i], [1., 0., 0.])
+        state = np.kron(start[i], [1., 0., 0.]).reshape(1, -1)
+        for pat in pattern[i]:
+            if pat['model'] == 'cv':
+                ret, head_cv = trajectory_cv(head[cv_sel], interval[i], pat['length'], pat['velocity'])
+                ret = np.insert(ret, insert_sel, 0, axis=1)
+                head = ret[-1, ca_sel]
+                state[-1, acc_sel] = 0         # set the acceleration of previous state to zero
+                state[-1, cv_sel] = head_cv    # change the velocity of previous state
+                state = np.vstack((state, ret))
+            elif pat['model'] == 'ca':
+                ret, head_ca = trajectory_ca(head, interval[i], pat['length'], pat['acceleration'])
+                head = ret[-1, ca_sel]
+                state[-1, ca_sel] = head_ca    # change the acceleartion of previous state
+                state = np.vstack((state, ret))
+            elif pat['model'] == 'ct':
+                if 'velocity' in pat:
+                    ret, head_ct = trajectory_ct(head[ct_sel], interval[i], pat['length'], pat['turnrate'], pat['velocity'])
+                else:
+                    ret, head_ct = trajectory_ct(head[ct_sel], interval[i], pat['length'], pat['turnrate'])
+                ret = np.insert(ret, insert_sel, 0, axis=1)
+                head = ret[-1, ca_sel]
+                state[-1, acc_sel] = 0
+                state[-1, ct_sel] = head_ct
+                state = np.vstack((state, ret))
             else:
-                raise ValueError('unknown model')
-            self._traj.append(state)
+                raise ValueError('invalid model')
+        trajs_state.append(state)
 
-        self._noise = multi_normal(0, self._R, self._len, axis=1)
+    random_state = np.random.get_state()
+    np.random.seed(seed)
+
+    # add noise
+    trajs_meas = []
+    for i in range(entries):
+        H = H_ca(axis)
+        traj_len = trajs_state[i].shape[0]
+        noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len)
+        trajs_meas.append(np.dot(trajs_state[i], H.T) + noi)
+
+    # remove some measurements according to `pd`
+    for i in range(entries):
+        traj_len = trajs_state[i].shape[0]
+        remove = st.uniform.rvs(size=traj_len) >= pd[i]
+        trajs_meas[i][remove] = np.nan
+
+    np.random.set_state(random_state)
+
+
+    return trajs_state, trajs_meas

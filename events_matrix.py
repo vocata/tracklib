@@ -1,6 +1,5 @@
 import time
 import numpy as np
-import tracklib as tlb
 from tracklib.tracker import JPDA_events, JPDA_clusters
 
 

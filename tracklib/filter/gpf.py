@@ -17,7 +17,7 @@ __all__ = ['GPFilter']
 import numpy as np
 import scipy.linalg as lg
 from .base import FilterBase
-from tracklib.utils import multi_normal, disc_random
+from tracklib.utils import multi_normal
 
 
 class GPFilter(FilterBase):
