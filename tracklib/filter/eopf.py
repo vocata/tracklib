@@ -107,16 +107,6 @@ class EOPFilter(EOFilterBase):
         self._weights *= const_arr * exp_term
         self._weights /= self._weights.sum()
 
-        # resample
-        Neff = 1 / (self._weights**2).sum()
-        if Neff <= self._Neff:
-            self._state_samples[:], index = disc_random(self._weights,
-                                                        self._Ns,
-                                                        self._state_samples,
-                                                        alg=self._resample_alg)
-            self._ext_samples[:] = self._ext_samples[index]
-            self._weights[:] = 1 / self._Ns
-
         # compute posterior extension, state and covariance
         self._ext = 0
         self._state = 0
@@ -128,6 +118,14 @@ class EOPFilter(EOFilterBase):
             err = self._state_samples[i] - self._state
             self._cov += self._weights[i] * np.outer(err, err)
         self._cov = (self._cov + self._cov.T) / 2
+
+        # resample
+        Neff = 1 / (self._weights**2).sum()
+        if Neff <= self._Neff:
+            idx = np.random.choice(np.arange(self._Ns), p=self._weights, size=self._Ns)
+            self._state_samples[:] = self._state_samples[idx]
+            self._ext_samples[:] = self._ext_samples[idx]
+            self._weights[:] = 1 / self._Ns
 
         return self._state, self._cov, self._ext
 
@@ -267,17 +265,6 @@ class IMMEOPFilter(EOFilterBase):
         self._weights *= const_arr * exp_term
         self._weights /= self._weights.sum()
 
-        # resample
-        Neff = 1 / (self._weights**2).sum()
-        if Neff <= self._Neff:
-            self._state_samples[:], index = disc_random(self._weights,
-                                                        self._Ns,
-                                                        self._state_samples,
-                                                        alg=self._resample_alg)
-            self._ext_samples[:] = self._ext_samples[index]
-            self._index[:] = self._index[index]
-            self._weights[:] = 1 / self._Ns
-
         # compute posterior model probability
         for i in range(self._models_n):
             self._probs[i] = (self._index == i).sum()
@@ -287,6 +274,15 @@ class IMMEOPFilter(EOFilterBase):
         self._state, self._cov, self._ext = self._merge_fcn(
             self._state_samples, self._ext_samples, self._weights, self._index,
             self._Ns)
+
+        # resample
+        Neff = 1 / (self._weights**2).sum()
+        if Neff <= self._Neff:      # must resample for IMM particle filter
+            idx = np.random.choice(np.arange(self._Ns), p=self._weights, size=self._Ns)
+            self._state_samples[:] = self._state_samples[idx]
+            self._ext_samples[:] = self._ext_samples[idx]
+            self._index[:] = self._index[idx]
+            self._weights[:] = 1 / self._Ns
 
         return self._state, self._cov, self._ext
 

@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
@@ -88,23 +89,23 @@ def GTT_test():
                 {'model': 'cv', 'length': 10, 'velocity': 300},
             ],
         ],
-        'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
+        'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
         'pd': [0.8] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
 
     N = trajs_state[0].shape[0]
     entries = 5
     T = 10
-    Ns = 3000
+    Ns = 5000
     Neff = Ns
     df = 50
 
     axis = 2
     zdim, xdim = 2, 4
     sigma_w = 0.05
-    sigma_v = [100., 100.]
+    sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
