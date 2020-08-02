@@ -23,16 +23,15 @@ class EOPFilter(EOFilterBase):
     '''
     SMC Extended object particle filter
     '''
-    def __init__(self, F, H, Q, R, Ns, Neff, df, lamb=None, resample_alg='roulette'):
+    def __init__(self, F, H, D, R, Ns, Neff, df, lamb=None):
         self._F = F.copy()
         self._H = H.copy()
-        self._Q = Q.copy()
+        self._D = D.copy()
         self._R = R.copy()
         self._Ns = Ns
         self._Neff = Neff
         self._df = df
         self._lamb = lamb
-        self._resample_alg = resample_alg
         self._init = False
 
     def init(self, state, cov, df, extension):
@@ -56,7 +55,7 @@ class EOPFilter(EOFilterBase):
         ]
         self._state_samples[:] = [
             st.multivariate_normal.rvs(np.dot(self._F, self._state_samples[i]),
-                                       np.kron(self._ext_samples[i], self._Q))
+                                       np.kron(self._ext_samples[i], self._D))
             for i in range(self._Ns)
         ]
 
@@ -154,8 +153,7 @@ class IMMEOPFilter(EOFilterBase):
                  Neff,
                  lamb=None,
                  trans_mat=0.9,
-                 probs=None,
-                 resample_alg='roulette'):
+                 probs=None):
         super().__init__()
 
         self._models_n = models_n
@@ -182,7 +180,6 @@ class IMMEOPFilter(EOFilterBase):
             self._probs = np.full(models_n, 1 / models_n, dtype=float)
         else:
             self._probs = probs
-        self._resample_alg = resample_alg
 
         self._init = False
 
