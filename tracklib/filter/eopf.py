@@ -8,7 +8,7 @@ REFERENCE:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['EOPFilter', 'IMMEOPFilter']
+__all__ = ['EOPFilter', 'EORBPFilter', 'IMMEOPFilter']
 
 import numbers
 import numpy as np
@@ -65,6 +65,7 @@ class EOPFilter(EOFilterBase):
         for i in range(self._Ns):
             self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
+        self._ext = (self._ext + self._ext.T) / 2
         self._cov = 0
         for i in range(self._Ns):
             err = self._state_samples[i] - self._state
@@ -112,6 +113,7 @@ class EOPFilter(EOFilterBase):
         for i in range(self._Ns):
             self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
+        self._ext = (self._ext + self._ext.T) / 2
         self._cov = 0
         for i in range(self._Ns):
             err = self._state_samples[i] - self._state
@@ -124,6 +126,123 @@ class EOPFilter(EOFilterBase):
             idx = np.random.choice(np.arange(self._Ns), p=self._weights, size=self._Ns)
             self._state_samples[:] = self._state_samples[idx]
             self._ext_samples[:] = self._ext_samples[idx]
+            self._weights[:] = 1 / self._Ns
+
+        return self._state, self._cov, self._ext
+
+    def distance(self, z, **kwargs):
+        return super().distance(z, **kwargs)
+
+    def likelihood(self, z, **kwargs):
+        return super().likelihood(z, **kwargs)
+
+class EORBPFilter(EOFilterBase):
+    '''
+    SMC Extended object particle filter
+    '''
+    def __init__(self, F, H, D, R, Ns, Neff, df, lamb=None):
+        self._F = F.copy()
+        self._H = H.copy()
+        self._D = D.copy()
+        self._R = R.copy()
+        self._Ns = Ns
+        self._Neff = Neff
+        self._df = df
+        self._lamb = lamb
+        self._init = False
+
+    def init(self, state, cov, df, extension):
+        self._state = state.copy()
+        self._cov = cov.copy()
+        self._ext = extension.copy()
+
+        self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        self._cov_samples = np.full((self._Ns, cov.shape[0], cov.shape[1]), cov)
+        self._ext_samples = st.wishart.rvs(df, extension / df, self._Ns)
+        self._weights = np.full(self._Ns, 1 / self._Ns, dtype=float)
+        self._init = True
+
+    def predict(self):
+        if self._init == False:
+            raise RuntimeError('filter must be initialized with init() before use')
+
+        # update samples
+        for i in range(self._Ns):
+            self._ext_samples[i] = st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
+            self._state_samples[i] = np.dot(self._F, self._state_samples[i])
+            self._cov_samples[i] = self._F @ self._cov_samples[i] @ self._F.T + np.kron(self._ext_samples[i], self._D)
+
+        # compute prior extension, state and covariance
+        self._ext = 0
+        self._state = 0
+        self._cov = 0
+        for i in range(self._Ns):
+            self._ext += self._weights[i] * self._ext_samples[i]
+            self._state += self._weights[i] * self._state_samples[i]
+            self._cov += self._weights[i] * self._cov_samples[i]
+        self._ext = (self._ext + self._ext.T) / 2
+        self._cov = (self._cov + self._cov.T) / 2
+
+        return self._state, self._cov, self._ext
+
+    def correct(self, zs):
+        if self._init == False:
+            raise RuntimeError('filter must be initialized with init() before use')
+
+        Nm = len(zs)    # measurements number
+        if self._lamb is None:
+            lamb = Nm / ellip_volume(self._ext)        # empirical target density
+        else:
+            lamb = self._lamb
+
+        H_bar = np.kron(np.ones((Nm, 1)), self._H)
+        for i in range(self._Ns):
+            # update weight
+            V = ellip_volume(self._ext_samples[i])
+            pmf = (lamb * V)**Nm * np.exp(-lamb * V) / sl.factorial(Nm)
+            self._weights[i] *= pmf
+
+            z_pred = np.dot(H_bar, self._state_samples[i])
+            R = self._ext_samples[i] / 4 + self._R
+            A_inv = np.kron(np.eye(Nm), lg.inv(R))
+            P_inv = lg.inv(self._cov_samples[i])
+            S_inv = A_inv - A_inv @ H_bar @ lg.inv(P_inv + H_bar.T @ A_inv @ H_bar) @ H_bar.T @ A_inv
+            S = np.kron(np.eye(Nm), R) + H_bar @ self._cov_samples[i] @ H_bar.T
+            z_vec = np.hstack(zs)
+            pdf = 1 / np.sqrt(lg.det(2 * np.pi * S)) * np.exp(-(z_vec - z_pred) @ S_inv @ (z_vec - z_pred) / 2)
+            self._weights[i] *= pdf
+            # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=S)     # too slow
+
+            # update state and covariance using Kalman filter
+            for j in range(Nm):
+                innov = zs[j] - np.dot(self._H, self._state_samples[i])
+                S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R)
+                S = (S + S.T) / 2
+                K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
+
+                self._state_samples[i] += np.dot(K, innov)
+                self._cov_samples[i] -= K @ S @ K.T
+                self._cov_samples[i] = (self._cov_samples[i] + self._cov_samples[i].T) / 2
+        self._weights /= self._weights.sum()
+
+        # compute posterior extension, state and covariance
+        self._ext = 0
+        self._state = 0
+        self._cov = 0
+        for i in range(self._Ns):
+            self._ext += self._weights[i] * self._ext_samples[i]
+            self._state += self._weights[i] * self._state_samples[i]
+            self._cov += self._weights[i] * self._cov_samples[i]
+        self._ext = (self._ext + self._ext.T) / 2
+        self._cov = (self._cov + self._cov.T) / 2
+
+        # resample
+        Neff = 1 / (self._weights**2).sum()
+        if Neff <= self._Neff:
+            idx = np.random.choice(np.arange(self._Ns), p=self._weights, size=self._Ns)
+            self._ext_samples[:] = self._ext_samples[idx]
+            self._state_samples[:] = self._state_samples[idx]
+            self._cov_samples[:] = self._cov_samples[idx]
             self._weights[:] = 1 / self._Ns
 
         return self._state, self._cov, self._ext
@@ -294,3 +413,4 @@ class IMMEOPFilter(EOFilterBase):
 
     def trans_mat(self):
         return self._trans_mat
+
