@@ -98,8 +98,8 @@ def GTT_test():
     N = trajs_state[0].shape[0]
     entries = 5
     T = 10
-    Ns = 5000 // 3
-    Neff = Ns
+    Ns = 5000
+    Neff = Ns // 3
     df = 50
 
     axis = 2

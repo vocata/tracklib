@@ -195,34 +195,47 @@ class EORBPFilter(EOFilterBase):
         else:
             lamb = self._lamb
 
-        H_bar = np.kron(np.ones((Nm, 1)), self._H)
+        H = np.kron(np.ones((Nm, 1)), self._H)      # expand dimension of H
         for i in range(self._Ns):
             # update weight
             V = ellip_volume(self._ext_samples[i])
             pmf = (lamb * V)**Nm * np.exp(-lamb * V) / sl.factorial(Nm)
             self._weights[i] *= pmf
 
-            z_pred = np.dot(H_bar, self._state_samples[i])
+            z_pred = np.dot(H, self._state_samples[i])
             R = self._ext_samples[i] / 4 + self._R
+            # expanded dimension innovation covariance
+            P = np.kron(np.eye(Nm), R) + H @ self._cov_samples[i] @ H.T
+            # matrix inversion lemma
             A_inv = np.kron(np.eye(Nm), lg.inv(R))
-            P_inv = lg.inv(self._cov_samples[i])
-            S_inv = A_inv - A_inv @ H_bar @ lg.inv(P_inv + H_bar.T @ A_inv @ H_bar) @ H_bar.T @ A_inv
-            S = np.kron(np.eye(Nm), R) + H_bar @ self._cov_samples[i] @ H_bar.T
+            D = lg.inv(self._cov_samples[i])
+            P_inv = A_inv - A_inv @ H @ lg.inv(D + H.T @ A_inv @ H) @ H.T @ A_inv
+            # compute likelihood
             z_vec = np.hstack(zs)
-            pdf = 1 / np.sqrt(lg.det(2 * np.pi * S)) * np.exp(-(z_vec - z_pred) @ S_inv @ (z_vec - z_pred) / 2)
+            pdf = 1 / np.sqrt(lg.det(2 * np.pi * P)) * np.exp(-(z_vec - z_pred) @ P_inv @ (z_vec - z_pred) / 2)
             self._weights[i] *= pdf
-            # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=S)     # too slow
+            # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=P)     # too slow
 
-            # update state and covariance using Kalman filter
-            for j in range(Nm):
-                innov = zs[j] - np.dot(self._H, self._state_samples[i])
-                S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R)
-                S = (S + S.T) / 2
-                K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
+            # update state and covariance using Kalman filter using mean measurement
+            z_mean = np.mean(zs, axis=0)
+            innov = z_mean - np.dot(self._H, self._state_samples[i])
+            S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R) / Nm
+            S = (S + S.T) / 2
+            K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
 
-                self._state_samples[i] += np.dot(K, innov)
-                self._cov_samples[i] -= K @ S @ K.T
-                self._cov_samples[i] = (self._cov_samples[i] + self._cov_samples[i].T) / 2
+            self._state_samples[i] += np.dot(K, innov)
+            self._cov_samples[i] -= K @ S @ K.T
+            self._cov_samples[i] = (self._cov_samples[i] + self._cov_samples[i].T) / 2
+            # equivalent to above
+            # for j in range(Nm):
+            #     innov = zs[j] - np.dot(self._H, self._state_samples[i])
+            #     S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R)
+            #     S = (S + S.T) / 2
+            #     K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
+
+            #     self._state_samples[i] += np.dot(K, innov)
+            #     self._cov_samples[i] -= K @ S @ K.T
+            #     self._cov_samples[i] = (self._cov_samples[i] + self._cov_samples[i].T) / 2
         self._weights /= self._weights.sum()
 
         # compute posterior extension, state and covariance
