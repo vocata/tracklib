@@ -196,6 +196,7 @@ class EORBPFilter(EOFilterBase):
             lamb = self._lamb
 
         H = np.kron(np.ones((Nm, 1)), self._H)      # expand dimension of H
+        z_mean = np.mean(zs, axis=0)
         for i in range(self._Ns):
             # update weight
             V = ellip_volume(self._ext_samples[i])
@@ -206,18 +207,21 @@ class EORBPFilter(EOFilterBase):
             R = self._ext_samples[i] / 4 + self._R
             # expanded dimension innovation covariance
             P = np.kron(np.eye(Nm), R) + H @ self._cov_samples[i] @ H.T
-            # matrix inversion lemma
-            A_inv = np.kron(np.eye(Nm), lg.inv(R))
-            D = lg.inv(self._cov_samples[i])
-            P_inv = A_inv - A_inv @ H @ lg.inv(D + H.T @ A_inv @ H) @ H.T @ A_inv
-            # compute likelihood
+            if Nm <= 3:
+                # calculate the inversion of P directly
+                P_inv = lg.inv(P)
+            else:
+                # calculate the inversion of P using `matrix inversion lemma`
+                A_inv = np.kron(np.eye(Nm), lg.inv(R))
+                D = lg.inv(self._cov_samples[i])
+                P_inv = A_inv - A_inv @ H @ lg.inv(D + H.T @ A_inv @ H) @ H.T @ A_inv
+            # compute the likelihood of measurements, this is the key process
             z_vec = np.hstack(zs)
-            pdf = 1 / np.sqrt(lg.det(2 * np.pi * P)) * np.exp(-(z_vec - z_pred) @ P_inv @ (z_vec - z_pred) / 2)
+            pdf = np.exp(-(z_vec - z_pred) @ P_inv @ (z_vec - z_pred) / 2) / np.sqrt(lg.det(2 * np.pi * P))
             self._weights[i] *= pdf
             # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=P)     # too slow
 
             # update state and covariance using Kalman filter using mean measurement
-            z_mean = np.mean(zs, axis=0)
             innov = z_mean - np.dot(self._H, self._state_samples[i])
             S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R) / Nm
             S = (S + S.T) / 2
