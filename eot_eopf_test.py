@@ -61,7 +61,7 @@ def EOT_test():
     T = 10
     Ns = 5000
     Neff = Ns // 3
-    df = 100
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 
@@ -196,7 +196,7 @@ def EOT_RBP_test():
     T = 10
     Ns = 2000
     Neff = Ns // 3
-    df = 100
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 
@@ -331,7 +331,7 @@ def EOT_RBP_TR_test():
     T = 10
     Ns = 2000
     Neff = Ns // 3
-    df = 100
+    df = 200
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 
@@ -355,7 +355,7 @@ def EOT_RBP_TR_test():
     theta.extend([0] * 54)
     trajs_meas_ellip, real_ellip = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
 
-    eopf = ft.EORBPTurnRateFilter(F, H, Q, R, Ns, Neff, df, 0.2, T, lamb=lamb)
+    eopf = ft.TurnRateEORBPFilter(F, H, Q, R, Ns, Neff, df, T, omega_std=0.1, lamb=lamb)
 
     prior_state_arr = np.empty((N, xdim))
     prior_cov_arr = np.empty((N, xdim, xdim))
@@ -373,7 +373,7 @@ def EOT_RBP_TR_test():
             ellip = 100**2 * np.eye(2)
             x_init, P_init = init.cv_init(z_mean, R, (10, 10))
             x_init[1], x_init[3] = 14, -14
-            eopf.init(x_init, P_init, df, ellip, 0)
+            eopf.init(x_init, P_init, df, ellip)
 
             prior_state_arr[n, :] = eopf.state
             prior_cov_arr[n, :, :] = eopf.cov

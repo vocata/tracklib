@@ -8,7 +8,7 @@ REFERENCE:
 from __future__ import division, absolute_import, print_function
 
 
-__all__ = ['EOPFilter', 'EORBPFilter', 'EORBPTurnRateFilter', 'IMMEOPFilter']
+__all__ = ['EOPFilter', 'EORBPFilter', 'TurnRateEORBPFilter', 'IMMEOPFilter']
 
 import numbers
 import numpy as np
@@ -271,11 +271,11 @@ class EORBPFilter(EOFilterBase):
         return super().likelihood(z, **kwargs)
 
 
-class EORBPTurnRateFilter(EOFilterBase):
+class TurnRateEORBPFilter(EOFilterBase):
     '''
     Extended object Rao-Blackwellized particle filter with turning rate
     '''
-    def __init__(self, F, H, D, R, Ns, Neff, df, omega_std, T, lamb=None):
+    def __init__(self, F, H, D, R, Ns, Neff, df, T, omega_std=0, lamb=None):
         self._F = F.copy()
         self._H = H.copy()
         self._D = D.copy()
@@ -288,7 +288,7 @@ class EORBPTurnRateFilter(EOFilterBase):
         self._lamb = lamb
         self._init = False
 
-    def init(self, state, cov, df, extension, omega):
+    def init(self, state, cov, df, extension, omega=0):
         self._state = state.copy()
         self._cov = cov.copy()
         self._ext = extension.copy()
