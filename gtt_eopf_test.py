@@ -460,7 +460,7 @@ def GTT_RBP_TR_test():
     Q = model.Q_cv_dd(1, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
-    eopf = ft.TurnRateEORBPFilter(F, H, Q, R, Ns, Neff, df, T, omega_std=0.1)
+    eopf = ft.TurnRateEORBPFilter(F, H, Q, R, Ns, Neff, df, T, omega_std=1)
 
     prior_state_arr = np.empty((N, xdim))
     prior_cov_arr = np.empty((N, xdim, xdim))

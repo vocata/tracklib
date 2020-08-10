@@ -216,14 +216,14 @@ class EORBPFilter(EOFilterBase):
                 D = lg.inv(self._cov_samples[i])
                 P_inv = A_inv - A_inv @ H @ lg.inv(D + H.T @ A_inv @ H) @ H.T @ A_inv
             # compute the likelihood of measurements, this is the key process
-            z_vec = np.hstack(zs)
+            z_vec = np.reshape(zs, -1)
             pdf = np.exp(-(z_vec - z_pred) @ P_inv @ (z_vec - z_pred) / 2) / np.sqrt(lg.det(2 * np.pi * P))
             self._weights[i] *= pdf
             # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=P)     # too slow
 
             # update state and covariance using Kalman filter using mean measurement
             innov = z_mean - np.dot(self._H, self._state_samples[i])
-            S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R) / Nm
+            S = self._H @ self._cov_samples[i] @ self._H.T + R / Nm
             S = (S + S.T) / 2
             K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
 
@@ -359,14 +359,14 @@ class TurnRateEORBPFilter(EOFilterBase):
                 D = lg.inv(self._cov_samples[i])
                 P_inv = A_inv - A_inv @ H @ lg.inv(D + H.T @ A_inv @ H) @ H.T @ A_inv
             # compute the likelihood of measurements, this is the key process
-            z_vec = np.hstack(zs)
+            z_vec = np.reshape(zs, -1)
             pdf = np.exp(-(z_vec - z_pred) @ P_inv @ (z_vec - z_pred) / 2) / np.sqrt(lg.det(2 * np.pi * P))
             self._weights[i] *= pdf
             # self._weights[i] *= st.multivariate_normal.pdf(z_vec, mean=z_pred, cov=P)     # too slow
 
             # update state and covariance using Kalman filter using mean measurement
             innov = z_mean - np.dot(self._H, self._state_samples[i])
-            S = self._H @ self._cov_samples[i] @ self._H.T + (self._ext_samples[i] / 4 + self._R) / Nm
+            S = self._H @ self._cov_samples[i] @ self._H.T + R / Nm
             S = (S + S.T) / 2
             K = self._cov_samples[i] @ self._H.T @ lg.inv(S)
 
