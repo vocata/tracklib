@@ -136,6 +136,7 @@ class EOPFilter(EOFilterBase):
     def likelihood(self, z, **kwargs):
         return super().likelihood(z, **kwargs)
 
+
 class EORBPFilter(EOFilterBase):
     '''
     Extended object Rao-Blackwellized particle filter
@@ -418,6 +419,7 @@ class TurnRateEORBPFilter(EOFilterBase):
 
     def omega(self):
         return self._omega
+
 
 class IMMEOPFilter(EOFilterBase):
     '''

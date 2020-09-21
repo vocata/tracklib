@@ -84,26 +84,26 @@ def GroupFormation():
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
-    trajs_state = trajs_state[2]
+    trajs_state = trajs_state[2]        # center
 
-    for i in range(20):
+    for i in range(5):
         origin = trajs_meas[2][10 + i, :-1]
-        A = utils.rotate_matrix_deg(-4.5 * (i + 1))
+        A = utils.rotate_matrix_deg(-18 * (i + 1))
         for j in range(5):
             trajs_meas[j][10 + i, :-1] = origin + (A @ (trajs_meas[j][10 + i, :-1] - origin))
-    for i in range(40):
-        origin = trajs_meas[2][30 + i, :-1]
+    for i in range(75):
+        origin = trajs_meas[2][15 + i, :-1]
         A = utils.rotate_matrix_deg(90)
         for j in range(5):
-            trajs_meas[j][30 + i, :-1] = origin + (A @ (trajs_meas[j][30 + i, :-1] - origin))
-    for i in range(20):
-        origin = trajs_meas[2][70 + i, :-1]
-        A = utils.rotate_matrix_deg(-90 + 4.5 * (i + 1))
+            trajs_meas[j][15 + i, :-1] = origin + (A @ (trajs_meas[j][15 + i, :-1] - origin))
+    for i in range(5):
+        origin = trajs_meas[2][90 + i, :-1]
+        A = utils.rotate_matrix_deg(-90 + 18 * (i + 1))
         for j in range(5):
-            trajs_meas[j][70 + i, :-1] = origin + (A @ (trajs_meas[j][70 + i, :-1] - origin))
+            trajs_meas[j][90 + i, :-1] = origin + (A @ (trajs_meas[j][90 + i, :-1] - origin))
 
-    R = model.R_cv(3, [100, 100, 0])
-    pd = 1
+    R = model.R_cv(3, [500, 100, 0])
+    pd = 0.9
     N = trajs_state.shape[0]
     # print(N)
 
@@ -114,8 +114,8 @@ def GroupFormation():
 
     # remove some measurements according to `pd`
     for i in range(5):
-        remove = st.uniform.rvs(size=N) >= pd
-        trajs_meas[i][remove] = np.nan
+        remove = st.uniform.rvs(size=N - 1) >= pd
+        trajs_meas[i][1:][remove] = np.nan
 
     return trajs_state, trajs_meas
 
