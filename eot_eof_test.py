@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import time
 import numpy as np
 import scipy.stats as st
 import tracklib.filter as ft
@@ -10,7 +11,7 @@ import tracklib.utils as utils
 import matplotlib.pyplot as plt
 
 
-def gen_ellipse_uniform(trajs, C, R, theta, lamb):
+def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=0.8):
     N = trajs.shape[0]
     trajs_ellip = []
     real_ellip = []
@@ -22,6 +23,11 @@ def gen_ellipse_uniform(trajs, C, R, theta, lamb):
         z = utils.ellip_uniform(real_ellip[i], pt_N)
         z += st.multivariate_normal.rvs(cov=R, size=pt_N)
         z += trajs[i]
+        idx = []
+        for j in range(pt_N):
+            if np.random.rand() < pd:
+                idx.append(j)
+        z = z[idx]
         trajs_ellip.append(z)
     return trajs_ellip, real_ellip
 
@@ -48,7 +54,7 @@ def KochEOT_test():
         'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
 
     N = trajs_state[0].shape[0]
     T = 10
@@ -184,7 +190,7 @@ def FeldmannEOT_test():
         'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
 
     N = trajs_state[0].shape[0]
     T = 10
@@ -317,7 +323,7 @@ def LanEOT_test():
         'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
 
     N = trajs_state[0].shape[0]
     T = 10
