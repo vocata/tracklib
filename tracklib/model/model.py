@@ -5,6 +5,7 @@ REFERENCES:
 [2] R. A. Singer, "Estimating Optimal Tracking Filter Performance for Manned Maneuvering Targets," in IEEE Transactions on Aerospace and Electronic Systems, vol. AES-6, no. 4, pp. 473-483, July 1970.
 [3] X. Rong Li and V. P. Jilkov, "Survey of maneuvering target tracking. Part I. Dynamic models," in IEEE Transactions on Aerospace and Electronic Systems, vol. 39, no. 4, pp. 1333-1364, Oct. 2003.
 [4] W. Koch, "Tracking and Sensor Data Fusion: Methodological Framework and Selected Applications," Heidelberg, Germany: Springer, 2014.
+[5] Mo Longbin, Song Xiaoquan, Zhou Yiyu, Sun Zhong Kang and Y. Bar-Shalom, "Unbiased converted measurements for tracking," in IEEE Transactions on Aerospace and Electronic Systems, vol. 34, no. 3, pp. 1023-1027, July 1998
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -15,8 +16,8 @@ __all__ = [
     'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca',
     'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
     'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
-    'model_switch', 'trajectory_cv', 'trajectory_ca', 'trajectory_ct',
-    'trajectory_generator'
+    'convert_meas', 'model_switch', 'trajectory_cv', 'trajectory_ca',
+    'trajectory_ct', 'trajectory_generator'
 ]
 
 import numbers
@@ -24,6 +25,7 @@ import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
 import scipy.special as sl
+from tracklib.utils import sph2cart, pol2cart
 
 
 def F_poly(order, axis, T):
@@ -607,6 +609,39 @@ def R_ct(axis, std):
     assert (axis >= 2)
 
     return R_pos_only(axis, std)
+
+
+def convert_meas(z, R, elev=False):
+    if elev:
+        # coverted measurement
+        r, az, el = z[0], z[1], z[2]
+        var_r, var_az, var_el = R[0, 0], R[1, 1], R[2, 2]
+        lamb_az = np.exp(-var_az / 2)
+        lamb_el = np.exp(-var_el / 2)
+        z_cart = np.array(sph2cart(r, az, el), dtype=float)
+        z_cart[0] = z_cart[0] / lamb_az / lamb_el
+        z_cart[1] = z_cart[1] / lamb_az / lamb_el
+        z_cart[2] = z_cart[2] / lamb_el
+        # coverted covariance
+        r11 = (1 / (lamb_az * lamb_el)**2 - 2) * (r * np.cos(az) * np.cos(el))**2 + (r**2 + var_r) * (1 + lamb_az**4 * np.cos(2 * az)) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r22 = (1 / (lamb_az * lamb_el)**2 - 2) * (r * np.sin(az) * np.cos(el))**2 + (r**2 + var_r) * (1 - lamb_az**4 * np.cos(2 * az)) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r33 = (1 / lamb_el**2 - 2) * (r * np.sin(el))**2 + (r**2 + var_r) * (1 - lamb_el**4 * np.cos(2 * el)) / 2
+        r12 = (1 / (lamb_az * lamb_el)**2 - 2) * r**2 * np.sin(az) * np.cos(az) * np.cos(el)**2 + (r**2 + var_r) * lamb_az**4 * np.sin(2 * az) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r13 = (1 / (lamb_az * lamb_el**2) - 1 / lamb_az - lamb_az) * r**2 * np.cos(az) * np.sin(el) * np.cos(el) + (r**2 + var_r) * lamb_az * lamb_el**4 * np.cos(az) * np.sin(2 * el) / 2
+        r23 = (1 / (lamb_az * lamb_el**2) - 1 / lamb_az - lamb_az) * r**2 * np.sin(az) * np.sin(el) * np.cos(el) + (r**2 + var_r) * lamb_az * lamb_el**4 * np.sin(az) * np.sin(2 * el) / 2
+        R_cart = np.array([[r11, r12, r13], [r12, r22, r23], [r13, r23, r33]], dtype=float)
+    else:
+        # coverted measurement
+        r, az = z[0], z[1]
+        var_r, var_az = R[0, 0], R[1, 1]
+        lamb_az = np.exp(-var_az / 2)
+        z_cart = np.array(pol2cart(r, az), dtype=float) / lamb_az
+        # coverted covariance
+        r11 = (r**2 + var_r) / 2 * (1 + lamb_az**4 * np.cos(2 * az)) + (1 / lamb_az**2 - 2) * (r * np.cos(az))**2
+        r22 = (r**2 + var_r) / 2 * (1 - lamb_az**4 * np.cos(2 * az)) + (1 / lamb_az**2 - 2) * (r * np.sin(az))**2
+        r12 = (r**2 + var_r) / 2 * lamb_az**4 * np.sin(2 * az) + (1 / lamb_az**2 - 2) * r**2 * np.sin(az) * np.cos(az)
+        R_cart = np.array([[r11, r12], [r12, r22]], dtype=float)
+    return z_cart, R_cart
 
 
 def state_switch(state, type_in, type_out):
