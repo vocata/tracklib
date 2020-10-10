@@ -9,11 +9,6 @@ import tracklib.init as init
 import tracklib.model as model
 import tracklib.utils as utils
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):

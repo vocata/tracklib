@@ -8,11 +8,6 @@ import tracklib.init as init
 import tracklib.filter as ft
 import tracklib.model as model
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def EKFilter_test():
@@ -91,7 +86,7 @@ def EKFilter_test():
     ax.plot(n, post_state_arr[2, :], linewidth=0.8)
     ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
-    plt.show()
+    plt.show(block=False)
 
     print('x prior error variance {}'.format(prior_cov_arr[0, 0, -1]))
     print('x posterior error variance {}'.format(post_cov_arr[0, 0, -1]))
@@ -108,7 +103,7 @@ def EKFilter_test():
     ax.plot(n, post_cov_arr[2, 2, :], linewidth=0.8)
     ax.legend(['pred', 'esti'])
     ax.set_title('y error variance/mean square error')
-    plt.show()
+    plt.show(block=False)
 
     # trajectory
     fig = plt.figure()

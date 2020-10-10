@@ -6,11 +6,6 @@ import tracklib.filter as ft
 import tracklib.model as model
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def DMMF_DMMF_test():

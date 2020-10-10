@@ -2,16 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from numpy.core.shape_base import block
 import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def ABFilter_test():
@@ -81,7 +77,7 @@ def ABFilter_test():
     ax.plot(n, post_state_arr[2, :], linewidth=0.8)
     ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
-    plt.show()
+    plt.show(block=False)
 
     # trajectory
     fig = plt.figure()
@@ -166,7 +162,7 @@ def ABGFilter_test():
     ax.plot(n, post_state_arr[3, :], linewidth=0.8)
     ax.legend(['real', 'meas', 'pred', 'esti'])
     ax.set_title('y state')
-    plt.show()
+    plt.show(block=False)
 
     # trajectory
     fig = plt.figure()
