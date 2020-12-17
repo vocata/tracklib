@@ -346,7 +346,7 @@ def GTT_RBP_test():
     N = trajs_state.shape[0]
     entries = 5
     T = 5
-    Ns = 2000
+    Ns = 200
     Neff = Ns // 3
     df = 180
 
@@ -452,7 +452,7 @@ def GTT_RBP_TR_test():
     N = trajs_state.shape[0]
     entries = 5
     T = 5
-    Ns = 2000
+    Ns = 200
     Neff = Ns // 3
     df = 180
 

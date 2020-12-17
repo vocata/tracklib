@@ -7,7 +7,6 @@ import tracklib.init as init
 import tracklib.model as model
 import tracklib.tracker as tk
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 
 
 def png_to_fig():
@@ -17,7 +16,7 @@ def png_to_fig():
     imageio.mimsave('data/merge.gif', images, format='GIF', duration=0.1)
 
 
-def GNN_doppler():
+def GNN_doppler(save=False):
     # load data
     data = io.loadmat('pt_py.mat')
     dat_len = data['pt'].shape[1]
@@ -56,11 +55,12 @@ def GNN_doppler():
     # initialize the tracker
     tracker = tk.GNNTracker(ft_gen, ft_init, lgc, 35)
 
-    # tracking process
+    # variable recording the tracking
     state_history = {}
     line_history = {}
     clutters = None
 
+    # figure setting
     fig = plt.figure()
     ax = fig.add_subplot()
     ax.set_xlabel('x')
@@ -70,8 +70,10 @@ def GNN_doppler():
     ax.set_ylim([-1200, 1200])
     fig_m = plt.get_current_fig_manager()
     fig_m.window.showMaximized()
+
     plt.ion()
     for n in range(N):
+        # form the detection
         meas, cov = [], []
         for point in pt[n]:
             z = point[:3]
@@ -90,7 +92,7 @@ def GNN_doppler():
             y = np.concatenate((y, meas_arr[:, 1]))
             clutters.set_data(x, y)
 
-        # tracking
+        # tracking iteration
         tracker.add_detection(det)
         tracks = tracker.tracks()
 
@@ -111,11 +113,14 @@ def GNN_doppler():
         ax.set_title('trajectory, num: %d' % tracker.history_tracks_num())
         plt.draw_if_interactive()
         plt.pause(0.01)
-        plt.savefig('data/fig%d.png' % n)
+        if save:
+            plt.savefig('data/fig%d.png' % n)
     plt.ioff()
     plt.show()
+    if save:
+        png_to_fig()
 
 
 if __name__ == '__main__':
-    GNN_doppler()
-    png_to_fig()
+    save = False
+    GNN_doppler(save)
