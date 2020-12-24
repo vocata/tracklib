@@ -27,10 +27,10 @@ def DMMF_MMF_test():
             ]
         ],
         'noise':[np.eye(axis)],
-        'pd': [0.9],
         'entries': 1
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.9)
     traj_state, traj_meas = trajs_state[0], trajs_meas[0]
     N = traj_state.shape[0]
 

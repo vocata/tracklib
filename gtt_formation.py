@@ -1,4 +1,3 @@
-import time
 import numpy as np
 import scipy.io as io
 import scipy.stats as st
@@ -80,10 +79,10 @@ def GroupFormation():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])] * 5,
-        'pd': [1] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
     trajs_state = trajs_state[2]        # center
 
     for i in range(5):

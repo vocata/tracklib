@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from numpy.core.shape_base import block
 import tracklib as tlb
 import tracklib.filter as ft
 import tracklib.init as init

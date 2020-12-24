@@ -17,7 +17,8 @@ __all__ = [
     'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
     'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
     'convert_meas', 'model_switch', 'trajectory_cv', 'trajectory_ca',
-    'trajectory_ct', 'trajectory_generator'
+    'trajectory_ct', 'trajectory_generator', 'trajectory_with_pd',
+    'trajectory_to_meas'
 ]
 
 import numbers
@@ -884,7 +885,7 @@ def trajectory_ct(state, interval, length, turnrate, velocity=None):
         traj_ct[i] = head
     return traj_ct, head_ct
 
-def trajectory_generator(record, seed=0):
+def trajectory_generator(record):
     '''
     record = {
         'interval': [1, 1],
@@ -926,7 +927,6 @@ def trajectory_generator(record, seed=0):
     start = record['start']
     pattern = record['pattern']
     noise = record['noise']
-    pd = record['pd']
     entries = record['entries']
 
     trajs_state = []
@@ -960,9 +960,6 @@ def trajectory_generator(record, seed=0):
                 raise ValueError('invalid model')
         trajs_state.append(state)
 
-    random_state = np.random.get_state()
-    np.random.seed(seed)
-
     # add noise
     trajs_meas = []
     for i in range(entries):
@@ -971,13 +968,42 @@ def trajectory_generator(record, seed=0):
         noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len)
         trajs_meas.append(np.dot(trajs_state[i], H.T) + noi)
 
-    # remove some measurements according to `pd`
-    for i in range(entries):
-        traj_len = trajs_state[i].shape[0]
-        remove = st.uniform.rvs(size=traj_len) >= pd[i]
-        trajs_meas[i][remove] = np.nan
-
-    np.random.set_state(random_state)
-
-
     return trajs_state, trajs_meas
+
+
+def trajectory_with_pd(trajs_meas, pd=0.8):
+    for traj in trajs_meas:
+        traj_len = traj.shape[0]
+        remove_idx = st.uniform.rvs(size=traj_len) >= pd
+        traj[remove_idx] = np.nan
+    return trajs_meas
+
+
+def trajectory_to_meas(trajs_meas, lamb=0):
+    trajs_num = len(trajs_meas)
+    min_x, max_x = np.inf, -np.inf
+    min_y, max_y = np.inf, -np.inf
+    min_z, max_z = np.inf, -np.inf
+    max_traj_len = 0
+    for traj in trajs_meas:
+        min_x, max_x = min(min_x, traj[:, 0].min()), max(max_x, traj[:, 0].max())
+        min_y, max_y = min(min_y, traj[:, 1].min()), max(max_y, traj[:, 1].max())
+        min_z, max_z = min(min_z, traj[:, 2].min()), max(max_z, traj[:, 2].max())
+        max_traj_len = max(max_traj_len, len(traj))
+    trajs = []
+    for i in range(max_traj_len):
+        tmp = []
+        for j in range(trajs_num):
+            if i >= len(trajs_meas[j]) or np.any(np.isnan(trajs_meas[j][i])):
+                continue
+            tmp.append(trajs_meas[j][i])
+
+        clutter_num = st.poisson.rvs(lamb)
+        for j in range(clutter_num):
+            x = np.random.uniform(min_x, max_x)
+            y = np.random.uniform(min_y, max_y)
+            z = np.random.uniform(min_z, max_z)
+            tmp.append(np.array([x, y, z], dtype=float))
+        tmp = np.array(tmp, dtype=float).reshape(-1, 3)
+        trajs.append(tmp)
+    return trajs
