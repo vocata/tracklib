@@ -1,18 +1,12 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 import numpy as np
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import tracklib.utils as utils
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
@@ -88,10 +82,10 @@ def KochGTT_test():
             ],
         ],
         'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
@@ -262,10 +256,10 @@ def FeldmannGTT_test():
             ],
         ],
         'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
@@ -435,16 +429,16 @@ def LanGTT_test():
             ],
         ],
         'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
+    delta = 40
     entries = 5
     df = 50
-    delta = 40
 
     axis = 2
     zdim, xdim = 2, 4

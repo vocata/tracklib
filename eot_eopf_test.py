@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 import numpy as np
 import scipy.stats as st
 import tracklib.filter as ft
@@ -51,10 +50,10 @@ def EOT_test():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])],
-        'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     entries = 1
@@ -186,10 +185,10 @@ def EOT_RBP_test():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])],
-        'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     entries = 1
@@ -321,17 +320,17 @@ def EOT_RBP_TR_test():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])],
-        'pd': [1],
         'entries': 1
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record, seed=int(time.time()))
+    trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     entries = 1
     T = 10
     Ns = 2000
     Neff = Ns // 3
-    df = 200
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
     lamb = 20 / utils.ellip_volume(C)
 

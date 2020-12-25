@@ -6,8 +6,7 @@ __all__ = [
     'is_matrix', 'is_square', 'is_column', 'is_row', 'is_diag', 'is_symmetirc',
     'col', 'row', 'deg2rad', 'rad2deg', 'cart2pol', 'pol2cart', 'cart2sph',
     'sph2cart', 'rotate_matrix_rad', 'rotate_matrix_deg', 'ellip_volume',
-    'ellip_point', 'ellip_uniform', 'cholcov', 'multi_normal',
-    'disc_random'
+    'ellip_point', 'ellip_uniform', 'cholcov', 'multi_normal', 'disc_random'
 ]
 
 import numbers

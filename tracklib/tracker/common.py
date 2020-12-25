@@ -108,13 +108,13 @@ class ScoreLogic():
 
 class Detection():
     def __init__(self, meas, cov):
-        if isinstance(meas, np.ndarray):
+        if isinstance(meas, np.ndarray) and len(meas.shape) == 1:
             self._meas = (meas,)
         elif isinstance(meas, Iterable):
             self._meas = tuple(meas)
         else:
             raise TypeError("error 'meas' type: '%s'" % meas.__class__.__name__)
-        if isinstance(cov, np.ndarray):
+        if isinstance(cov, np.ndarray) and len(cov.shape) == 2:
             self._cov = (cov,)
         elif isinstance(cov, Iterable):
             self._cov = tuple(cov)

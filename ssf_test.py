@@ -7,11 +7,6 @@ import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def SSFilter_test():

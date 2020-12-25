@@ -5,6 +5,7 @@ REFERENCES:
 [2] R. A. Singer, "Estimating Optimal Tracking Filter Performance for Manned Maneuvering Targets," in IEEE Transactions on Aerospace and Electronic Systems, vol. AES-6, no. 4, pp. 473-483, July 1970.
 [3] X. Rong Li and V. P. Jilkov, "Survey of maneuvering target tracking. Part I. Dynamic models," in IEEE Transactions on Aerospace and Electronic Systems, vol. 39, no. 4, pp. 1333-1364, Oct. 2003.
 [4] W. Koch, "Tracking and Sensor Data Fusion: Methodological Framework and Selected Applications," Heidelberg, Germany: Springer, 2014.
+[5] Mo Longbin, Song Xiaoquan, Zhou Yiyu, Sun Zhong Kang and Y. Bar-Shalom, "Unbiased converted measurements for tracking," in IEEE Transactions on Aerospace and Electronic Systems, vol. 34, no. 3, pp. 1023-1027, July 1998
 '''
 from __future__ import division, absolute_import, print_function
 
@@ -15,8 +16,9 @@ __all__ = [
     'Q_cv_dc', 'Q_cv_dd', 'H_cv', 'h_cv', 'h_cv_jac', 'R_cv', 'F_ca', 'f_ca',
     'f_ca_jac', 'Q_ca_dc', 'Q_ca_dd', 'H_ca', 'h_ca', 'h_ca_jac', 'R_ca',
     'F_ct', 'f_ct', 'f_ct_jac', 'Q_ct', 'h_ct', 'h_ct_jac', 'R_ct',
-    'model_switch', 'trajectory_cv', 'trajectory_ca', 'trajectory_ct',
-    'trajectory_generator'
+    'convert_meas', 'model_switch', 'trajectory_cv', 'trajectory_ca',
+    'trajectory_ct', 'trajectory_generator', 'trajectory_with_pd',
+    'trajectory_to_meas'
 ]
 
 import numbers
@@ -24,6 +26,7 @@ import numpy as np
 import scipy.linalg as lg
 import scipy.stats as st
 import scipy.special as sl
+from tracklib.utils import sph2cart, pol2cart
 
 
 def F_poly(order, axis, T):
@@ -609,6 +612,39 @@ def R_ct(axis, std):
     return R_pos_only(axis, std)
 
 
+def convert_meas(z, R, elev=False):
+    if elev:
+        # coverted measurement
+        r, az, el = z[0], z[1], z[2]
+        var_r, var_az, var_el = R[0, 0], R[1, 1], R[2, 2]
+        lamb_az = np.exp(-var_az / 2)
+        lamb_el = np.exp(-var_el / 2)
+        z_cart = np.array(sph2cart(r, az, el), dtype=float)
+        z_cart[0] = z_cart[0] / lamb_az / lamb_el
+        z_cart[1] = z_cart[1] / lamb_az / lamb_el
+        z_cart[2] = z_cart[2] / lamb_el
+        # coverted covariance
+        r11 = (1 / (lamb_az * lamb_el)**2 - 2) * (r * np.cos(az) * np.cos(el))**2 + (r**2 + var_r) * (1 + lamb_az**4 * np.cos(2 * az)) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r22 = (1 / (lamb_az * lamb_el)**2 - 2) * (r * np.sin(az) * np.cos(el))**2 + (r**2 + var_r) * (1 - lamb_az**4 * np.cos(2 * az)) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r33 = (1 / lamb_el**2 - 2) * (r * np.sin(el))**2 + (r**2 + var_r) * (1 - lamb_el**4 * np.cos(2 * el)) / 2
+        r12 = (1 / (lamb_az * lamb_el)**2 - 2) * r**2 * np.sin(az) * np.cos(az) * np.cos(el)**2 + (r**2 + var_r) * lamb_az**4 * np.sin(2 * az) * (1 + lamb_el**4 * np.cos(2 * el)) / 4
+        r13 = (1 / (lamb_az * lamb_el**2) - 1 / lamb_az - lamb_az) * r**2 * np.cos(az) * np.sin(el) * np.cos(el) + (r**2 + var_r) * lamb_az * lamb_el**4 * np.cos(az) * np.sin(2 * el) / 2
+        r23 = (1 / (lamb_az * lamb_el**2) - 1 / lamb_az - lamb_az) * r**2 * np.sin(az) * np.sin(el) * np.cos(el) + (r**2 + var_r) * lamb_az * lamb_el**4 * np.sin(az) * np.sin(2 * el) / 2
+        R_cart = np.array([[r11, r12, r13], [r12, r22, r23], [r13, r23, r33]], dtype=float)
+    else:
+        # coverted measurement
+        r, az = z[0], z[1]
+        var_r, var_az = R[0, 0], R[1, 1]
+        lamb_az = np.exp(-var_az / 2)
+        z_cart = np.array(pol2cart(r, az), dtype=float) / lamb_az
+        # coverted covariance
+        r11 = (r**2 + var_r) / 2 * (1 + lamb_az**4 * np.cos(2 * az)) + (1 / lamb_az**2 - 2) * (r * np.cos(az))**2
+        r22 = (r**2 + var_r) / 2 * (1 - lamb_az**4 * np.cos(2 * az)) + (1 / lamb_az**2 - 2) * (r * np.sin(az))**2
+        r12 = (r**2 + var_r) / 2 * lamb_az**4 * np.sin(2 * az) + (1 / lamb_az**2 - 2) * r**2 * np.sin(az) * np.cos(az)
+        R_cart = np.array([[r11, r12], [r12, r22]], dtype=float)
+    return z_cart, R_cart
+
+
 def state_switch(state, type_in, type_out):
     dim = len(state)
     state = state.copy()
@@ -849,7 +885,7 @@ def trajectory_ct(state, interval, length, turnrate, velocity=None):
         traj_ct[i] = head
     return traj_ct, head_ct
 
-def trajectory_generator(record, seed=0):
+def trajectory_generator(record):
     '''
     record = {
         'interval': [1, 1],
@@ -891,7 +927,6 @@ def trajectory_generator(record, seed=0):
     start = record['start']
     pattern = record['pattern']
     noise = record['noise']
-    pd = record['pd']
     entries = record['entries']
 
     trajs_state = []
@@ -925,9 +960,6 @@ def trajectory_generator(record, seed=0):
                 raise ValueError('invalid model')
         trajs_state.append(state)
 
-    random_state = np.random.get_state()
-    np.random.seed(seed)
-
     # add noise
     trajs_meas = []
     for i in range(entries):
@@ -936,13 +968,42 @@ def trajectory_generator(record, seed=0):
         noi = st.multivariate_normal.rvs(cov=noise[i], size=traj_len)
         trajs_meas.append(np.dot(trajs_state[i], H.T) + noi)
 
-    # remove some measurements according to `pd`
-    for i in range(entries):
-        traj_len = trajs_state[i].shape[0]
-        remove = st.uniform.rvs(size=traj_len) >= pd[i]
-        trajs_meas[i][remove] = np.nan
-
-    np.random.set_state(random_state)
-
-
     return trajs_state, trajs_meas
+
+
+def trajectory_with_pd(trajs_meas, pd=0.8):
+    for traj in trajs_meas:
+        traj_len = traj.shape[0]
+        remove_idx = st.uniform.rvs(size=traj_len) >= pd
+        traj[remove_idx] = np.nan
+    return trajs_meas
+
+
+def trajectory_to_meas(trajs_meas, lamb=0):
+    trajs_num = len(trajs_meas)
+    min_x, max_x = np.inf, -np.inf
+    min_y, max_y = np.inf, -np.inf
+    min_z, max_z = np.inf, -np.inf
+    max_traj_len = 0
+    for traj in trajs_meas:
+        min_x, max_x = min(min_x, traj[:, 0].min()), max(max_x, traj[:, 0].max())
+        min_y, max_y = min(min_y, traj[:, 1].min()), max(max_y, traj[:, 1].max())
+        min_z, max_z = min(min_z, traj[:, 2].min()), max(max_z, traj[:, 2].max())
+        max_traj_len = max(max_traj_len, len(traj))
+    trajs = []
+    for i in range(max_traj_len):
+        tmp = []
+        for j in range(trajs_num):
+            if i >= len(trajs_meas[j]) or np.any(np.isnan(trajs_meas[j][i])):
+                continue
+            tmp.append(trajs_meas[j][i])
+
+        clutter_num = st.poisson.rvs(lamb)
+        for j in range(clutter_num):
+            x = np.random.uniform(min_x, max_x)
+            y = np.random.uniform(min_y, max_y)
+            z = np.random.uniform(min_z, max_z)
+            tmp.append(np.array([x, y, z], dtype=float))
+        tmp = np.array(tmp, dtype=float).reshape(-1, 3)
+        trajs.append(tmp)
+    return trajs
