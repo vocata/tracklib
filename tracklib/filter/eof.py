@@ -108,7 +108,7 @@ class FeldmannEOFilter(EOFilterBase):
         self._dim = dim
 
     def init(self, state, cov, df, extension):
-        self._df = df
+        self._df = df - self._dim - 1
 
         self._state = state.copy()
         self._cov = cov.copy()
@@ -120,7 +120,7 @@ class FeldmannEOFilter(EOFilterBase):
             raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = np.dot(self._F, self._state)
-        self._cov = self._F @ self._cov @ self._F.T + np.kron(self._ext, self._Q)
+        self._cov = self._F @ self._cov @ self._F.T + self._Q
         self._cov = (self._cov + self._cov.T) / 2
         self._ext = self._ext
         self._df = 2 + self._at * (self._df - 2)

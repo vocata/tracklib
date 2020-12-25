@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 import numpy as np
 import scipy.io as io
 import tracklib.filter as ft
@@ -24,8 +23,6 @@ def GTT_Koch_test():
     N = trajs_state.shape[0]
     entries = 5
     T = 5
-    Ns = 2000
-    Neff = Ns // 3
     tau = 4 * T
     df = 60
 
@@ -132,19 +129,17 @@ def GTT_Feldmann_test():
     N = trajs_state.shape[0]
     entries = 5
     T = 5
-    Ns = 2000
-    Neff = Ns // 3
     df = 60
     tau = 4 * T
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = [25, 25]
     sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dc(1, T, sigma_w)
+    Q = model.Q_cv_dc(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
     eopf = ft.FeldmannEOFilter(F, H, Q, R, T, tau)
@@ -238,8 +233,6 @@ def GTT_Lan_test():
     N = trajs_state.shape[0]
     entries = 5
     T = 5
-    Ns = 2000
-    Neff = Ns // 3
     delta = 40
     tau = 8 * T
     df = 60
