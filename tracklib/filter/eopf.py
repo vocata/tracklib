@@ -38,7 +38,8 @@ class EOPFilter(EOFilterBase):
         self._cov = cov.copy()
         self._ext = extension.copy()
 
-        self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        # self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        self._state_samples = np.full((self._Ns, state.shape[0]), state, dtype=float)
         self._ext_samples = st.wishart.rvs(df, extension / df, self._Ns)
         self._weights = np.full(self._Ns, 1 / self._Ns, dtype=float)
         self._init = True
@@ -59,11 +60,11 @@ class EOPFilter(EOFilterBase):
         ]
 
         # compute prior extension, state and covariance
-        self._ext = 0
         self._state = 0
+        self._ext = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
+            self._ext += self._weights[i] * self._ext_samples[i]
         self._ext = (self._ext + self._ext.T) / 2
         self._cov = 0
         for i in range(self._Ns):
@@ -107,11 +108,11 @@ class EOPFilter(EOFilterBase):
         self._weights /= self._weights.sum()
 
         # compute posterior extension, state and covariance
-        self._ext = 0
         self._state = 0
+        self._ext = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
+            self._ext += self._weights[i] * self._ext_samples[i]
         self._ext = (self._ext + self._ext.T) / 2
         self._cov = 0
         for i in range(self._Ns):
@@ -156,7 +157,8 @@ class EORBPFilter(EOFilterBase):
         self._cov = cov.copy()
         self._ext = extension.copy()
 
-        self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        # self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        self._state_samples = np.full((self._Ns, state.shape[0]), state, dtype=float)
         self._cov_samples = np.full((self._Ns, cov.shape[0], cov.shape[1]), cov)
         self._ext_samples = st.wishart.rvs(df, extension / df, self._Ns)
         self._weights = np.full(self._Ns, 1 / self._Ns, dtype=float)
@@ -168,20 +170,20 @@ class EORBPFilter(EOFilterBase):
 
         # update samples
         for i in range(self._Ns):
-            self._ext_samples[i] = st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
             self._state_samples[i] = np.dot(self._F, self._state_samples[i])
             self._cov_samples[i] = self._F @ self._cov_samples[i] @ self._F.T + np.kron(self._ext_samples[i], self._D)
+            self._ext_samples[i] = st.wishart.rvs(self._df, self._ext_samples[i] / self._df)
 
         # compute prior extension, state and covariance
-        self._ext = 0
         self._state = 0
         self._cov = 0
+        self._ext = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
             self._cov += self._weights[i] * self._cov_samples[i]
-        self._ext = (self._ext + self._ext.T) / 2
+            self._ext += self._weights[i] * self._ext_samples[i]
         self._cov = (self._cov + self._cov.T) / 2
+        self._ext = (self._ext + self._ext.T) / 2
 
         return self._state, self._cov, self._ext
 
@@ -243,15 +245,15 @@ class EORBPFilter(EOFilterBase):
         self._weights /= self._weights.sum()
 
         # compute posterior extension, state and covariance
-        self._ext = 0
         self._state = 0
         self._cov = 0
+        self._ext = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
             self._cov += self._weights[i] * self._cov_samples[i]
-        self._ext = (self._ext + self._ext.T) / 2
+            self._ext += self._weights[i] * self._ext_samples[i]
         self._cov = (self._cov + self._cov.T) / 2
+        self._ext = (self._ext + self._ext.T) / 2
 
         # resample
         Neff = 1 / (self._weights**2).sum()
@@ -294,7 +296,8 @@ class TurnRateEORBPFilter(EOFilterBase):
         self._ext = extension.copy()
         self._omega = omega
 
-        self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        # self._state_samples = st.multivariate_normal.rvs(state, cov, self._Ns)
+        self._state_samples = np.full((self._Ns, state.shape[0]), state, dtype=float)
         self._cov_samples = np.full((self._Ns, cov.shape[0], cov.shape[1]), cov)
         self._ext_samples = st.wishart.rvs(df, extension / df, self._Ns)
         self._omega_samples = st.norm.rvs(omega, self._omega_std, self._Ns)
@@ -307,24 +310,24 @@ class TurnRateEORBPFilter(EOFilterBase):
 
         # update samples
         for i in range(self._Ns):
+            self._state_samples[i] = np.dot(self._F, self._state_samples[i])
+            self._cov_samples[i] = self._F @ self._cov_samples[i] @ self._F.T + np.kron(self._ext_samples[i], self._D)
             A = rotate_matrix_deg(self._omega_samples[i] * self._T)
             self._ext_samples[i] = st.wishart.rvs(self._df, A @ self._ext_samples[i] @ A.T / self._df)
             self._omega_samples[i] = st.norm.rvs(self._omega_samples[i], self._omega_std)
-            self._state_samples[i] = np.dot(self._F, self._state_samples[i])
-            self._cov_samples[i] = self._F @ self._cov_samples[i] @ self._F.T + np.kron(self._ext_samples[i], self._D)
 
         # compute prior extension, state and covariance
-        self._ext = 0
         self._state = 0
         self._cov = 0
+        self._ext = 0
         self._omega = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
             self._cov += self._weights[i] * self._cov_samples[i]
+            self._ext += self._weights[i] * self._ext_samples[i]
             self._omega += self._weights[i] * self._omega_samples[i]
-        self._ext = (self._ext + self._ext.T) / 2
         self._cov = (self._cov + self._cov.T) / 2
+        self._ext = (self._ext + self._ext.T) / 2
 
         return self._state, self._cov, self._ext
 
@@ -386,17 +389,17 @@ class TurnRateEORBPFilter(EOFilterBase):
         self._weights /= self._weights.sum()
 
         # compute posterior extension, state and covariance
-        self._ext = 0
         self._state = 0
         self._cov = 0
+        self._ext = 0
         self._omega = 0
         for i in range(self._Ns):
-            self._ext += self._weights[i] * self._ext_samples[i]
             self._state += self._weights[i] * self._state_samples[i]
             self._cov += self._weights[i] * self._cov_samples[i]
+            self._ext += self._weights[i] * self._ext_samples[i]
             self._omega += self._weights[i] * self._omega_samples[i]
-        self._ext = (self._ext + self._ext.T) / 2
         self._cov = (self._cov + self._cov.T) / 2
+        self._ext = (self._ext + self._ext.T) / 2
 
         # resample
         Neff = 1 / (self._weights**2).sum()

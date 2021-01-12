@@ -269,12 +269,12 @@ def FeldmannGTT_test():
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 5
     sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)
+    Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
     eof = ft.FeldmannEOFilter(F, H, Q, R, T, tau)

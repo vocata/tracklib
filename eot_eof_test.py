@@ -200,12 +200,12 @@ def FeldmannEOT_test():
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.01
+    sigma_w = 5
     sigma_v = [50, 50]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)    # single dimension process noise cov
+    Q = model.Q_cv_dd(axis, T, sigma_w)    # single dimension process noise cov
     R = model.R_cv(axis, sigma_v)
 
     theta = [-45]
