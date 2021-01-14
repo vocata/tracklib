@@ -13,110 +13,75 @@ def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
 
 def GroupFormation():
     record = {
-        'interval': [5] * 5,
+        'interval': [10] * 5,
         'start': [
-            [0, 0, 0],
-            [0, 500, 0],
-            [0, 1000, 0],
-            [0, 1500, 0],
-            [0, 2000, 0],
+            [1000, 20000, 0],
+            [1000, 20500, 0],
+            [1000, 21000, 0],
+            [1000, 21500, 0],
+            [1000, 22000, 0],
         ],
         'pattern': [
             [
-                {'model': 'cv', 'length': 30, 'velocity': [300, 0, 0]},
-                {'model': 'ct', 'length': 40, 'turnrate': 360/200, 'velocity': 300+2000*np.pi/100},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+2000*np.pi/40},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+2000*np.pi/40},
-                {'model': 'cv', 'length': 40, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': -10/20},
-                {'model': 'cv', 'length': 20, 'velocity': 300},
+                {'model': 'cv', 'length': 29, 'velocity': [300, 0, 0]},
             ],
             [
-                {'model': 'cv', 'length': 30, 'velocity': [300, 0, 0]},
-                {'model': 'ct', 'length': 40, 'turnrate': 360/200, 'velocity': 300+1500*np.pi/100},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+1500*np.pi/40},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+1500*np.pi/40},
-                {'model': 'cv', 'length': 40, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': -5/20},
-                {'model': 'cv', 'length': 20, 'velocity': 300},
+                {'model': 'cv', 'length': 29, 'velocity': [300, 0, 0]},
             ],
             [
-                {'model': 'cv', 'length': 30, 'velocity': [300, 0, 0]},
-                {'model': 'ct', 'length': 40, 'turnrate': 360/200, 'velocity': 300+1000*np.pi/100},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+1000*np.pi/40},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+1000*np.pi/40},
-                {'model': 'cv', 'length': 40, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 0/20},
-                {'model': 'cv', 'length': 20, 'velocity': 300},
+                {'model': 'cv', 'length': 29, 'velocity': [300, 0, 0]},
             ],
             [
-                {'model': 'cv', 'length': 30, 'velocity': [300, 0, 0]},
-                {'model': 'ct', 'length': 40, 'turnrate': 360/200, 'velocity': 300+500*np.pi/100},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+500*np.pi/40},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20, 'velocity': 300+500*np.pi/40},
-                {'model': 'cv', 'length': 40, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 5/20},
-                {'model': 'cv', 'length': 20, 'velocity': 300},
+                {'model': 'cv', 'length': 29, 'velocity': [300, 0, 0]},
             ],
             [
-                {'model': 'cv', 'length': 30, 'velocity': [300, 0, 0]},
-                {'model': 'ct', 'length': 40, 'turnrate': 360/200},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20},
-                {'model': 'cv', 'length': 30, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 90/20},
-                {'model': 'cv', 'length': 40, 'velocity': 300},
-                {'model': 'ct', 'length': 4, 'turnrate': 10/20},
-                {'model': 'cv', 'length': 20, 'velocity': 300},
+                {'model': 'cv', 'length': 29, 'velocity': [300, 0, 0]},
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])] * 5,
         'entries': 5
     }
-    trajs_state, trajs_meas = model.trajectory_generator(record)
-    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
-    trajs_state = trajs_state[2]        # center
+    trajs_state, real_trajs = model.trajectory_generator(record)
+    real_trajs = model.trajectory_with_pd(real_trajs, pd=1)
 
     for i in range(5):
-        origin = trajs_meas[2][10 + i, :-1]
+        real_trajs[i] = real_trajs[i][:, :-1]
+
+    for i in range(5):
+        origin = real_trajs[2][10 + i]
         A = utils.rotate_matrix_deg(-18 * (i + 1))
         for j in range(5):
-            trajs_meas[j][10 + i, :-1] = origin + (A @ (trajs_meas[j][10 + i, :-1] - origin))
-    for i in range(75):
-        origin = trajs_meas[2][15 + i, :-1]
-        A = utils.rotate_matrix_deg(90)
+            real_trajs[j][10 + i] = origin + (A @ (real_trajs[j][10 + i] - origin))
+    for i in range(15):
+        origin = real_trajs[2][15 + i]
+        A = utils.rotate_matrix_deg(-90)
         for j in range(5):
-            trajs_meas[j][15 + i, :-1] = origin + (A @ (trajs_meas[j][15 + i, :-1] - origin))
-    for i in range(5):
-        origin = trajs_meas[2][90 + i, :-1]
-        A = utils.rotate_matrix_deg(-90 + 18 * (i + 1))
-        for j in range(5):
-            trajs_meas[j][90 + i, :-1] = origin + (A @ (trajs_meas[j][90 + i, :-1] - origin))
+            real_trajs[j][15 + i] = origin + (A @ (real_trajs[j][15 + i] - origin))
 
-    R = model.R_cv(3, [500, 100, 0])
-    pd = 0.9
-    N = trajs_state.shape[0]
+    R = model.R_cv(3, [500, 100])
+    pd = 0.8
+    N = trajs_state[2].shape[0]
     # print(N)
 
+    trajs_meas = []
     # add noise
     for i in range(5):
         noi = st.multivariate_normal.rvs(cov=R, size=N)
-        trajs_meas[i] += noi
+        trajs_meas.append(real_trajs[i] + noi)
 
     # remove some measurements according to `pd`
-    for i in range(5):
-        remove = st.uniform.rvs(size=N - 1) >= pd
-        trajs_meas[i][1:][remove] = np.nan
+    trajs_meas_remove = []
+    for i in range(N):
+        remove = st.uniform.rvs(size=5) >= pd
+        while remove.sum() == 5:
+            remove = st.uniform.rvs(size=5) >= pd
+        tmp = []
+        for j in range(5):
+            if not remove[j]:
+                tmp.append(trajs_meas[j][i])
+        trajs_meas_remove.append(np.array(tmp, dtype=float))
 
-    return trajs_state, trajs_meas
+    return real_trajs, trajs_meas_remove
 
     # trajectory
     fig = plt.figure()
@@ -131,9 +96,9 @@ def GroupFormation():
 
 
 if __name__ == '__main__':
-    trajs_state, trajs_meas = [], []
+    real_trajs, trajs_meas = [], []
     for i in range(500):
-        state, meas = GroupFormation()
-        trajs_state.append(state)
+        trajs, meas = GroupFormation()
+        real_trajs.append(trajs)
         trajs_meas.append(meas)
-    io.savemat('gtt_data.mat', {'trajs_state': trajs_state, 'trajs_meas': trajs_meas})
+    io.savemat('gtt_data.mat', {'real_trajs': real_trajs[0], 'trajs_meas': trajs_meas})
