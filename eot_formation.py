@@ -8,7 +8,7 @@ import tracklib.model as model
 import tracklib.utils as utils
 
 
-def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=0.8):
+def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=1):
     N = trajs.shape[0]
     trajs_ellip = []
     real_ellip = []
@@ -54,8 +54,6 @@ def ExtendedObjectFormation():
     trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
     trajs_state = trajs_state[0]
 
-    N = trajs_state[0].shape[0]
-    T = 10
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -65,20 +63,20 @@ def ExtendedObjectFormation():
 
     theta = [-45]
     theta.extend([0] * 41)
-    theta.extend([45 / 9 for i in range(9)])
+    theta.extend([45 / 9 for _ in range(9)])
     theta.extend([0] * 27)
-    theta.extend([90 / 15 for i in range(15)])
+    theta.extend([90 / 15 for _ in range(15)])
     theta.extend([0] * 18)
-    theta.extend([90 / 15 for i in range(15)])
+    theta.extend([90 / 15 for _ in range(15)])
     theta.extend([0] * 54)
-    trajs_meas_ellip, real_ellip = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20, 0.8)
+    trajs_meas_ellip, real_ellip = gen_ellipse_uniform(trajs_meas[0][:, :-1], C, R, theta, 20)
 
     return trajs_state, trajs_meas_ellip, real_ellip
 
 
 if __name__ == '__main__':
     trajs_state, trajs_meas, real_ellip = [], [], []
-    for i in range(500):
+    for i in range(1000):
         state, meas, ellip = ExtendedObjectFormation()
         trajs_state.append(state)
         trajs_meas.append(meas)

@@ -47,7 +47,7 @@ class KochEOFilter(EOFilterBase):
         self._scale = w * self._scale
 
         # predict joint state
-        self._ext = self._scale / (self._df - self._dim - 1)
+        self._ext = self._scale / (self._df - self._dim - 1) * 2
         self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
         self._single_cov = (self._single_cov + self._single_cov.T) / 2
         df_tilde = self._df + len(self._state) // self._dim + len(self._state)
@@ -78,7 +78,7 @@ class KochEOFilter(EOFilterBase):
         self._scale += N + Z
 
         # correct joint state
-        self._ext = self._scale / (self._df - self._dim - 1)
+        self._ext = self._scale / (self._df - self._dim - 1) * 2
         self._single_cov -= K @ S @ K.T
         self._single_cov = (self._single_cov + self._single_cov.T) / 2
         df_tilde = self._df + len(self._state) // self._dim + len(self._state)

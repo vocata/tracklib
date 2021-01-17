@@ -3,7 +3,6 @@
 
 import numpy as np
 import scipy.io as io
-import scipy.linalg as lg
 import tracklib.filter as ft
 import tracklib.init as init
 import tracklib.model as model
@@ -28,7 +27,7 @@ def GTT_Koch_test(epoch):
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.1
     sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
@@ -127,7 +126,7 @@ def GTT_Feldmann_test(epoch):
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 5
+    sigma_w = 30
     sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
@@ -219,12 +218,12 @@ def GTT_Lan_test(epoch):
 
     N = real_trajs.shape[0]
     T = 10
-    delta = 40
+    delta = 10
     df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.1
     sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
@@ -315,7 +314,7 @@ if __name__ == '__main__':
     # koch approach
     koch_state, koch_ext = 0., 0.
     _, _, real_trajs = GTT_Koch_test(0)
-    for i in range(500):
+    for i in range(1000):
         state, ext, _ = GTT_Koch_test(i)
         print(i)
         koch_state = i * koch_state / (i + 1) + state / (i + 1)
@@ -335,7 +334,7 @@ if __name__ == '__main__':
     feldmann_state, feldmann_ext = 0., 0.
     _, _, real_trajs = GTT_Feldmann_test(0)
     feldmann_pos_err, feldmann_vel_err = 0., 0.
-    for i in range(500):
+    for i in range(1000):
         state, ext, _ = GTT_Feldmann_test(i)
         print(i)
         feldmann_state = i * feldmann_state / (i + 1) + state / (i + 1)
@@ -354,7 +353,7 @@ if __name__ == '__main__':
     # lan approach
     lan_state, lan_ext = 0., 0.
     _, _, real_trajs = GTT_Lan_test(0)
-    for i in range(500):
+    for i in range(1000):
         state, ext, _ = GTT_Lan_test(i)
         print(i)
         lan_state = i * lan_state / (i + 1) + state / (i + 1)

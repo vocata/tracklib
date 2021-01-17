@@ -221,7 +221,7 @@ def GTT_Lan_test(epoch):
 
     N = trajs_state.shape[0]
     T = 10
-    delta = 40
+    delta = 50
     df = 60
 
     axis = 2
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     real_pos = trajs_state[:, [0, 3]]
     real_vel = trajs_state[:, [1, 4]]
     koch_ext_err, koch_pos_err, koch_vel_err = 0., 0., 0.
-    for i in range(500):
+    for i in range(1000):
         state, ext, _, _ = GTT_Koch_test(i)
         print(i)
         koch_state = i * koch_state / (i + 1) + state / (i + 1)
@@ -348,7 +348,7 @@ if __name__ == '__main__':
     real_pos = trajs_state[:, [0, 3]]
     real_vel = trajs_state[:, [1, 4]]
     feldmann_ext_err, feldmann_pos_err, feldmann_vel_err = 0., 0., 0.
-    for i in range(500):
+    for i in range(1000):
         state, ext, _, _ = GTT_Feldmann_test(i)
         print(i)
         feldmann_state = i * feldmann_state / (i + 1) + state / (i + 1)
@@ -377,7 +377,7 @@ if __name__ == '__main__':
     real_pos = trajs_state[:, [0, 3]]
     real_vel = trajs_state[:, [1, 4]]
     lan_ext_err, lan_pos_err, lan_vel_err = 0., 0., 0.
-    for i in range(500):
+    for i in range(1000):
         state, ext, _, _ = GTT_Lan_test(i)
         print(i)
         lan_state = i * lan_state / (i + 1) + state / (i + 1)

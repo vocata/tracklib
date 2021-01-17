@@ -10,7 +10,7 @@ import tracklib.utils as utils
 import matplotlib.pyplot as plt
 
 
-def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=0.8):
+def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=1):
     N = trajs.shape[0]
     trajs_ellip = []
     real_ellip = []
