@@ -59,7 +59,7 @@ def KochEOT_test():
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -195,7 +195,7 @@ def FeldmannEOT_test():
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -327,9 +327,9 @@ def LanEOT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
+    delta = 50
     entries = 1
-    df = 50
-    delta = 40
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
