@@ -72,15 +72,15 @@ class EOFilterBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def correct(self, z, **kwargs):
+    def correct(self, zs, **kwargs):
         pass
 
     @abc.abstractmethod
-    def distance(self, z, **kwargs):
+    def distance(self, zs, **kwargs):
         pass
 
     @abc.abstractmethod
-    def likelihood(self, z, **kwargs):
+    def likelihood(self, zs, **kwargs):
         pass
 
     @property

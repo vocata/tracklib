@@ -88,11 +88,11 @@ class KochEOFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class FeldmannEOFilter(EOFilterBase):
@@ -157,11 +157,11 @@ class FeldmannEOFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class LanEOFilter(EOFilterBase):
@@ -237,8 +237,8 @@ class LanEOFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)

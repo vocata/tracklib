@@ -130,11 +130,11 @@ class EOPFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class EORBPFilter(EOFilterBase):
@@ -266,11 +266,11 @@ class EORBPFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class TurnRateEORBPFilter(EOFilterBase):
@@ -413,11 +413,11 @@ class TurnRateEORBPFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
     def omega(self):
         return self._omega
