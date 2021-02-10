@@ -7,11 +7,6 @@ import tracklib.filter as ft
 import tracklib.model as model
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def DMMF_test():
@@ -30,10 +25,10 @@ def DMMF_test():
             ]
         ],
         'noise':[np.eye(axis)],
-        'pd': [0.9],
         'entries': 1
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.9)
     traj_state, traj_meas = trajs_state[0], trajs_meas[0]
     N = traj_state.shape[0]
 

@@ -7,11 +7,6 @@ import tracklib.init as init
 import tracklib.model as model
 import tracklib.utils as utils
 import matplotlib.pyplot as plt
-'''
-notes:
-vector is preferably a column vector, otherwise
-the program may yield uncertain result.
-'''
 
 
 def plot_ellipse(ax, x0, y0, C, N, *args, **kwargs):
@@ -86,22 +81,22 @@ def KochGTT_test():
                 {'model': 'cv', 'length': 10, 'velocity': 300},
             ],
         ],
-        'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
+        'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 5
-    df = 50
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
-    sigma_v = [100., 100.]
+    sigma_w = 0.1
+    sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
     H = model.H_cv(1)
@@ -260,26 +255,26 @@ def FeldmannGTT_test():
                 {'model': 'cv', 'length': 10, 'velocity': 300},
             ],
         ],
-        'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
+        'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 5
-    df = 50
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
-    sigma_v = [100., 100.]
+    sigma_w = 30
+    sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)
+    Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
     eof = ft.FeldmannEOFilter(F, H, Q, R, T, tau)
@@ -433,22 +428,22 @@ def LanGTT_test():
                 {'model': 'cv', 'length': 10, 'velocity': 300},
             ],
         ],
-        'noise': [model.R_cv(3, [100., 100., 0.])] * 5,
-        'pd': [0.8] * 5,
+        'noise': [model.R_cv(3, [500., 100., 0.])] * 5,
         'entries': 5
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=0.8)
 
     N = trajs_state[0].shape[0]
     T = 10
+    delta = 10
     entries = 5
-    df = 50
-    delta = 40
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
-    sigma_v = [100., 100.]
+    sigma_w = 0.1
+    sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
     H = model.H_cv(1)

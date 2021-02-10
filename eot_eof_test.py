@@ -10,7 +10,7 @@ import tracklib.utils as utils
 import matplotlib.pyplot as plt
 
 
-def gen_ellipse_uniform(trajs, C, R, theta, lamb):
+def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=1):
     N = trajs.shape[0]
     trajs_ellip = []
     real_ellip = []
@@ -22,6 +22,11 @@ def gen_ellipse_uniform(trajs, C, R, theta, lamb):
         z = utils.ellip_uniform(real_ellip[i], pt_N)
         z += st.multivariate_normal.rvs(cov=R, size=pt_N)
         z += trajs[i]
+        idx = []
+        for j in range(pt_N):
+            if np.random.rand() < pd:
+                idx.append(j)
+        z = z[idx]
         trajs_ellip.append(z)
     return trajs_ellip, real_ellip
 
@@ -45,16 +50,16 @@ def KochEOT_test():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])],
-        'pd': [1],
         'entries': 1
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -181,26 +186,26 @@ def FeldmannEOT_test():
             ],
         ],
         'noise': [model.R_cv(3, [0., 0., 0.])],
-        'pd': [1],
         'entries': 1
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.01
+    sigma_w = 5
     sigma_v = [50, 50]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)    # single dimension process noise cov
+    Q = model.Q_cv_dd(axis, T, sigma_w)    # single dimension process noise cov
     R = model.R_cv(axis, sigma_v)
 
     theta = [-45]
@@ -318,12 +323,13 @@ def LanEOT_test():
         'entries': 1
     }
     trajs_state, trajs_meas = model.trajectory_generator(record)
+    trajs_meas = model.trajectory_with_pd(trajs_meas, pd=1)
 
     N = trajs_state[0].shape[0]
     T = 10
+    delta = 50
     entries = 1
-    df = 50
-    delta = 40
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2

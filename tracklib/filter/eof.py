@@ -28,7 +28,7 @@ class KochEOFilter(EOFilterBase):
 
     def init(self, state, cov, df, extension):
         self._df = df
-        self._scale = extension * (df - 2 * self._dim - 2)
+        self._scale = extension * (df - self._dim - 1)
         self._single_cov = cov.copy()
 
         self._state = state.copy()
@@ -43,14 +43,15 @@ class KochEOFilter(EOFilterBase):
         # predict inverse wishart parameters
         df = self._df
         self._df = self._at * self._df
-        w = (self._df - 2 * self._dim - 2) / (df - 2 * self._dim - 2)
+        w = (self._df - self._dim - 1) / (df - self._dim - 1)
         self._scale = w * self._scale
 
         # predict joint state
-        self._ext = self._scale / (self._df - 2 * self._dim - 2)
+        self._ext = self._scale / (self._df - self._dim - 1) * 2
         self._single_cov = self._F @ self._single_cov @ self._F.T + self._D
         self._single_cov = (self._single_cov + self._single_cov.T) / 2
-        self._cov = np.kron(self._ext, self._single_cov)
+        df_tilde = self._df + len(self._state) // self._dim + len(self._state)
+        self._cov = np.kron(self._ext, self._single_cov) / (df_tilde - 2)
         F_tilde = np.kron(np.eye(self._dim), self._F)
         self._state = np.dot(F_tilde, self._state)
 
@@ -77,20 +78,21 @@ class KochEOFilter(EOFilterBase):
         self._scale += N + Z
 
         # correct joint state
-        self._ext = self._scale / (self._df - 2 * self._dim - 2)
+        self._ext = self._scale / (self._df - self._dim - 1) * 2
         self._single_cov -= K @ S @ K.T
         self._single_cov = (self._single_cov + self._single_cov.T) / 2
-        self._cov = np.kron(self._ext, self._single_cov)
+        df_tilde = self._df + len(self._state) // self._dim + len(self._state)
+        self._cov = np.kron(self._ext, self._single_cov) / (df_tilde - 2)
         K_tilde = np.kron(np.eye(self._dim), K)
         self._state += np.dot(K_tilde, eps)
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class FeldmannEOFilter(EOFilterBase):
@@ -106,7 +108,7 @@ class FeldmannEOFilter(EOFilterBase):
         self._dim = dim
 
     def init(self, state, cov, df, extension):
-        self._df = df
+        self._df = df - self._dim - 1
 
         self._state = state.copy()
         self._cov = cov.copy()
@@ -118,7 +120,7 @@ class FeldmannEOFilter(EOFilterBase):
             raise RuntimeError('filter must be initialized with init() before use')
 
         self._state = np.dot(self._F, self._state)
-        self._cov = self._F @ self._cov @ self._F.T + np.kron(self._ext, self._Q)
+        self._cov = self._F @ self._cov @ self._F.T + self._Q
         self._cov = (self._cov + self._cov.T) / 2
         self._ext = self._ext
         self._df = 2 + self._at * (self._df - 2)
@@ -155,11 +157,11 @@ class FeldmannEOFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)
 
 
 class LanEOFilter(EOFilterBase):
@@ -235,8 +237,8 @@ class LanEOFilter(EOFilterBase):
 
         return self._state, self._cov, self._ext
 
-    def distance(self, z, **kwargs):
-        return super().distance(z, **kwargs)
+    def distance(self, zs, **kwargs):
+        return super().distance(zs, **kwargs)
 
-    def likelihood(self, z, **kwargs):
-        return super().likelihood(z, **kwargs)
+    def likelihood(self, zs, **kwargs):
+        return super().likelihood(zs, **kwargs)

@@ -102,6 +102,7 @@ class JPDATrack():
         self._id = -1
         self._age = 1
         self._has_confirmed = False
+        self._is_coasted = False
 
     def _predict(self):
         self._ft.predict()
@@ -117,11 +118,13 @@ class JPDATrack():
                 self._ctr.increase()
                 self._has_confirmed = True
         self._age += 1
+        self._is_coasted = False
 
     def _coast(self):
         if isinstance(self._lgc, HistoryLogic):
             self._lgc.miss()
         self._age += 1
+        self._is_coasted = True
 
     def _distance(self, z, R):
         return self._ft.distance(z, R=R)
@@ -142,6 +145,10 @@ class JPDATrack():
 
     def logic(self):
         return self._lgc
+
+    @property
+    def is_coasted(self):
+        return self._is_coasted
 
     @property
     def state(self):

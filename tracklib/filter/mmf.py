@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
 The static multiple model filter can use other types of Kalman filters as its submodels
-for filtering. Currently supported filters are stardard Kalman filter, extended Kalman
+for filtering. Currently supported filters include stardard Kalman filter, extended Kalman
 filter and unscented Kalman filter. For the non-linear system with additive Gaussian noise,
-this multiple model filter can be used as Gaussian sum filter which by setting different initial
+this multiple model filter can be used as Gaussian sum filter by setting different initial
 state and convariance of each non-linear filters or submodels and viewing model probability
 as weight of each Gaussian density constituting the Gaussian mixture.
 

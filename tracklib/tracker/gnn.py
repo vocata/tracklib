@@ -24,6 +24,7 @@ class GNNTrack():
         self._id = -1
         self._age = 1
         self._has_confirmed = False
+        self._is_coasted = False
 
     def _predict(self):
         self._ft.predict()
@@ -42,6 +43,7 @@ class GNNTrack():
                 self._ctr.increase()
                 self._has_confirmed = True
         self._age += 1
+        self._is_coasted = False
 
     def _coast(self):
         # update logic
@@ -50,6 +52,7 @@ class GNNTrack():
         if isinstance(self._lgc, ScoreLogic):
             self._lgc.miss()
         self._age += 1
+        self._is_coasted = True
 
     def _distance(self, z, R):
         return self._ft.distance(z, R=R)
@@ -74,6 +77,10 @@ class GNNTrack():
 
     def logic(self):
         return self._lgc
+
+    @property
+    def is_coasted(self):
+        return self._is_coasted
 
     @property
     def state(self):
@@ -186,8 +193,7 @@ class GNNTracker():
             cost_zero = np.zeros((meas_num, track_num))
             for ti in range(track_num):
                 for mi in range(meas_num):
-                    z, R = detection[mi]
-                    cost_main[ti, mi] = tracks[ti]._distance(z, R)
+                    cost_main[ti, mi] = tracks[ti]._distance(*detection[mi])
             cost_mat = np.block([[cost_main, virt_det], [virt_track, cost_zero]])
 
             # find best assignment
