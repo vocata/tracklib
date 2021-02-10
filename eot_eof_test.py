@@ -10,7 +10,7 @@ import tracklib.utils as utils
 import matplotlib.pyplot as plt
 
 
-def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=0.8):
+def gen_ellipse_uniform(trajs, C, R, theta, lamb, pd=1):
     N = trajs.shape[0]
     trajs_ellip = []
     real_ellip = []
@@ -59,7 +59,7 @@ def KochEOT_test():
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
@@ -195,17 +195,17 @@ def FeldmannEOT_test():
     T = 10
     tau = 4 * T
     entries = 1
-    df = 50
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.01
+    sigma_w = 5
     sigma_v = [50, 50]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)    # single dimension process noise cov
+    Q = model.Q_cv_dd(axis, T, sigma_w)    # single dimension process noise cov
     R = model.R_cv(axis, sigma_v)
 
     theta = [-45]
@@ -327,9 +327,9 @@ def LanEOT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
+    delta = 50
     entries = 1
-    df = 50
-    delta = 40
+    df = 60
     C = np.diag([340 / 2, 80 / 2])**2
 
     axis = 2

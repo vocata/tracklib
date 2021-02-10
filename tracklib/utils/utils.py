@@ -126,7 +126,7 @@ def ellip_volume(X):
     return vol
 
 
-def ellip_point(x0, y0, C, N):
+def ellip_point(x0, y0, C, N=200):
     C = (C + C.T) / 2
     U, s, V = lg.svd(C)
     D = (U + V) / 2

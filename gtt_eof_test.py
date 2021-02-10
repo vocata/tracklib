@@ -89,13 +89,13 @@ def KochGTT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 5
-    df = 50
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.1
     sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
@@ -263,18 +263,18 @@ def FeldmannGTT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    tau = 8 * T
+    tau = 4 * T
     entries = 5
-    df = 50
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 30
     sigma_v = [500., 100.]
 
     F = model.F_cv(axis, T)
     H = model.H_cv(axis)
-    Q = model.Q_cv_dd(1, T, sigma_w)
+    Q = model.Q_cv_dd(axis, T, sigma_w)
     R = model.R_cv(axis, sigma_v)
 
     eof = ft.FeldmannEOFilter(F, H, Q, R, T, tau)
@@ -436,13 +436,13 @@ def LanGTT_test():
 
     N = trajs_state[0].shape[0]
     T = 10
-    delta = 40
+    delta = 10
     entries = 5
-    df = 50
+    df = 60
 
     axis = 2
     zdim, xdim = 2, 4
-    sigma_w = 0.05
+    sigma_w = 0.1
     sigma_v = [500., 100.]
 
     F = model.F_cv(1, T)
